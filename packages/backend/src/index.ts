@@ -1,0 +1,180 @@
+import { Elysia } from "elysia";
+import { cors } from "@elysiajs/cors";
+import { openapi } from "@elysiajs/openapi";
+import { auth } from "./auth";
+import { env } from "./env";
+import { betterAuthPlugin, OpenAPI } from "./http/plugins/betterAuthPlugin";
+import { clansRoutes } from "./routes/clans.routes";
+import { organizationsRoutes } from "./routes/organizations.routes";
+import { subscriptionsRoutes } from "./routes/subscriptions.routes";
+import { stripeRoutes, stripeWebhookRoute } from "./routes/stripe.routes";
+import { adminRoutes } from "./routes/admin.routes";
+import { invitesRoutes } from "./routes/invites.routes";
+import { membersRoutes } from "./routes/members.routes";
+import { StripeController } from "./controllers/stripe.controller";
+import { StripeService } from "./services/stripe.service";
+import { SubscriptionRepository } from "./repositories/subscription.repository";
+import { OrganizationService } from "./services/organization.service";
+import { OrganizationRepository } from "./repositories/organization.repository";
+import { SubscriptionService } from "./services/subscription.service";
+import { warsRoutes } from "./routes/wars.routes";
+import { cwlRoutes } from "./routes/cwl.routes";
+import { currentWarRoutes } from "./routes/current-war.routes";
+import { playerPushLogsRoutes } from "./routes/player-push-logs.routes";
+import { setupPlayerPushJob, playerPushWorker } from "./jobs/player-push.job";
+import { setupSubscriptionExpiryJob, subscriptionExpiryWorker } from "./jobs/subscription-expiry.job";
+
+const corsOrigin = env.CORS_ORIGIN || env.BETTER_AUTH_TRUSTED_ORIGIN;
+const originArray = Array.isArray(corsOrigin) ? corsOrigin : [corsOrigin];
+
+const baseURL = env.BETTER_AUTH_BASE_URL || 
+  (Array.isArray(env.BETTER_AUTH_TRUSTED_ORIGIN) 
+    ? env.BETTER_AUTH_TRUSTED_ORIGIN[0] 
+    : env.BETTER_AUTH_TRUSTED_ORIGIN);
+
+
+// Inicializa dependências do Stripe para processar webhooks
+const stripeService = new StripeService();
+const subscriptionRepository = new SubscriptionRepository();
+const organizationRepository = new OrganizationRepository();
+const subscriptionService = new SubscriptionService(subscriptionRepository);
+const organizationService = new OrganizationService(
+  organizationRepository,
+  subscriptionService
+);
+const stripeController = new StripeController(
+  stripeService,
+  subscriptionRepository,
+  organizationService
+);
+
+const app = new Elysia()
+  .onRequest(async ({ request, set }) => {
+    // Intercepta requisições para /stripe/webhook ANTES de qualquer processamento
+    if (request.method === "POST" && new URL(request.url).pathname === "/stripe/webhook") {
+      try {
+        // Captura o body raw ANTES de qualquer processamento do Elysia
+        const rawBody = await request.text();
+        // Armazena no set para uso posterior
+        (set as any).rawBody = rawBody;
+        console.log(`📥 Webhook body capturado globalmente - Length: ${rawBody?.length || 0}`);
+        
+        // Processa o webhook diretamente aqui para evitar problemas de parse
+        if (rawBody) {
+          const signature = request.headers.get("stripe-signature");
+          console.log(`📝 Webhook signature: ${signature ? "present" : "missing"}`);
+          
+          try {
+            const result = await stripeController.handleWebhook({
+              request,
+              body: rawBody,
+              status: (code: number, data?: any) => ({ status: code, data }),
+            } as any);
+            
+            console.log(`✅ Webhook processado com sucesso`);
+            // Marca que o webhook foi processado para evitar processamento duplicado
+            (set as any).webhookProcessed = true;
+            (set as any).webhookResult = result || { received: true };
+          } catch (error) {
+            const message = error instanceof Error ? error.message : "Erro desconhecido";
+            console.error("❌ Erro ao processar webhook:", message);
+            (set as any).webhookProcessed = true;
+            (set as any).webhookResult = { received: true, error: message };
+          }
+        }
+      } catch (error) {
+        console.error("❌ Erro ao capturar body raw no onRequest global:", error);
+        (set as any).rawBody = "";
+        (set as any).webhookProcessed = true;
+        (set as any).webhookResult = { received: true, error: "Failed to read body" };
+      }
+    }
+  })
+  .use(
+    cors({
+      origin: originArray.length === 1 ? originArray[0] : originArray,
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+    })
+  )
+  .use(
+    openapi({
+      documentation: {
+        components: await OpenAPI.components,
+        paths: await OpenAPI.getPaths(),
+      },
+    })
+  )
+  .use(betterAuthPlugin)
+  .use(adminRoutes)
+  .use(organizationsRoutes)
+  .use(subscriptionsRoutes)
+  .use(invitesRoutes)
+  .use(membersRoutes)
+  .use(stripeWebhookRoute) // Webhook deve ser montado ANTES para capturar body raw
+  .use(stripeRoutes)
+  .use(clansRoutes)
+  .use(warsRoutes)
+  .use(cwlRoutes)
+  .use(currentWarRoutes)
+  .use(playerPushLogsRoutes)
+  .get("/health", () => ({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+  }))
+  .listen(Number(env.PORT));
+
+console.log(
+  `🦊 Backend rodando em http://${app.server?.hostname}:${app.server?.port}`
+);
+
+// Inicializar job de player push
+setupPlayerPushJob().catch((error) => {
+  console.error("Erro ao configurar job de player push:", error);
+});
+
+// Inicializar job de expiração de subscriptions
+setupSubscriptionExpiryJob().catch((error) => {
+  console.error("Erro ao configurar job de expiração de subscriptions:", error);
+});
+
+// Configurar handlers de eventos do worker
+playerPushWorker.on("completed", (job) => {
+  console.log(`[${new Date().toISOString()}] ✅ Job ${job.id} concluído com sucesso`);
+  console.log(`[${new Date().toISOString()}] 📊 Resultado:`, JSON.stringify(job.returnvalue));
+});
+
+playerPushWorker.on("failed", (job, err) => {
+  console.error(`[${new Date().toISOString()}] ❌ Job ${job?.id} falhou:`);
+  console.error(`[${new Date().toISOString()}] 📝 Erro:`, err.message);
+  console.error(`[${new Date().toISOString()}] 📚 Stack:`, err.stack);
+});
+
+playerPushWorker.on("active", (job) => {
+  console.log(`[${new Date().toISOString()}] 🔄 Job ${job.id} está ativo`);
+});
+
+playerPushWorker.on("stalled", (jobId) => {
+  console.warn(`[${new Date().toISOString()}] ⚠️  Job ${jobId} está travado`);
+});
+
+playerPushWorker.on("progress", (job, progress) => {
+  console.log(`[${new Date().toISOString()}] 📈 Job ${job.id} progresso: ${progress}%`);
+});
+
+playerPushWorker.on("error", (error) => {
+  console.error(`[${new Date().toISOString()}] 🚨 Erro no worker:`, error);
+});
+
+// Configurar handlers de eventos do worker de expiração
+subscriptionExpiryWorker.on("completed", (job) => {
+  console.log(`[${new Date().toISOString()}] ✅ Job de expiração ${job.id} concluído`);
+});
+
+subscriptionExpiryWorker.on("failed", (job, err) => {
+  console.error(`[${new Date().toISOString()}] ❌ Job de expiração ${job?.id} falhou:`, err.message);
+});
+
+export type App = typeof app;
+

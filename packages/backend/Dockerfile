@@ -1,0 +1,50 @@
+# Build stage
+FROM oven/bun:1 AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json bun.lockb* ./
+COPY packages/backend/package.json ./packages/backend/
+
+# Install dependencies
+RUN bun install --frozen-lockfile --production=false
+
+# Copy source code
+COPY packages/backend ./packages/backend
+
+# Generate Prisma Client
+WORKDIR /app/packages/backend
+RUN bun run db:generate
+
+# Production stage
+FROM oven/bun:1-slim
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json bun.lockb* ./
+COPY packages/backend/package.json ./packages/backend/
+
+# Install production dependencies only
+RUN bun install --frozen-lockfile --production
+
+# Copy source code and generated Prisma Client
+COPY --from=builder /app/packages/backend/src ./packages/backend/src
+COPY --from=builder /app/packages/backend/src/generated ./packages/backend/src/generated
+COPY --from=builder /app/packages/backend/prisma ./packages/backend/prisma
+COPY packages/backend/prisma.config.ts ./packages/backend/
+
+# Expose port
+EXPOSE 3000
+
+# Set environment to production
+ENV NODE_ENV=production
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD bun run --silent -e "fetch('http://localhost:3000/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
+
+# Run the application directly with Bun
+WORKDIR /app/packages/backend
+CMD ["bun", "run", "src/index.ts"]

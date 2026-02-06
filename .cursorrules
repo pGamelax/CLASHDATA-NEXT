@@ -1,0 +1,210 @@
+# Arquitetura do Backend
+
+## Estrutura de Pastas
+
+O backend segue uma arquitetura em camadas (Layered Architecture) com separação clara de responsabilidades:
+
+```
+packages/backend/src/
+├── routes/          # Definição das rotas HTTP (Elysia)
+├── controllers/     # Lógica de controle (validação, tratamento de erros HTTP)
+├── services/        # Lógica de negócio (regras de negócio, orquestração)
+├── repositories/    # Acesso a dados (Prisma, APIs externas)
+├── lib/            # Utilitários e configurações compartilhadas
+└── http/           # Plugins e middlewares HTTP
+```
+
+## Responsabilidades de Cada Camada
+
+### Routes (`routes/`)
+- **Responsabilidade**: Definir rotas HTTP, métodos, validação de schema (Zod/Elysia)
+- **O que faz**: 
+  - Define endpoints (GET, POST, PUT, DELETE, etc.)
+  - Validação de entrada (params, query, body)
+  - Documentação OpenAPI
+  - Chama controllers
+- **O que NÃO faz**: 
+  - Não contém lógica de negócio
+  - Não acessa banco de dados diretamente
+  - Não faz chamadas a APIs externas
+
+**Exemplo:**
+```typescript
+export const clansRoutes = new Elysia({ prefix: "/clans" })
+  .get("/search/:tag", async (context) => await clansController.searchClan(context), {
+    params: t.Object({ tag: t.String() }),
+  });
+```
+
+### Controllers (`controllers/`)
+- **Responsabilidade**: Orquestrar requisições HTTP, validação de autenticação, tratamento de erros HTTP
+- **O que faz**:
+  - Valida autenticação/autorização
+  - Extrai dados da requisição (body, params, query)
+  - Chama services
+  - Trata erros e retorna respostas HTTP apropriadas
+  - Converte erros de negócio em status HTTP
+- **O que NÃO faz**:
+  - Não contém lógica de negócio complexa
+  - Não acessa banco de dados diretamente
+  - Não faz chamadas a APIs externas
+
+**Exemplo:**
+```typescript
+async searchClan({ params, status }: Context) {
+  try {
+    const { tag } = params as { tag: string };
+    const clanData = await this.clashOfClansService.searchClanByTag(tag);
+    return clanData;
+  } catch (error) {
+    return status(500, { message: error.message });
+  }
+}
+```
+
+### Services (`services/`)
+- **Responsabilidade**: Lógica de negócio, orquestração entre repositories, validações de negócio
+- **O que faz**:
+  - Implementa regras de negócio
+  - Orquestra múltiplos repositories
+  - Validações de negócio (não HTTP)
+  - Transformações de dados
+  - Chama repositories para acesso a dados
+- **O que NÃO faz**:
+  - Não conhece detalhes HTTP (status codes, headers)
+  - Não acessa banco de dados diretamente (usa repositories)
+  - Não faz chamadas HTTP diretas (usa services especializados)
+
+**Exemplo:**
+```typescript
+async createOrganizationFromClan(userId: string, clanTag: string, clanData: ClanData) {
+  // Validação de negócio
+  const existingOrg = await this.organizationRepository.findBySlug(slug);
+  if (existingOrg) {
+    throw new Error("Organização com essa tag já existe");
+  }
+  
+  // Orquestração
+  const organization = await this.organizationRepository.create({...});
+  await this.organizationRepository.addMember(organization.id, userId, "owner");
+  return organization;
+}
+```
+
+### Repositories (`repositories/`)
+- **Responsabilidade**: Acesso a dados (banco de dados, APIs externas, cache)
+- **O que faz**:
+  - Abstrai acesso ao Prisma
+  - Abstrai chamadas a APIs externas
+  - Operações CRUD
+  - Queries complexas
+- **O que NÃO faz**:
+  - Não contém lógica de negócio
+  - Não valida regras de negócio
+  - Não conhece detalhes HTTP
+
+**Exemplo:**
+```typescript
+async findBySlug(slug: string) {
+  return await prisma.organization.findFirst({
+    where: { slug },
+  });
+}
+```
+
+## Padrões a Seguir
+
+### 1. Injeção de Dependências
+- Controllers recebem Services via construtor
+- Services recebem Repositories via construtor
+- Instanciar dependências no arquivo de routes
+
+### 2. Tratamento de Erros
+- **Repositories**: Lançam erros genéricos ou específicos do Prisma
+- **Services**: Lançam erros de negócio (ex: "Organização já existe")
+- **Controllers**: Capturam erros e convertem em respostas HTTP apropriadas
+
+### 3. Nomenclatura
+- **Routes**: `*.routes.ts` (ex: `clans.routes.ts`)
+- **Controllers**: `*.controller.ts` (ex: `clans.controller.ts`)
+- **Services**: `*.service.ts` (ex: `organization.service.ts`)
+- **Repositories**: `*.repository.ts` (ex: `organization.repository.ts`)
+
+### 4. Validação
+- Validação de schema (Zod/Elysia) nas routes
+- Validação de negócio nos services
+- Validação de autenticação nos controllers
+
+### 5. Testabilidade
+- Cada camada pode ser testada independentemente
+- Dependências podem ser mockadas facilmente
+- Services e repositories são classes puras (sem dependências de framework)
+
+## Exemplo Completo
+
+### 1. Repository
+```typescript
+// repositories/user.repository.ts
+export class UserRepository {
+  async findById(id: string) {
+    return await prisma.user.findUnique({ where: { id } });
+  }
+}
+```
+
+### 2. Service
+```typescript
+// services/user.service.ts
+export class UserService {
+  constructor(private userRepository: UserRepository) {}
+  
+  async getUserById(id: string) {
+    const user = await this.userRepository.findById(id);
+    if (!user) {
+      throw new Error("Usuário não encontrado");
+    }
+    return user;
+  }
+}
+```
+
+### 3. Controller
+```typescript
+// controllers/user.controller.ts
+export class UserController {
+  constructor(private userService: UserService) {}
+  
+  async getUser({ params, status }: Context) {
+    try {
+      const { id } = params as { id: string };
+      const user = await this.userService.getUserById(id);
+      return user;
+    } catch (error) {
+      return status(404, { message: error.message });
+    }
+  }
+}
+```
+
+### 4. Route
+```typescript
+// routes/user.routes.ts
+const userRepository = new UserRepository();
+const userService = new UserService(userRepository);
+const userController = new UserController(userService);
+
+export const userRoutes = new Elysia({ prefix: "/users" })
+  .get("/:id", async (context) => await userController.getUser(context), {
+    params: t.Object({ id: t.String() }),
+  });
+```
+
+## Regras Importantes
+
+1. **NUNCA** acesse Prisma diretamente em controllers ou services - sempre use repositories
+2. **NUNCA** coloque lógica de negócio em routes ou controllers
+3. **SEMPRE** valide autenticação nos controllers antes de chamar services
+4. **SEMPRE** trate erros HTTP nos controllers
+5. **SEMPRE** use injeção de dependências via construtor
+6. **SEMPRE** siga a ordem: Route → Controller → Service → Repository
+

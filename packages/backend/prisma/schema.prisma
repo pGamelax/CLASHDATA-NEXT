@@ -1,0 +1,212 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+// Better Auth tables
+model User {
+  id            String   @id @default(cuid())
+  name          String?
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  role          String   @default("user")
+  banned        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  members       Member[]
+  invites       Invite[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  accountId         String
+  providerId        String
+  accessToken       String? @db.Text
+  refreshToken      String? @db.Text
+  idToken           String? @db.Text
+  accessTokenExpiresAt DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope             String?
+  password          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("account")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("session")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([identifier, value])
+  @@map("verification")
+}
+
+model Organization {
+  id            String       @id @default(cuid())
+  name          String
+  slug          String       @unique
+  logo          String?
+  metadata      Json?
+  subscription  Subscription?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  members       Member[]
+  clans         Clan[]
+  invites       Invite[]
+
+  @@map("organization")
+}
+
+model Clan {
+  id             String       @id @default(cuid())
+  organizationId String
+  tag            String       @unique // Tag do clan do Clash of Clans (ex: #2GPV299QG) - única globalmente
+  name           String
+  description    String?
+  badgeUrls      Json?        // URLs dos badges (small, medium, large)
+  clanLevel      Int?
+  clanPoints     Int?
+  members        Int?
+  metadata       Json?        // Dados adicionais do clan
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("clan")
+}
+
+model Member {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  role           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@index([organizationId])
+  @@map("member")
+}
+
+model Player {
+  id        String   @id @default(cuid())
+  tag       String   @unique
+  name      String
+  trophies  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  logs      LegendLeagueLog[]
+
+  @@index([tag])
+  @@map("player")
+}
+
+model LegendLeagueLog {
+  id          String   @id @default(cuid())
+  playerId    String
+  player      Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  type        String   // "attack" ou "defense"
+  trophiesChange Int   // Mudança de troféus (positivo para attack, negativo para defense)
+  previousTrophies Int // Troféus anteriores
+  currentTrophies  Int // Troféus atuais
+  clanTag     String?  // Tag do clan atual do jogador
+  createdAt   DateTime @default(now())
+
+  @@index([playerId])
+  @@index([createdAt])
+  @@map("legend_league_log")
+}
+
+// Subscription models
+enum SubscriptionPlan {
+  MESTRE   // R$ 29,90 - 1 clan, 1 convite
+  CAMPEAO  // R$ 45,90 - 2 clans, 2 convites
+  TITA     // R$ 74,90 - 3 clans, 3 convites
+}
+
+enum SubscriptionStatus {
+  TRIAL       // Free trial de 3 dias
+  ACTIVE      // Assinatura ativa e paga
+  CANCELLED   // Assinatura cancelada
+  EXPIRED     // Assinatura expirada
+}
+
+model Subscription {
+  id                String             @id @default(cuid())
+  organizationId    String             @unique
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  plan              SubscriptionPlan
+  status            SubscriptionStatus @default(TRIAL)
+  trialEndsAt       DateTime?          // Data de término do trial (3 dias após criação)
+  currentPeriodEnd  DateTime?          // Data de término do período atual
+  cancelAtPeriodEnd Boolean            @default(false)
+  paymentProvider   String?            @default("stripe") // Provider de pagamento
+  paymentProviderId String?            // ID da subscription no Stripe (sub_xxx)
+  stripeCustomerId  String?            // ID do customer no Stripe (cus_xxx)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([stripeCustomerId])
+  @@map("subscription")
+}
+
+model Invite {
+  id             String       @id @default(cuid())
+  organizationId String
+  userId         String       // Usuário convidado
+  invitedBy      String       // ID do usuário que enviou o convite
+  status         String       @default("PENDING") // PENDING, ACCEPTED, REJECTED, EXPIRED
+  expiresAt      DateTime?    // Data de expiração do convite (opcional)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@index([organizationId])
+  @@index([status])
+  @@map("invite")
+}

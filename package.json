@@ -1,0 +1,12 @@
+{
+  "name": "clashdata-next",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "bun run --filter='*' dev",
+    "build": "bun run --filter='*' build"
+  },
+  "workspaces": [
+    "packages/*"
+  ]
+}
