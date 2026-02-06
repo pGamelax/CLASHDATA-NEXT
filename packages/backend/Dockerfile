@@ -25,7 +25,7 @@ FROM oven/bun:1-slim
 WORKDIR /app
 
 # Copy package files from root (must be available in build context)
-COPY package.json bun.lockb* ./
+COPY package.json bun.lock* ./
 
 # Copy backend package.json from builder
 COPY --from=builder /app/packages/backend/package.json ./packages/backend/
