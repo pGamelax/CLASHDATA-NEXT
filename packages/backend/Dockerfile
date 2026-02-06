@@ -6,10 +6,12 @@ WORKDIR /app
 # Copy package files from root
 COPY package.json bun.lock ./
 
-# Copy backend package.json
+# Copy all workspace package.json files (Bun needs all workspaces defined)
 COPY packages/backend/package.json ./packages/backend/
+COPY packages/frontend/package.json ./packages/frontend/
 
 # Install dependencies (including devDependencies for build)
+# Bun will install all workspaces when installing from root
 RUN bun install --frozen-lockfile
 
 # Copy all backend source code
