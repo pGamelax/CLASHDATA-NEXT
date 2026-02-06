@@ -3,14 +3,16 @@ FROM oven/bun:1 AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json bun.lockb* ./
+# Copy package files from root
+COPY package.json bun.lock ./
+
+# Copy backend package.json
 COPY packages/backend/package.json ./packages/backend/
 
 # Install dependencies
 RUN bun install --frozen-lockfile --production=false
 
-# Copy source code
+# Copy all backend source code
 COPY packages/backend ./packages/backend
 
 # Generate Prisma Client
@@ -22,18 +24,20 @@ FROM oven/bun:1-slim
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files from root (must be available in build context)
 COPY package.json bun.lockb* ./
-COPY packages/backend/package.json ./packages/backend/
+
+# Copy backend package.json from builder
+COPY --from=builder /app/packages/backend/package.json ./packages/backend/
 
 # Install production dependencies only
 RUN bun install --frozen-lockfile --production
 
-# Copy source code and generated Prisma Client
+# Copy source code and generated Prisma Client from builder
 COPY --from=builder /app/packages/backend/src ./packages/backend/src
 COPY --from=builder /app/packages/backend/src/generated ./packages/backend/src/generated
 COPY --from=builder /app/packages/backend/prisma ./packages/backend/prisma
-COPY packages/backend/prisma.config.ts ./packages/backend/
+COPY --from=builder /app/packages/backend/prisma.config.ts ./packages/backend/prisma.config.ts
 
 # Expose port
 EXPOSE 3000

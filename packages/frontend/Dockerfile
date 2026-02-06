@@ -4,7 +4,7 @@ FROM oven/bun:1 AS builder
 WORKDIR /app
 
 # Copy package files
-COPY package.json bun.lockb* ./
+COPY package.json bun.lock ./
 COPY packages/frontend/package.json ./packages/frontend/
 
 # Install dependencies
@@ -31,7 +31,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Copy package files
-COPY package.json bun.lockb* ./
+COPY package.json bun.lock ./
 COPY packages/frontend/package.json ./packages/frontend/
 
 # Install production dependencies only

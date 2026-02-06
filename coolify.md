@@ -15,7 +15,7 @@ Este documento explica como fazer deploy do CLASHDATA no Coolify.
 1. **Criar novo Resource (Backend)**
    - Tipo: `Dockerfile`
    - Dockerfile Path: `packages/backend/Dockerfile`
-   - Build Context: `.` (raiz do projeto)
+   - **Build Context: `.` (raiz do projeto)** ⚠️ IMPORTANTE: Deve ser a raiz do repositório
    - Port: `3000`
 
 2. **Variáveis de Ambiente (Backend)**
@@ -44,7 +44,7 @@ Este documento explica como fazer deploy do CLASHDATA no Coolify.
 1. **Criar novo Resource (Frontend)**
    - Tipo: `Dockerfile`
    - Dockerfile Path: `packages/frontend/Dockerfile`
-   - Build Context: `.` (raiz do projeto)
+   - **Build Context: `.` (raiz do projeto)** ⚠️ IMPORTANTE: Deve ser a raiz do repositório
    - Port: `3001`
 
 2. **Variáveis de Ambiente (Frontend)**
