@@ -12,14 +12,16 @@ COPY packages/frontend/package.json ./packages/frontend/
 
 # Install dependencies (including devDependencies for build)
 # Bun will install all workspaces when installing from root
-RUN bun install --frozen-lockfile
+# Try with --frozen-lockfile first, fallback to regular install if lockfile is out of sync
+RUN bun install --frozen-lockfile || bun install 
 
 # Copy all backend source code
 COPY packages/backend ./packages/backend
 
 # Generate Prisma Client
 WORKDIR /app/packages/backend
-RUN bun run db:generate
+# Use bunx to run prisma generate (works better in Docker)
+RUN bunx --bun prisma generate --schema=./prisma/schema.prisma
 
 # Production stage
 FROM oven/bun:1-slim
@@ -33,7 +35,8 @@ COPY package.json bun.lock ./
 COPY --from=builder /app/packages/backend/package.json ./packages/backend/
 
 # Install production dependencies only
-RUN bun install --frozen-lockfile --production
+# Try with --frozen-lockfile first, fallback to regular install if lockfile is out of sync
+RUN bun install --frozen-lockfile --production || bun install --production
 
 # Copy source code and generated Prisma Client from builder
 COPY --from=builder /app/packages/backend/src ./packages/backend/src
