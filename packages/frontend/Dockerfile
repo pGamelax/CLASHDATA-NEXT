@@ -33,7 +33,7 @@ COPY packages/frontend/package.json ./packages/frontend/
 RUN bun install --frozen-lockfile || bun install
 
 # Copy built application
-COPY --from=builder /app/packages/frontend/public ./packages/frontend/public
+# Next.js standalone already includes public files if they exist
 COPY --from=builder /app/packages/frontend/.next/standalone ./packages/frontend/
 COPY --from=builder /app/packages/frontend/.next/static ./packages/frontend/.next/static
 
