@@ -9,8 +9,8 @@ COPY package.json bun.lock ./
 # Copy backend package.json
 COPY packages/backend/package.json ./packages/backend/
 
-# Install dependencies
-RUN bun install --frozen-lockfile --production=false
+# Install dependencies (including devDependencies for build)
+RUN bun install --frozen-lockfile
 
 # Copy all backend source code
 COPY packages/backend ./packages/backend

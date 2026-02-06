@@ -7,16 +7,11 @@ WORKDIR /app
 COPY package.json bun.lock ./
 COPY packages/frontend/package.json ./packages/frontend/
 
-# Install dependencies
-RUN bun install --frozen-lockfile --production=false
+# Install dependencies (including devDependencies for build)
+RUN bun install --frozen-lockfile
 
-# Copy source code
+# Copy source code (all files including configs)
 COPY packages/frontend ./packages/frontend
-COPY packages/frontend/next.config.js ./packages/frontend/
-COPY packages/frontend/tsconfig.json ./packages/frontend/
-COPY packages/frontend/postcss.config.mjs ./packages/frontend/
-COPY packages/frontend/components.json ./packages/frontend/
-COPY packages/frontend/tailwind.config.* ./packages/frontend/ 2>/dev/null || true
 
 # Build the application
 WORKDIR /app/packages/frontend
