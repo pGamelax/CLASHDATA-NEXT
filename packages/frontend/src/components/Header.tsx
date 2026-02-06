@@ -12,13 +12,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings, Plus, ChevronDown, LayoutDashboard, Shield, Swords, BarChart3, Users, Trophy, Zap, TrendingUp, CreditCard } from "lucide-react";
+import { LogOut, Settings, Plus, ChevronDown, LayoutDashboard, Shield, Swords, BarChart3, Users, Trophy, Zap, TrendingUp, CreditCard, Menu } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { OrganizationSelector } from "./OrganizationSelector";
 import { ClanSelector } from "./ClanSelector";
 import { PendingInvites } from "./PendingInvites";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 interface HeaderProps {
   user?: {
@@ -68,6 +75,7 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
   const { data: session } = useSession();
   const { data: organizations, isPending: isLoadingOrgs, refetch } = useOrganizations();
   const [selectedOrganization, setSelectedOrganization] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   
   // Usa o usuário da sessão se disponível (sempre atualizado), senão usa o initialUser (SSR)
   // Prioriza session?.user porque é atualizado em tempo real
@@ -366,28 +374,76 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
             {/* Links de Navegação - apenas na home quando não está em org/clan */}
             {!organization && !clan && (
               <>
-                {user && (
-                  <>
+                {/* Mobile: Sheet Menu */}
+                <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+                  <SheetTrigger asChild>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-[11px] sm:text-sm px-2 sm:px-3 h-7 sm:h-8"
-                      onClick={() => router.push("/organizations")}
+                      className="sm:hidden h-8 w-8 p-0"
                     >
-                      Organizações
+                      <Menu className="h-5 w-5" />
+                      <span className="sr-only">Abrir menu</span>
                     </Button>
-                    <div className="w-px h-6 bg-border/40 shrink-0" />
-                  </>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-[11px] sm:text-sm px-2 sm:px-3 h-7 sm:h-8"
-                  onClick={() => router.push("/pricing")}
-                >
-                  Planos
-                </Button>
-                <div className="w-px h-6 bg-border/40 shrink-0" />
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                    <SheetHeader>
+                      <SheetTitle>Menu</SheetTitle>
+                    </SheetHeader>
+                    <div className="mt-6 space-y-2">
+                      {user && (
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start text-base h-12"
+                          onClick={() => {
+                            setSheetOpen(false);
+                            router.push("/organizations");
+                          }}
+                        >
+                          <LayoutDashboard className="mr-3 h-5 w-5" />
+                          Organizações
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-base h-12"
+                        onClick={() => {
+                          setSheetOpen(false);
+                          router.push("/pricing");
+                        }}
+                      >
+                        <CreditCard className="mr-3 h-5 w-5" />
+                        Planos
+                      </Button>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+
+                {/* Desktop: Botões normais */}
+                <div className="hidden sm:flex items-center gap-1.5">
+                  {user && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-sm px-3 h-8"
+                        onClick={() => router.push("/organizations")}
+                      >
+                        Organizações
+                      </Button>
+                      <div className="w-px h-6 bg-border/40 shrink-0" />
+                    </>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-sm px-3 h-8"
+                    onClick={() => router.push("/pricing")}
+                  >
+                    Planos
+                  </Button>
+                  <div className="w-px h-6 bg-border/40 shrink-0" />
+                </div>
               </>
             )}
 
