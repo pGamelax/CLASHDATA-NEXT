@@ -36,7 +36,7 @@ COPY --from=builder /app/packages/backend/package.json ./packages/backend/
 
 # Install production dependencies only
 # Try with --frozen-lockfile first, fallback to regular install if lockfile is out of sync
-RUN bun install --frozen-lockfile --production || bun install --production
+RUN bun install --frozen-lockfile || bun install
 
 # Copy source code and generated Prisma Client from builder
 COPY --from=builder /app/packages/backend/src ./packages/backend/src
