@@ -179,11 +179,11 @@ export default function NewOrganizationPage() {
               </CardContent>
             </Card>
 
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 type="submit"
                 disabled={isCreating}
-                className="flex-1 h-12 shadow-lg hover:shadow-xl hover:scale-105 transition-all"
+                className="flex-1 h-12 shadow-lg hover:shadow-xl hover:scale-105 transition-all order-2 sm:order-1"
                 size="lg"
               >
                 {isCreating ? (
@@ -194,7 +194,8 @@ export default function NewOrganizationPage() {
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4 mr-2" />
-                    Continuar para Pagamento
+                    <span className="hidden sm:inline">Continuar para Pagamento</span>
+                    <span className="sm:hidden">Continuar</span>
                   </>
                 )}
               </Button>
@@ -203,7 +204,7 @@ export default function NewOrganizationPage() {
                 variant="outline"
                 onClick={() => router.push("/pricing")}
                 disabled={isCreating}
-                className="h-12 border-2 hover:bg-muted/50 transition-all"
+                className="h-12 border-2 hover:bg-muted/50 transition-all order-1 sm:order-2"
                 size="lg"
               >
                 Voltar

@@ -135,12 +135,12 @@ export default function PricingPage() {
           </p>
 
           {/* Seletor de Período */}
-          <div className="flex justify-center mb-8">
-            <div className="inline-flex rounded-xl border-2 border-border bg-card p-1.5 shadow-lg">
+          <div className="flex justify-center mb-8 px-4">
+            <div className="inline-flex rounded-xl border-2 border-border bg-card p-1 sm:p-1.5 shadow-lg overflow-x-auto scrollbar-hide max-w-full">
               <button
                 type="button"
                 onClick={() => setSelectedPeriod("monthly")}
-                className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                className={`px-3 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap shrink-0 ${
                   selectedPeriod === "monthly"
                     ? "bg-primary text-primary-foreground shadow-md"
                     : "text-muted-foreground hover:text-foreground"
@@ -151,28 +151,28 @@ export default function PricingPage() {
               <button
                 type="button"
                 onClick={() => setSelectedPeriod("quarterly")}
-                className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                className={`px-3 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap shrink-0 ${
                   selectedPeriod === "quarterly"
                     ? "bg-primary text-primary-foreground shadow-md"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Trimestral
-                <Badge variant="secondary" className="ml-2 bg-green-500/10 text-green-600 dark:text-green-400 text-[10px]">
+                <Badge variant="secondary" className="ml-1 sm:ml-2 bg-green-500/10 text-green-600 dark:text-green-400 text-[9px] sm:text-[10px]">
                   10% OFF
                 </Badge>
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedPeriod("yearly")}
-                className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                className={`px-3 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap shrink-0 ${
                   selectedPeriod === "yearly"
                     ? "bg-primary text-primary-foreground shadow-md"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Anual
-                <Badge variant="secondary" className="ml-2 bg-green-500/10 text-green-600 dark:text-green-400 text-[10px]">
+                <Badge variant="secondary" className="ml-1 sm:ml-2 bg-green-500/10 text-green-600 dark:text-green-400 text-[9px] sm:text-[10px]">
                   20% OFF
                 </Badge>
               </button>

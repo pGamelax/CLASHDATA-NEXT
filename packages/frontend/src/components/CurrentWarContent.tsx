@@ -290,10 +290,10 @@ export function CurrentWarContent({ clanTag }: CurrentWarContentProps) {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
-          <TabsTrigger value="three-stars">3 Estrelas</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-3">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+          <TabsTrigger value="timeline" className="text-xs sm:text-sm">Timeline</TabsTrigger>
+          <TabsTrigger value="three-stars" className="text-xs sm:text-sm">3 Estrelas</TabsTrigger>
         </TabsList>
 
         {/* Tab Overview */}
@@ -303,7 +303,7 @@ export function CurrentWarContent({ clanTag }: CurrentWarContentProps) {
               <CardTitle>Informações da Guerra</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted-foreground" />
                   <div>

@@ -428,12 +428,14 @@ export function AdminDashboard() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="stats">Estatísticas</TabsTrigger>
-          <TabsTrigger value="subscriptions">Assinaturas</TabsTrigger>
-          <TabsTrigger value="organizations">Organizações</TabsTrigger>
-          <TabsTrigger value="users">Usuários</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+          <TabsList className="w-full sm:w-auto min-w-full sm:min-w-0">
+            <TabsTrigger value="stats" className="text-xs sm:text-sm whitespace-nowrap">Estatísticas</TabsTrigger>
+            <TabsTrigger value="subscriptions" className="text-xs sm:text-sm whitespace-nowrap">Assinaturas</TabsTrigger>
+            <TabsTrigger value="organizations" className="text-xs sm:text-sm whitespace-nowrap">Organizações</TabsTrigger>
+            <TabsTrigger value="users" className="text-xs sm:text-sm whitespace-nowrap">Usuários</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="stats" className="space-y-4">
           <Card>

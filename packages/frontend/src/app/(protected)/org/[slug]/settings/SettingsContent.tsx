@@ -166,8 +166,8 @@ export function SettingsContent({ organization: initialOrganization }: { organiz
   return (
     <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
-          <p className="text-muted-foreground mt-1.5">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Configurações</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1.5">
             Gerencie as configurações da organização
           </p>
         </div>
@@ -220,7 +220,7 @@ export function SettingsContent({ organization: initialOrganization }: { organiz
             <Button
               onClick={handleUpdate}
               disabled={loading || (name === organization.name && slug === organization.slug)}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto shrink-0"
             >
               {loading ? (
                 <>
@@ -263,11 +263,11 @@ export function SettingsContent({ organization: initialOrganization }: { organiz
                 organization.clans.map((clan) => (
                   <div
                     key={clan.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    className="flex items-center justify-between gap-2 sm:gap-4 p-3 sm:p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                   >
-                    <div>
-                      <p className="font-semibold">{clan.name}</p>
-                      <p className="text-sm text-muted-foreground font-mono">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold truncate">{clan.name}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground font-mono truncate">
                         #{clan.tag || clan.clanTag}
                       </p>
                     </div>
@@ -324,7 +324,7 @@ export function SettingsContent({ organization: initialOrganization }: { organiz
                 <Button
                   variant="destructive"
                   disabled={deleting}
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto shrink-0"
                 >
                   {deleting ? (
                     <>
