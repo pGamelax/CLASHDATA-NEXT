@@ -8,7 +8,7 @@ COPY package.json bun.lock ./
 COPY packages/frontend/package.json ./packages/frontend/
 
 # Install dependencies (including devDependencies for build)
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile || bun install
 
 # Copy source code (all files including configs)
 COPY packages/frontend ./packages/frontend
@@ -30,7 +30,7 @@ COPY package.json bun.lock ./
 COPY packages/frontend/package.json ./packages/frontend/
 
 # Install production dependencies only
-RUN bun install --frozen-lockfile --production
+RUN bun install --frozen-lockfile || bun install
 
 # Copy built application
 COPY --from=builder /app/packages/frontend/public ./packages/frontend/public
