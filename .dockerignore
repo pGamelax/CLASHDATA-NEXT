@@ -21,3 +21,10 @@ packages/*/node_modules
 packages/*/dist
 packages/*/.next
 packages/*/out
+# Não ignorar arquivos essenciais
+!package.json
+!bun.lock
+!packages/**/package.json
+!packages/**/*.config.*
+!packages/**/tsconfig.json
+!packages/**/components.json

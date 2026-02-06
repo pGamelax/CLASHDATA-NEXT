@@ -10,12 +10,21 @@ Este documento explica como fazer deploy do CLASHDATA no Coolify.
 
 ## Configuração no Coolify
 
+### ⚠️ CONFIGURAÇÃO CRÍTICA DO BUILD CONTEXT
+
+**ANTES DE TUDO**: No Coolify, ao criar o Resource, configure:
+
+1. **Build Context**: Deve ser exatamente `.` (ponto) - a raiz do repositório
+2. **Dockerfile Path**: O caminho relativo ao Build Context
+
+Se o Build Context estiver errado, os arquivos não serão encontrados e o build falhará.
+
 ### Backend
 
 1. **Criar novo Resource (Backend)**
    - Tipo: `Dockerfile`
-   - Dockerfile Path: `packages/backend/Dockerfile`
-   - **Build Context: `.` (raiz do projeto)** ⚠️ IMPORTANTE: Deve ser a raiz do repositório
+   - **Build Context: `.`** ⚠️ CRÍTICO: Deve ser a raiz do repositório (não `packages/backend`)
+   - **Dockerfile Path: `packages/backend/Dockerfile`** (relativo ao Build Context)
    - Port: `3000`
 
 2. **Variáveis de Ambiente (Backend)**
@@ -43,8 +52,8 @@ Este documento explica como fazer deploy do CLASHDATA no Coolify.
 
 1. **Criar novo Resource (Frontend)**
    - Tipo: `Dockerfile`
-   - Dockerfile Path: `packages/frontend/Dockerfile`
-   - **Build Context: `.` (raiz do projeto)** ⚠️ IMPORTANTE: Deve ser a raiz do repositório
+   - **Build Context: `.`** ⚠️ CRÍTICO: Deve ser a raiz do repositório (não `packages/frontend`)
+   - **Dockerfile Path: `packages/frontend/Dockerfile`** (relativo ao Build Context)
    - Port: `3001`
 
 2. **Variáveis de Ambiente (Frontend)**
