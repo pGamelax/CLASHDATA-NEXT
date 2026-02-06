@@ -1,9 +1,9 @@
 import { Elysia } from "elysia";
-import { auth } from "@/auth";
-import { OrganizationService } from "@/services/organization.service";
-import { OrganizationRepository } from "@/repositories/organization.repository";
-import { SubscriptionService } from "@/services/subscription.service";
-import { SubscriptionRepository } from "@/repositories/subscription.repository";
+import { auth } from "../../auth";
+import { OrganizationService } from "../../services/organization.service";
+import { OrganizationRepository } from "../../repositories/organization.repository";
+import { SubscriptionService } from "../../services/subscription.service";
+import { SubscriptionRepository } from "../../repositories/subscription.repository";
 
 // Instância compartilhada do service
 let organizationServiceInstance: OrganizationService | null = null;
