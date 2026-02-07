@@ -53,31 +53,26 @@ export class CurrentCWLController {
         return status(404, { message: "Guerra não encontrada" });
       }
 
-      // Se a guerra está em preparation e não tem clan/opponent, retorna a guerra sem processar scores
-      if ((!war.clan || !war.opponent) && war.state === "preparation") {
+      // Se não tem clan ou opponent, retorna a guerra como está (sem processar scores)
+      // Isso pode acontecer em estados como "preparation" ou quando os dados ainda não estão disponíveis
+      if (!war.clan || !war.opponent) {
+        console.log(`Guerra ${warTag} sem clan/opponent completo. Estado: ${war.state}`);
         return war;
       }
 
-      // Se não tem clan ou opponent e não está em preparation, retorna erro
-      if (!war.clan || !war.opponent) {
-        return status(422, { 
-          message: "Dados da guerra incompletos: a guerra pode ainda não ter sido iniciada ou os dados não estão disponíveis" 
-        });
+      // Se tem clan e opponent, calcula performanceScore para ambos os lados da guerra
+      try {
+        const warWithScores = this.calculateWarMemberScoresForBothSides(war);
+        return warWithScores;
+      } catch (error) {
+        // Se houver erro ao calcular scores, retorna a guerra sem scores
+        console.warn(`Erro ao calcular scores da guerra ${warTag}:`, error);
+        return war;
       }
-
-      // Calcula performanceScore para ambos os lados da guerra
-      const warWithScores = this.calculateWarMemberScoresForBothSides(war);
-      
-      return warWithScores;
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Erro desconhecido";
       console.error("Erro ao buscar guerra CWL:", error);
-      
-      // Retorna status 422 se for erro de dados incompletos
-      if (message.includes("incompletos")) {
-        return status(422, { message });
-      }
       
       return status(500, { message });
     }
