@@ -66,25 +66,22 @@ export class CurrentCWLService {
    * Calcula o performanceScore para os membros de uma guerra
    */
   private calculateWarMemberScores(war: CWLWarData, clanTag: string): CWLWarData {
-    // Valida se os dados do clan e opponent existem
+    // Se não tem clan ou opponent, retorna a guerra sem processar
     if (!war.clan || !war.opponent) {
-      throw new Error("Dados da guerra incompletos: clan ou opponent não encontrado");
-    }
-
-    // Valida se os arrays de membros existem
-    if (!war.clan.members || !Array.isArray(war.clan.members)) {
-      throw new Error("Dados da guerra incompletos: membros do clan não encontrados");
-    }
-
-    if (!war.opponent.members || !Array.isArray(war.opponent.members)) {
-      throw new Error("Dados da guerra incompletos: membros do oponente não encontrados");
+      return war;
     }
 
     const clanTagToFind = clanTag.startsWith("#") ? clanTag : `#${clanTag}`;
     const isOurClan = war.clan.tag === clanTagToFind;
 
+    // Valida se os arrays de membros existem, se não existir, usa array vazio
+    const ourClan = isOurClan ? war.clan : war.opponent;
+    const opponent = isOurClan ? war.opponent : war.clan;
+
     // Calcula performanceScore para cada membro do nosso clan
-    const ourClanMembers = (isOurClan ? war.clan : war.opponent).members.map((member) => {
+    const ourClanMembers = (ourClan.members && Array.isArray(ourClan.members)
+      ? ourClan.members
+      : []).map((member) => {
       const attacks = member.attacks || [];
       const totalStars = attacks.reduce((sum, attack) => sum + attack.stars, 0);
       const performanceScore = this.calculatePerformanceScore(totalStars, attacks.length);
@@ -96,7 +93,9 @@ export class CurrentCWLService {
     });
 
     // Calcula performanceScore para cada membro do oponente também
-    const opponentMembers = (isOurClan ? war.opponent : war.clan).members.map((member) => {
+    const opponentMembers = (opponent.members && Array.isArray(opponent.members)
+      ? opponent.members
+      : []).map((member) => {
       const attacks = member.attacks || [];
       const totalStars = attacks.reduce((sum, attack) => sum + attack.stars, 0);
       const performanceScore = this.calculatePerformanceScore(totalStars, attacks.length);
@@ -139,22 +138,15 @@ export class CurrentCWLService {
    * Calcula o performanceScore para ambos os lados da guerra (sem precisar do clanTag)
    */
   calculateWarMemberScoresForBothSides(war: CWLWarData): CWLWarData {
-    // Valida se os dados do clan e opponent existem
+    // Se não tem clan ou opponent, retorna a guerra sem processar
     if (!war.clan || !war.opponent) {
-      throw new Error("Dados da guerra incompletos: clan ou opponent não encontrado");
+      return war;
     }
 
-    // Valida se os arrays de membros existem
-    if (!war.clan.members || !Array.isArray(war.clan.members)) {
-      throw new Error("Dados da guerra incompletos: membros do clan não encontrados");
-    }
-
-    if (!war.opponent.members || !Array.isArray(war.opponent.members)) {
-      throw new Error("Dados da guerra incompletos: membros do oponente não encontrados");
-    }
-
-    // Calcula performanceScore para cada membro do clan
-    const clanMembers = war.clan.members.map((member) => {
+    // Valida se os arrays de membros existem, se não existir, usa array vazio
+    const clanMembers = (war.clan.members && Array.isArray(war.clan.members) 
+      ? war.clan.members 
+      : []).map((member) => {
       const attacks = member.attacks || [];
       const totalStars = attacks.reduce((sum, attack) => sum + attack.stars, 0);
       const performanceScore = this.calculatePerformanceScore(totalStars, attacks.length);
@@ -166,7 +158,9 @@ export class CurrentCWLService {
     });
 
     // Calcula performanceScore para cada membro do oponente
-    const opponentMembers = war.opponent.members.map((member) => {
+    const opponentMembers = (war.opponent.members && Array.isArray(war.opponent.members)
+      ? war.opponent.members
+      : []).map((member) => {
       const attacks = member.attacks || [];
       const totalStars = attacks.reduce((sum, attack) => sum + attack.stars, 0);
       const performanceScore = this.calculatePerformanceScore(totalStars, attacks.length);
@@ -211,7 +205,7 @@ export class CurrentCWLService {
     let currentWarTag: string | null = null;
     const clanTagToFind = clanTag.startsWith("#") ? clanTag : `#${clanTag}`;
 
-    if (group.state === "inWar") {
+    if (group.state === "inWar" || group.state === "preparation") {
       // Procura a primeira rodada com guerras ativas que contém nosso clan
       for (let i = 0; i < group.rounds.length; i++) {
         const round = group.rounds[i];
@@ -219,27 +213,30 @@ export class CurrentCWLService {
         
         if (activeWars.length > 0) {
           // Procura a guerra do clan nesta rodada
+          // Verifica todas as guerras para encontrar a que contém nosso clan
           for (const warTag of activeWars) {
             try {
               const war = await this.repository.getCWLWar(warTag);
               
-              // Valida se os dados do clan e opponent existem
-              if (!war.clan || !war.opponent) {
-                continue;
-              }
-              
-              if (war.clan.tag === clanTagToFind || war.opponent.tag === clanTagToFind) {
-                // Verifica se a guerra está ativa (inWar ou preparation)
-                if (war.state === "inWar" || war.state === "preparation") {
-                  currentRound = i + 1;
-                  currentWarTag = warTag;
-                  break;
+              // Verifica se a guerra está ativa (inWar ou preparation)
+              if (war.state === "inWar" || war.state === "preparation") {
+                // Se tem clan e opponent, verifica se é nosso clan
+                if (war.clan && war.opponent) {
+                  if (war.clan.tag === clanTagToFind || war.opponent.tag === clanTagToFind) {
+                    currentRound = i + 1;
+                    currentWarTag = warTag;
+                    break;
+                  }
                 }
+                // Se está em preparation sem clan/opponent, não podemos determinar se é nossa guerra
+                // então continuamos procurando nas outras guerras
               }
             } catch (error) {
+              // Se houver erro ao buscar a guerra, continua para a próxima
               continue;
             }
           }
+          // Se encontrou a guerra do nosso clan, para de procurar
           if (currentWarTag) break;
         }
       }
@@ -250,8 +247,14 @@ export class CurrentCWLService {
     if (currentWarTag) {
       try {
         const war = await this.repository.getCWLWar(currentWarTag);
-        // Calcula performanceScore para os membros
-        currentWar = this.calculateWarMemberScores(war, clanTag);
+        // Se a guerra tem clan e opponent, calcula performanceScore para os membros
+        // Se não tem (estado preparation), retorna a guerra como está
+        if (war.clan && war.opponent) {
+          currentWar = this.calculateWarMemberScores(war, clanTag);
+        } else {
+          // Em preparation, pode não ter todos os dados ainda
+          currentWar = war;
+        }
       } catch (error) {
         // Se não conseguir buscar a guerra, continua sem ela
         console.warn("Erro ao buscar guerra atual:", error);

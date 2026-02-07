@@ -53,6 +53,12 @@ export class CurrentCWLController {
         return status(404, { message: "Guerra não encontrada" });
       }
 
+      // Se a guerra está em preparation e não tem clan/opponent, retorna a guerra sem processar scores
+      if ((!war.clan || !war.opponent) && war.state === "preparation") {
+        return war;
+      }
+
+      // Se não tem clan ou opponent e não está em preparation, retorna erro
       if (!war.clan || !war.opponent) {
         return status(422, { 
           message: "Dados da guerra incompletos: a guerra pode ainda não ter sido iniciada ou os dados não estão disponíveis" 

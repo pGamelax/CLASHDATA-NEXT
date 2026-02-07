@@ -66,7 +66,7 @@ export interface CWLWarData {
       };
       performanceScore?: number;
     }>;
-  };
+  } | null;
   opponent: {
     tag: string;
     name: string;
@@ -103,7 +103,7 @@ export interface CWLWarData {
       };
       performanceScore?: number;
     }>;
-  };
+  } | null;
 }
 
 export class CurrentCWLRepository {
