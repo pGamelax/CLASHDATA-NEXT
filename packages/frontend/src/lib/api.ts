@@ -382,6 +382,172 @@ export interface CurrentWarAnalysis {
   }>;
 }
 
+export interface CWLPlayerPerformance {
+  tag: string;
+  name: string;
+  totalAttacks: number;
+  totalStars: number;
+  perfectAttacks: number;
+  performanceScore: number;
+  warsParticipated: number;
+}
+
+export interface CurrentCWLAnalysis {
+  group: {
+    state: string;
+    season: string;
+    clans: Array<{
+      tag: string;
+      name: string;
+      clanLevel: number;
+      badgeUrls: {
+        small: string;
+        medium: string;
+        large: string;
+      };
+      members: Array<{
+        tag: string;
+        name: string;
+        townHallLevel: number;
+      }>;
+    }>;
+    rounds: Array<{
+      warTags: string[];
+    }>;
+  };
+  currentRound?: number;
+  currentWar?: {
+    state: string;
+    teamSize: number;
+    preparationStartTime?: string;
+    startTime?: string;
+    endTime?: string;
+    warStartTime?: string;
+    clan: {
+      tag: string;
+      name: string;
+      badgeUrls: {
+        small: string;
+        medium: string;
+        large: string;
+      };
+      clanLevel: number;
+      attacks: number;
+      stars: number;
+      destructionPercentage: number;
+      members: Array<{
+        tag: string;
+        name: string;
+        townhallLevel: number;
+        mapPosition: number;
+        attacks?: Array<{
+          attackerTag: string;
+          defenderTag: string;
+          stars: number;
+          destructionPercentage: number;
+          order: number;
+          duration: number;
+        }>;
+        opponentAttacks?: number;
+        bestOpponentAttack?: {
+          attackerTag: string;
+          defenderTag: string;
+          stars: number;
+          destructionPercentage: number;
+          order: number;
+          duration: number;
+        };
+      }>;
+    };
+    opponent: {
+      tag: string;
+      name: string;
+      badgeUrls: {
+        small: string;
+        medium: string;
+        large: string;
+      };
+      clanLevel: number;
+      attacks: number;
+      stars: number;
+      destructionPercentage: number;
+      members: Array<{
+        tag: string;
+        name: string;
+        townhallLevel: number;
+        mapPosition: number;
+        attacks?: Array<{
+          attackerTag: string;
+          defenderTag: string;
+          stars: number;
+          destructionPercentage: number;
+          order: number;
+          duration: number;
+        }>;
+        opponentAttacks?: number;
+        bestOpponentAttack?: {
+          attackerTag: string;
+          defenderTag: string;
+          stars: number;
+          destructionPercentage: number;
+          order: number;
+          duration: number;
+        };
+      }>;
+    };
+  };
+  clanPosition?: number;
+  standings?: Array<{
+    clan: {
+      tag: string;
+      name: string;
+      clanLevel: number;
+      badgeUrls: {
+        small: string;
+        medium: string;
+        large: string;
+      };
+    };
+    wins: number;
+    losses: number;
+    stars: number;
+    destructionPercentage: number;
+  }>;
+  seasonPerformance?: CWLPlayerPerformance[];
+}
+
+export async function getCurrentCWL(clanTag: string): Promise<CurrentCWLAnalysis> {
+  const cleanTag = clanTag.startsWith("#") ? clanTag.replace("#", "") : clanTag;
+  
+  const response = await fetch(`${API_URL}/current-cwl/${encodeURIComponent(cleanTag)}`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Erro ao buscar CWL atual" }));
+    throw new Error(error.message || "Erro ao buscar CWL atual");
+  }
+
+  return response.json();
+}
+
+export async function getCWLWar(warTag: string): Promise<CurrentCWLAnalysis["currentWar"]> {
+  const encodedTag = encodeURIComponent(warTag);
+  
+  const response = await fetch(`${API_URL}/current-cwl/war/${encodedTag}`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Erro ao buscar guerra CWL" }));
+    throw new Error(error.message || "Erro ao buscar guerra CWL");
+  }
+
+  return response.json();
+}
+
 export async function getCurrentWar(clanTag: string): Promise<CurrentWarAnalysis> {
   const cleanTag = clanTag.startsWith("#") ? clanTag.replace("#", "") : clanTag;
 

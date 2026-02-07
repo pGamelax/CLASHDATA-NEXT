@@ -192,22 +192,43 @@ code {
     @apply cursor-not-allowed;
   }
 
-  /* Modern scrollbar */
+  /* Minimalist scrollbar */
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-muted/20;
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-primary/30 rounded-full cursor-pointer border border-primary/20;
+    background: oklch(0.5 0 0 / 0.2);
+    border-radius: 4px;
+    cursor: pointer;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-primary/50;
+    background: oklch(0.5 0 0 / 0.3);
+  }
+
+  /* Dark mode scrollbar */
+  .dark ::-webkit-scrollbar-thumb {
+    background: oklch(0.6 0 0 / 0.3);
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.6 0 0 / 0.4);
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(0.5 0 0 / 0.2) transparent;
+  }
+
+  .dark * {
+    scrollbar-color: oklch(0.6 0 0 / 0.3) transparent;
   }
 
   /* Gradientes e efeitos modernos */

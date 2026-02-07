@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { authClient, useOrganizations, useSession } from "@/auth";
 import {
   DropdownMenu,
@@ -12,13 +12,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings, Plus, ChevronDown, LayoutDashboard, Shield, Swords, BarChart3, Users, Trophy, Zap, TrendingUp, CreditCard, Menu } from "lucide-react";
+import { LogOut, Settings, LayoutDashboard, Shield, Swords, BarChart3, Users, Trophy, Zap, TrendingUp, CreditCard, Menu, Bell, Check, X, Building2 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { OrganizationSelector } from "./OrganizationSelector";
 import { ClanSelector } from "./ClanSelector";
-import { PendingInvites } from "./PendingInvites";
+import { getPendingInvites, acceptInvite, rejectInvite, type Invite } from "@/lib/api";
 import {
   Sheet,
   SheetContent,
@@ -26,6 +26,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface HeaderProps {
   user?: {
@@ -65,9 +66,201 @@ const clanNavItems = [
   { title: "Dashboard", href: "", icon: LayoutDashboard },
   { title: "Guerra atual", href: "/current-war", icon: Zap },
   { title: "Ranking random", href: "/random-ranking", icon: Swords },
+  { title: "CWL Atual", href: "/current-cwl", icon: Trophy },
   { title: "Ranking CWL", href: "/cwl-ranking", icon: Trophy },
   { title: "Player Push", href: "/player-push", icon: TrendingUp },
 ];
+
+// Componente para badge de notificação de convites
+function InviteBadge() {
+  const [pendingCount, setPendingCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadInvites = async () => {
+      try {
+        const data = await getPendingInvites();
+        const count = data.filter((i: Invite) => i.status === "PENDING").length;
+        setPendingCount(count);
+      } catch (error) {
+        console.error("Erro ao carregar convites:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInvites();
+    // Atualiza a cada 30 segundos
+    const interval = setInterval(loadInvites, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading || pendingCount === 0) return null;
+
+  return (
+    <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-bold pointer-events-none ring-2 ring-background">
+      {pendingCount > 9 ? "9+" : pendingCount}
+    </span>
+  );
+}
+
+// Componente para separador após convites (apenas se houver convites)
+function PendingInvitesDropdownSeparator() {
+  const [hasInvites, setHasInvites] = useState(false);
+
+  useEffect(() => {
+    const checkInvites = async () => {
+      try {
+        const data = await getPendingInvites();
+        const count = data.filter((i: Invite) => i.status === "PENDING").length;
+        setHasInvites(count > 0);
+      } catch (error) {
+        setHasInvites(false);
+      }
+    };
+
+    checkInvites();
+    const interval = setInterval(checkInvites, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!hasInvites) return null;
+  return <DropdownMenuSeparator />;
+}
+
+// Componente para exibir convites dentro do dropdown do avatar
+function PendingInvitesDropdown() {
+  const router = useRouter();
+  const [invites, setInvites] = useState<Invite[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  useEffect(() => {
+    loadInvites();
+  }, []);
+
+  const loadInvites = async () => {
+    try {
+      const data = await getPendingInvites();
+      setInvites(data);
+    } catch (error) {
+      console.error("Erro ao carregar convites:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAccept = async (inviteId: string) => {
+    try {
+      await acceptInvite(inviteId);
+      setMessage({ type: "success", text: "Convite aceito com sucesso!" });
+      await loadInvites();
+      const invite = invites.find((i) => i.id === inviteId);
+      if (invite?.organization?.slug) {
+        window.dispatchEvent(new CustomEvent("organizationChanged"));
+        setTimeout(() => {
+          router.push(`/org/${invite?.organization?.slug}`);
+          router.refresh();
+        }, 500);
+      }
+    } catch (error: any) {
+      setMessage({ type: "error", text: error.message || "Erro ao aceitar convite" });
+    }
+  };
+
+  const handleReject = async (inviteId: string) => {
+    try {
+      await rejectInvite(inviteId);
+      setMessage({ type: "success", text: "Convite rejeitado" });
+      await loadInvites();
+    } catch (error: any) {
+      setMessage({ type: "error", text: error.message || "Erro ao rejeitar convite" });
+    }
+  };
+
+  const pendingCount = invites.filter((i) => i.status === "PENDING").length;
+  const pendingInvites = invites.filter((i) => i.status === "PENDING");
+
+  if (loading) {
+    return (
+      <>
+        <DropdownMenuLabel>Convites Pendentes</DropdownMenuLabel>
+        <div className="p-4 text-center text-sm text-muted-foreground">
+          Carregando...
+        </div>
+      </>
+    );
+  }
+
+  if (pendingInvites.length === 0) {
+    return null; // Não mostra nada se não houver convites
+  }
+
+  return (
+    <>
+      {message && (
+        <div className="px-2 py-1">
+          <Alert
+            variant={message.type === "error" ? "destructive" : "default"}
+            className="mb-2"
+          >
+            <AlertDescription className="text-xs">{message.text}</AlertDescription>
+          </Alert>
+        </div>
+      )}
+      <DropdownMenuLabel className="flex items-center gap-2">
+        <Bell className="h-4 w-4" />
+        Convites Pendentes ({pendingCount})
+      </DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      {pendingInvites.map((invite) => (
+        <DropdownMenuItem
+          key={invite.id}
+          className="flex flex-col items-start p-3 cursor-default"
+          onSelect={(e) => e.preventDefault()}
+        >
+          <div className="flex items-start gap-2 w-full mb-2">
+            <Building2 className="h-4 w-4 mt-1 text-muted-foreground shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">
+                {invite.organization?.name || "Organização"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Convite de {invite.organization?.name}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-1 w-full">
+            <Button
+              size="sm"
+              variant="default"
+              className="flex-1 h-7 text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAccept(invite.id);
+              }}
+            >
+              <Check className="h-3 w-3 mr-1" />
+              Aceitar
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1 h-7 text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleReject(invite.id);
+              }}
+            >
+              <X className="h-3 w-3 mr-1" />
+              Rejeitar
+            </Button>
+          </div>
+        </DropdownMenuItem>
+      ))}
+    </>
+  );
+}
 
 export function Header({ user: initialUser, organization, clan, clans = [] }: HeaderProps) {
   const router = useRouter();
@@ -265,7 +458,7 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
       {/* Top Header Bar */}
       <header className={ `sticky px-2 top-0 z-50 w-full bg-background/95 backdrop-blur-xl supports-backdrop-filter:bg-background/90 border-b border-border/60 shadow-lg ${organization || clan ? "" : "border-b border-border"}`} >
         <div className="flex h-16 items-center justify-between px-2 sm:px-4 gap-2">
-          {/* Logo e Selects */}
+          {/* Logo, CLASHDATA e Links de Navegação */}
           <div className="flex items-center gap-1.5 sm:gap-3 text-sm min-w-0 flex-1 overflow-hidden">
             {/* Logo ClashData */}
             <Link href="/" className="flex items-center gap-1.5 sm:gap-2 group shrink-0 px-2">
@@ -318,14 +511,38 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
               </div>
             </Link>
             
-            {/* Mostra CLASHDATA quando não há org/clan */}
+            {/* Mostra CLASHDATA quando não há org/clan - apenas desktop */}
             {!organization && !clan && (
               <>
-                <div className="w-px h-5 sm:h-6 bg-border/50 shrink-0" />
-                <div className="flex items-center px-2">
-                  <span className="text-sm sm:text-base font-bold">
+                <div className="w-px h-5 sm:h-6 bg-border/50 shrink-0 hidden sm:block" />
+                <div className="hidden sm:flex items-center px-2">
+                  <span className="hidden sm:block text-sm sm:text-base font-bold">
                     CLASH<span className="text-primary">DATA</span>
                   </span>
+                </div>
+                {/* Desktop: Botões ao lado do CLASHDATA */}
+                <div className="hidden sm:flex items-center gap-1.5 ml-2">
+                  {user && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-sm px-3 h-8"
+                        onClick={() => router.push("/organizations")}
+                      >
+                        Organizações
+                      </Button>
+                      <div className="w-px h-6 bg-border/40 shrink-0" />
+                    </>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-sm px-3 h-8"
+                    onClick={() => router.push("/pricing")}
+                  >
+                    Planos
+                  </Button>
                 </div>
               </>
             )}
@@ -369,105 +586,26 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
             )}
           </div>
           
-          {/* Lado Direito - Navegação e Autenticação */}
+          {/* Lado Direito - Autenticação */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Links de Navegação - apenas na home quando não está em org/clan */}
-            {!organization && !clan && (
-              <>
-                {/* Mobile: Sheet Menu */}
-                <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-                  <SheetTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="sm:hidden h-8 w-8 p-0"
-                    >
-                      <Menu className="h-5 w-5" />
-                      <span className="sr-only">Abrir menu</span>
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                    <SheetHeader>
-                      <SheetTitle>Menu</SheetTitle>
-                    </SheetHeader>
-                    <div className="mt-6 space-y-2">
-                      {user && (
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-start text-base h-12"
-                          onClick={() => {
-                            setSheetOpen(false);
-                            router.push("/organizations");
-                          }}
-                        >
-                          <LayoutDashboard className="mr-3 h-5 w-5" />
-                          Organizações
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start text-base h-12"
-                        onClick={() => {
-                          setSheetOpen(false);
-                          router.push("/pricing");
-                        }}
-                      >
-                        <CreditCard className="mr-3 h-5 w-5" />
-                        Planos
-                      </Button>
-                    </div>
-                  </SheetContent>
-                </Sheet>
-
-                {/* Desktop: Botões normais */}
-                <div className="hidden sm:flex items-center gap-1.5">
-                  {user && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-sm px-3 h-8"
-                        onClick={() => router.push("/organizations")}
-                      >
-                        Organizações
-                      </Button>
-                      <div className="w-px h-6 bg-border/40 shrink-0" />
-                    </>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-sm px-3 h-8"
-                    onClick={() => router.push("/pricing")}
-                  >
-                    Planos
-                  </Button>
-                  <div className="w-px h-6 bg-border/40 shrink-0" />
-                </div>
-              </>
-            )}
-
-            {/* Convites Pendentes - apenas se logado */}
-            {user && <PendingInvites />}
-            {user && <div className="w-px h-6 bg-border/40 shrink-0" />}
-         
             {/* Avatar */}
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                  <div className="flex flex-row gap-2 items-center">
-                  <p className="text-sm font-medium truncate">{user.name}</p>
+                  <p className="hidden sm:block text-sm font-medium truncate">{user.name}</p>
                   <Button
                     variant={"ghost"}
-                    className=" relative h-8 w-8 sm:h-9 sm:w-9 rounded-full ring-2 ring-transparent ring-offset-1 ring-offset-background transition-all hover:ring-primary/30 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
+                    className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full ring-2 ring-transparent ring-offset-1 ring-offset-background transition-all hover:ring-primary/30 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
                   > 
-                   
                     <Avatar className="h-8 w-8 sm:h-9 sm:w-9">
                       <AvatarImage src={user.image || ""} alt={user.name || ""} />
                       <AvatarFallback className="text-[10px] sm:text-xs bg-primary/10 text-primary font-medium">
                         {initials}
                       </AvatarFallback>
                     </Avatar>
+                    {/* Badge de notificação de convites */}
+                    <InviteBadge />
                   </Button>
                   </div>
                 </DropdownMenuTrigger>
@@ -481,6 +619,10 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  {/* Convites Pendentes dentro do dropdown */}
+                  <PendingInvitesDropdown />
+                  {/* Separador após convites se houver */}
+                  <PendingInvitesDropdownSeparator />
                   {(user && "role" in user && user.role === "admin") && (
                     <DropdownMenuItem onClick={() => router.push("/admin")}>
                       <Settings className="mr-2 h-4 w-4" />
@@ -502,6 +644,51 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
                   Cadastrar
                 </Button>
               </div>
+            )}
+
+            {/* Mobile: Menu hamburger após o avatar */}
+            {!organization && !clan && user && (
+              <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="sm:hidden h-8 w-8 p-0"
+                  >
+                    <Menu className="h-5 w-5" />
+                    <span className="sr-only">Abrir menu</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                  <SheetHeader>
+                    <SheetTitle>Menu</SheetTitle>
+                  </SheetHeader>
+                  <div className="mt-6 space-y-2">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-base h-12"
+                      onClick={() => {
+                        setSheetOpen(false);
+                        router.push("/organizations");
+                      }}
+                    >
+                      <LayoutDashboard className="mr-3 h-5 w-5" />
+                      Organizações
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-base h-12"
+                      onClick={() => {
+                        setSheetOpen(false);
+                        router.push("/pricing");
+                      }}
+                    >
+                      <CreditCard className="mr-3 h-5 w-5" />
+                      Planos
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
             )}
           </div>
         </div>

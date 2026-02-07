@@ -20,6 +20,7 @@ import { SubscriptionService } from "./services/subscription.service";
 import { warsRoutes } from "./routes/wars.routes";
 import { cwlRoutes } from "./routes/cwl.routes";
 import { currentWarRoutes } from "./routes/current-war.routes";
+import { currentCWLRoutes } from "./routes/current-cwl.routes";
 import { playerPushLogsRoutes } from "./routes/player-push-logs.routes";
 import { setupPlayerPushJob, playerPushWorker } from "./jobs/player-push.job";
 import { setupSubscriptionExpiryJob, subscriptionExpiryWorker } from "./jobs/subscription-expiry.job";
@@ -118,6 +119,7 @@ const app = new Elysia()
   .use(warsRoutes)
   .use(cwlRoutes)
   .use(currentWarRoutes)
+  .use(currentCWLRoutes)
   .use(playerPushLogsRoutes)
   .get("/health", () => ({
     status: "healthy",
