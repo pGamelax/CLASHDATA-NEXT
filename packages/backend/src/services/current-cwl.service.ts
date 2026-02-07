@@ -66,6 +66,20 @@ export class CurrentCWLService {
    * Calcula o performanceScore para os membros de uma guerra
    */
   private calculateWarMemberScores(war: CWLWarData, clanTag: string): CWLWarData {
+    // Valida se os dados do clan e opponent existem
+    if (!war.clan || !war.opponent) {
+      throw new Error("Dados da guerra incompletos: clan ou opponent não encontrado");
+    }
+
+    // Valida se os arrays de membros existem
+    if (!war.clan.members || !Array.isArray(war.clan.members)) {
+      throw new Error("Dados da guerra incompletos: membros do clan não encontrados");
+    }
+
+    if (!war.opponent.members || !Array.isArray(war.opponent.members)) {
+      throw new Error("Dados da guerra incompletos: membros do oponente não encontrados");
+    }
+
     const clanTagToFind = clanTag.startsWith("#") ? clanTag : `#${clanTag}`;
     const isOurClan = war.clan.tag === clanTagToFind;
 
@@ -125,6 +139,20 @@ export class CurrentCWLService {
    * Calcula o performanceScore para ambos os lados da guerra (sem precisar do clanTag)
    */
   calculateWarMemberScoresForBothSides(war: CWLWarData): CWLWarData {
+    // Valida se os dados do clan e opponent existem
+    if (!war.clan || !war.opponent) {
+      throw new Error("Dados da guerra incompletos: clan ou opponent não encontrado");
+    }
+
+    // Valida se os arrays de membros existem
+    if (!war.clan.members || !Array.isArray(war.clan.members)) {
+      throw new Error("Dados da guerra incompletos: membros do clan não encontrados");
+    }
+
+    if (!war.opponent.members || !Array.isArray(war.opponent.members)) {
+      throw new Error("Dados da guerra incompletos: membros do oponente não encontrados");
+    }
+
     // Calcula performanceScore para cada membro do clan
     const clanMembers = war.clan.members.map((member) => {
       const attacks = member.attacks || [];
@@ -194,6 +222,12 @@ export class CurrentCWLService {
           for (const warTag of activeWars) {
             try {
               const war = await this.repository.getCWLWar(warTag);
+              
+              // Valida se os dados do clan e opponent existem
+              if (!war.clan || !war.opponent) {
+                continue;
+              }
+              
               if (war.clan.tag === clanTagToFind || war.opponent.tag === clanTagToFind) {
                 // Verifica se a guerra está ativa (inWar ou preparation)
                 if (war.state === "inWar" || war.state === "preparation") {
@@ -270,6 +304,12 @@ export class CurrentCWLService {
         try {
           const war = await this.repository.getCWLWar(warTag);
           
+          // Valida se os dados do clan e opponent existem
+          if (!war.clan || !war.opponent) {
+            console.warn(`Guerra ${warTag} com dados incompletos: clan ou opponent não encontrado`);
+            continue;
+          }
+
           // Verifica se nosso clan está nesta guerra
           const isOurClan = war.clan.tag === clanTagToFind;
           const isOurOpponent = war.opponent.tag === clanTagToFind;
@@ -278,6 +318,12 @@ export class CurrentCWLService {
 
           // Processa membros do nosso clan
           const ourClan = isOurClan ? war.clan : war.opponent;
+          
+          // Valida se os membros existem
+          if (!ourClan.members || !Array.isArray(ourClan.members)) {
+            console.warn(`Guerra ${warTag} com dados incompletos: membros não encontrados`);
+            continue;
+          }
           
           for (const member of ourClan.members) {
             const attacks = member.attacks || [];

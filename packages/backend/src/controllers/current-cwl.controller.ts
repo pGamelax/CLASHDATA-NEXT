@@ -48,6 +48,17 @@ export class CurrentCWLController {
 
       const war = await this.repository.getCWLWar(warTag);
       
+      // Valida se os dados básicos da guerra existem
+      if (!war) {
+        return status(404, { message: "Guerra não encontrada" });
+      }
+
+      if (!war.clan || !war.opponent) {
+        return status(422, { 
+          message: "Dados da guerra incompletos: a guerra pode ainda não ter sido iniciada ou os dados não estão disponíveis" 
+        });
+      }
+
       // Calcula performanceScore para ambos os lados da guerra
       const warWithScores = this.calculateWarMemberScoresForBothSides(war);
       
@@ -56,6 +67,12 @@ export class CurrentCWLController {
       const message =
         error instanceof Error ? error.message : "Erro desconhecido";
       console.error("Erro ao buscar guerra CWL:", error);
+      
+      // Retorna status 422 se for erro de dados incompletos
+      if (message.includes("incompletos")) {
+        return status(422, { message });
+      }
+      
       return status(500, { message });
     }
   }
