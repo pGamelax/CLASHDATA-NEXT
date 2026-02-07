@@ -533,9 +533,9 @@ export async function getCurrentCWL(clanTag: string): Promise<CurrentCWLAnalysis
 }
 
 export async function getCWLWar(warTag: string): Promise<CurrentCWLAnalysis["currentWar"]> {
-  const encodedTag = encodeURIComponent(warTag);
+  const cleanTag = warTag.startsWith("#") ? warTag.replace("#", "") : warTag;
   
-  const response = await fetch(`${API_URL}/current-cwl/war/${encodedTag}`, {
+  const response = await fetch(`${API_URL}/current-cwl/war/${encodeURIComponent(cleanTag)}`, {
     credentials: "include",
     cache: "no-store",
   });

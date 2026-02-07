@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Building2, ChevronsUpDown, Plus, Check } from "lucide-react";
+import { Building2, ChevronsUpDown, Plus, Check, List } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -86,8 +86,7 @@ export function OrganizationSelector({
           className={cn(
             "flex items-center gap-1.5 sm:gap-2.5 p-1 rounded-md sm:rounded-lg bg-muted/80 hover:bg-muted transition-colors text-xs sm:text-sm font-medium",
             "sm:min-w-[160px] sm:max-w-[220px]",
-            "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-1 focus:ring-offset-background",
-            "border border-border/50"
+            "focus:outline-none"
           )}
           disabled={isLoading}
         >
@@ -116,7 +115,7 @@ export function OrganizationSelector({
           <ChevronsUpDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-[240px]">
+      <DropdownMenuContent align="start" sideOffset={4} className="w-[240px] z-50">
         {organizations.length > 0 ? (
           <>
             {organizations.map((org) => {
@@ -156,6 +155,16 @@ export function OrganizationSelector({
             <DropdownMenuItem
               onClick={() => {
                 setOpen(false);
+                router.push("/organizations");
+              }}
+              className="flex items-center gap-2 p-1 cursor-pointer"
+            >
+              <List className="h-4 w-4" />
+              <span>Ver todas as orgs</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setOpen(false);
                 router.push("/org/new");
               }}
               className="flex items-center gap-2 p-1 cursor-pointer"
@@ -165,16 +174,28 @@ export function OrganizationSelector({
             </DropdownMenuItem>
           </>
         ) : (
-          <DropdownMenuItem
-            onClick={() => {
-              setOpen(false);
-              router.push("/org/new");
-            }}
-            className="flex items-center gap-2 p-1 cursor-pointer"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Criar Organização</span>
-          </DropdownMenuItem>
+          <>
+            <DropdownMenuItem
+              onClick={() => {
+                setOpen(false);
+                router.push("/organizations");
+              }}
+              className="flex items-center gap-2 p-1 cursor-pointer"
+            >
+              <List className="h-4 w-4" />
+              <span>Ver todas as orgs</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setOpen(false);
+                router.push("/org/new");
+              }}
+              className="flex items-center gap-2 p-1 cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Criar Organização</span>
+            </DropdownMenuItem>
+          </>
         )}
       </DropdownMenuContent>
     </DropdownMenu>

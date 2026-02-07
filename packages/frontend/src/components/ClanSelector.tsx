@@ -51,10 +51,9 @@ export function ClanSelector({
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "flex items-center gap-1.5 sm:gap-2.5 p-1  rounded-md sm:rounded-lg bg-muted/80 hover:bg-muted transition-colors text-xs sm:text-sm font-medium",
+            "flex items-center gap-1.5 sm:gap-2.5 p-1 rounded-md sm:rounded-lg bg-muted/80 hover:bg-muted transition-colors text-xs sm:text-sm font-medium",
             "sm:min-w-[140px] sm:max-w-[200px]",
-            "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-1 focus:ring-offset-background",
-            "border border-border/50"
+            "focus:outline-none"
           )}
         >
           {/* Badge do clan */}
@@ -79,7 +78,7 @@ export function ClanSelector({
           <ChevronsUpDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-[240px]">
+      <DropdownMenuContent align="start" sideOffset={4} className="w-[240px] z-50">
         {clans.map((clan) => {
           const isSelected = currentClan.id === clan.id;
           const slug = getClanSlug(clan);

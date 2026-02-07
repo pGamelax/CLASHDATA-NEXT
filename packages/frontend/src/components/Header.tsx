@@ -459,7 +459,7 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
       <header className={ `sticky px-2 top-0 z-50 w-full bg-background/95 backdrop-blur-xl supports-backdrop-filter:bg-background/90 border-b border-border/60 shadow-lg ${organization || clan ? "" : "border-b border-border"}`} >
         <div className="flex h-16 items-center justify-between px-2 sm:px-4 gap-2">
           {/* Logo, CLASHDATA e Links de Navegação */}
-          <div className="flex items-center gap-1.5 sm:gap-3 text-sm min-w-0 flex-1 overflow-hidden">
+          <div className="flex items-center gap-1.5 sm:gap-3 text-sm min-w-0 flex-1">
             {/* Logo ClashData */}
             <Link href="/" className="flex items-center gap-1.5 sm:gap-2 group shrink-0 px-2">
               <div className="p-1.5 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 border-2 border-primary/30 shadow-md group-hover:scale-110 group-hover:shadow-lg group-hover:border-primary/50 transition-all duration-300">
@@ -511,41 +511,15 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
               </div>
             </Link>
             
-            {/* Mostra CLASHDATA quando não há org/clan - apenas desktop */}
-            {!organization && !clan && (
-              <>
-                <div className="w-px h-5 sm:h-6 bg-border/50 shrink-0 hidden sm:block" />
-                <div className="hidden sm:flex items-center px-2">
-                  <span className="hidden sm:block text-sm sm:text-base font-bold">
-                    CLASH<span className="text-primary">DATA</span>
-                  </span>
-                </div>
-                {/* Desktop: Botões ao lado do CLASHDATA */}
-                <div className="hidden sm:flex items-center gap-1.5 ml-2">
-                  {user && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-sm px-3 h-8"
-                        onClick={() => router.push("/organizations")}
-                      >
-                        Organizações
-                      </Button>
-                      <div className="w-px h-6 bg-border/40 shrink-0" />
-                    </>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-sm px-3 h-8"
-                    onClick={() => router.push("/pricing")}
-                  >
-                    Planos
-                  </Button>
-                </div>
-              </>
-            )}
+            {/* Mostra CLASHDATA sempre */}
+            <>
+              <div className="w-px h-5 sm:h-6 bg-border/50 shrink-0" />
+              <div className="flex items-center px-2">
+                <span className="text-sm sm:text-base font-bold">
+                  CLASH<span className="text-primary">DATA</span>
+                </span>
+              </div>
+            </>
 
             {/* Seletor de Organização */}
             {user && (organization || clan) && (
@@ -646,8 +620,8 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
               </div>
             )}
 
-            {/* Mobile: Menu hamburger após o avatar */}
-            {!organization && !clan && user && (
+            {/* Mobile: Menu hamburger - sempre visível */}
+            {user && (
               <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
                 <SheetTrigger asChild>
                   <Button
