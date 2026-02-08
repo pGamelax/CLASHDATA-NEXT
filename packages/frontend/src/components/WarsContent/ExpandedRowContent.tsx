@@ -15,7 +15,7 @@ export function ExpandedRowContent({ player }: ExpandedRowContentProps) {
   });
 
   return (
-    <div className="p-3 sm:p-6 bg-muted/10">
+    <div className="p-3 sm:p-6 bg-muted/10 overflow-y-auto max-h-96">
       <div className="flex items-center gap-2 mb-3 sm:mb-4">
         <Swords className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
         <h4 className="font-semibold text-xs sm:text-sm text-foreground">
@@ -25,28 +25,25 @@ export function ExpandedRowContent({ player }: ExpandedRowContentProps) {
       {sortedAttacks.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
           {sortedAttacks.map((attack, index) => {
-            // Formata a data - a API retorna endTime no formato: "20260130T011053.000Z"
-            // Formato: YYYYMMDDTHHMMSS.mmmZ
             let date: Date;
             const warEndTime = attack.warEndTime;
             
             if (!warEndTime) {
               date = new Date(NaN);
             } else if (typeof warEndTime === 'string') {
-              // Verifica se é o formato compacto da API: YYYYMMDDTHHMMSS.mmmZ
-              // Exemplo: "20260130T011053.000Z"
+             
               const compactFormatMatch = warEndTime.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})\.(\d{3})Z$/);
               
               if (compactFormatMatch) {
-                // Parseia o formato compacto: YYYYMMDDTHHMMSS.mmmZ
+               
                 const [, year, month, day, hour, minute, second, millisecond] = compactFormatMatch;
                 const isoString = `${year}-${month}-${day}T${hour}:${minute}:${second}.${millisecond}Z`;
                 date = new Date(isoString);
               } else if (warEndTime.includes('T') && warEndTime.includes('-')) {
-                // Formato ISO padrão: "2024-01-30T12:00:00.000Z"
+             
                 date = new Date(warEndTime);
               } else {
-                // Tenta como timestamp numérico
+           
                 const numValue = Number(warEndTime);
                 if (!isNaN(numValue) && isFinite(numValue)) {
                   date = new Date(numValue < 1e12 ? numValue * 1000 : numValue);
@@ -60,7 +57,7 @@ export function ExpandedRowContent({ player }: ExpandedRowContentProps) {
               date = new Date(warEndTime);
             }
             
-            // Verifica se a data é válida e está em um range razoável (entre 2000 e 2100)
+           
             const isValidDate = !isNaN(date.getTime());
             const year = isValidDate ? date.getFullYear() : 0;
             const isReasonableDate = year >= 2000 && year <= 2100;

@@ -97,7 +97,7 @@ export function OrganizationOverview({ organization }: OrganizationOverviewProps
       {/* Clans Section */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <CardTitle>Clans</CardTitle>
               <CardDescription>
@@ -125,8 +125,8 @@ export function OrganizationOverview({ organization }: OrganizationOverviewProps
           {clans && clans.length > 0 ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {clans
-                .filter((clan: any) => clan.tag || clan.clanTag) // Filtra apenas clans com tag
-                .slice(0, 6) // Mostra apenas os 6 primeiros no overview
+                .filter((clan: any) => clan.tag || clan.clanTag)
+                .slice(0, 6) 
                 .map((clan: any) => {
                   const clanTag = clan.tag || clan.clanTag || "";
                   return (

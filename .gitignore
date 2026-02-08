@@ -46,3 +46,6 @@ Thumbs.db
 packages/backend/prisma/migrations/
 packages/backend/src/generated/
 
+# Docker
+docker-compose.yml
+docker-compose.dev.yml

@@ -1,18 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Crown, Trophy, Zap, Sparkles, ArrowRight, Shield, Users, TrendingUp, BarChart3 } from "lucide-react";
+import { Check, Crown, Trophy, Zap, Sparkles, ArrowRight, Shield, Users, TrendingUp, BarChart3, Wine } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ClientHeader } from "@/components/ClientHeader";
 import { useSession } from "@/auth";
-import Link from "next/link";
+
 
 type PaymentPeriod = "monthly" | "quarterly" | "yearly";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 // Preços dos planos
 const PLAN_PRICES = {
@@ -31,6 +29,11 @@ const PLAN_PRICES = {
     quarterly: { amount: 20223, originalAmount: 22470 },
     yearly: { amount: 71904, originalAmount: 89880 },
   },
+  LEGEND: {
+    monthly: { amount: 11990, originalAmount: null },
+    quarterly: { amount: 32373, originalAmount: 35970 },
+    yearly: { amount: 115104, originalAmount: 143880 },
+},
 };
 
 const PLAN_DETAILS = {
@@ -59,7 +62,7 @@ const PLAN_DETAILS = {
     borderColor: "border-blue-500/30",
     maxClans: 2,
     maxInvites: 2,
-    popular: true,
+    
     features: [
       "2 Clans",
       "2 Convites",
@@ -78,9 +81,29 @@ const PLAN_DETAILS = {
     borderColor: "border-purple-500/30",
     maxClans: 3,
     maxInvites: 3,
+    popular: true,
     features: [
       "3 Clans",
       "3 Convites",
+      "Dashboard Completo",
+      "Rankings de Guerras",
+      "Estatísticas Avançadas",
+      "Previsões Inteligentes",
+      "Analytics Avançado",
+      "Suporte 24/7",
+    ],
+  },
+  LEGEND: {
+    name: "Legend",
+    icon: Wine,
+    iconColor: "text-green-500",
+    gradient: "from-green-500/20 to-green-500/5",
+    borderColor: "border-green-500/30",
+    maxClans: 4,
+    maxInvites: 4,
+    features: [
+      "4 Clans",
+      "4 Convites",
       "Dashboard Completo",
       "Rankings de Guerras",
       "Estatísticas Avançadas",
@@ -108,7 +131,7 @@ export default function PricingPage() {
   const { data: session } = useSession();
   const [selectedPeriod, setSelectedPeriod] = useState<PaymentPeriod>("monthly");
 
-  const handleSelectPlan = (plan: "MESTRE" | "CAMPEAO" | "TITA") => {
+  const handleSelectPlan = (plan: "MESTRE" | "CAMPEAO" | "TITA" | "LEGEND") => {
     // Salva o plano e período no localStorage
     localStorage.setItem("selectedPlan", plan);
     localStorage.setItem("selectedPeriod", selectedPeriod);
@@ -181,8 +204,8 @@ export default function PricingPage() {
         </div>
 
         {/* Cards de Planos */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-7xl mx-auto mb-12">
-          {(["MESTRE", "CAMPEAO", "TITA"] as const).map((plan) => {
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 lg:gap-8 max-w-7xl mx-auto mb-12">
+          {(["MESTRE", "CAMPEAO", "TITA", "LEGEND"] as const).map((plan) => {
             const details = PLAN_DETAILS[plan];
             const prices = PLAN_PRICES[plan];
             const price = prices[selectedPeriod];
@@ -227,7 +250,7 @@ export default function PricingPage() {
                   )}
 
                   <div className="mb-2">
-                    <span className="text-5xl font-bold">
+                    <span className="text-4xl font-bold">
                       {formatPrice(price.amount)}
                     </span>
                     <span className="text-muted-foreground text-lg ml-2">

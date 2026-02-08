@@ -16,7 +16,7 @@ export function ExpandedRowContent({ player }: ExpandedRowContentProps) {
   });
 
   return (
-    <div className="p-3 sm:p-6 bg-muted/10">
+    <div className="p-3 sm:p-6 bg-muted/10 overflow-y-auto max-h-96">
       <div className="flex items-center gap-2 mb-3 sm:mb-4">
         <Swords className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
         <h4 className="font-semibold text-xs sm:text-sm text-foreground">

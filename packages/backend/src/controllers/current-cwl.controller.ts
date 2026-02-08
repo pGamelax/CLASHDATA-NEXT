@@ -46,15 +46,14 @@ export class CurrentCWLController {
         return status(400, { message: "WarTag é obrigatório" });
       }
 
-      const war = await this.repository.getCWLWar(warTag);
+      const war = await this.repository.getCWLWar("#" + warTag);
       
       // Valida se os dados básicos da guerra existem
       if (!war) {
         return status(404, { message: "Guerra não encontrada" });
       }
 
-      // Se não tem clan ou opponent, retorna a guerra como está (sem processar scores)
-      // Isso pode acontecer em estados como "preparation" ou quando os dados ainda não estão disponíveis
+     
       if (!war.clan || !war.opponent) {
         console.log(`Guerra ${warTag} sem clan/opponent completo. Estado: ${war.state}`);
         return war;

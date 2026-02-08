@@ -29,11 +29,6 @@ function LogCard({ log, isAttack }: { log: any; isAttack: boolean }) {
       }`}
     >
       <div className="flex items-center gap-2">
-        {isAttack ? (
-          <Swords className="h-4 w-4 text-green-500 flex-shrink-0" />
-        ) : (
-          <Shield className="h-4 w-4 text-red-500 flex-shrink-0" />
-        )}
         <Badge
           variant="secondary"
           className={`text-xs font-semibold px-1.5 py-0.5 ${
@@ -45,18 +40,24 @@ function LogCard({ log, isAttack }: { log: any; isAttack: boolean }) {
           {isAttack ? "+" : "-"}
           {log.trophiesChange}
         </Badge>
-        <span className="text-xs text-muted-foreground">
-          {log.previousTrophies.toLocaleString("pt-BR")} → {log.currentTrophies.toLocaleString("pt-BR")}
-        </span>
-        <span className="text-[10px] text-muted-foreground/70 ml-auto">
-          {formattedDate}
-        </span>
+        <div className="w-full flex flex-col sm:flex-row  sm:justify-between sm:items-center gap-1 ">
+          <span className="text-xs text-muted-foreground">
+            {log.previousTrophies.toLocaleString("pt-BR")} →{" "}
+            {log.currentTrophies.toLocaleString("pt-BR")}
+          </span>
+          <span className="text-[10px] text-muted-foreground/70 ml-auto">
+            {formattedDate}
+          </span>
+        </div>
       </div>
     </div>
   );
 }
 
-export function ExpandedRowContent({ player, selectedDay }: ExpandedRowContentProps) {
+export function ExpandedRowContent({
+  player,
+  selectedDay,
+}: ExpandedRowContentProps) {
   // Filtra logs por dia se houver seleção
   const filteredLogs = selectedDay
     ? filterLogsByDay(player.logs, selectedDay)
@@ -65,17 +66,23 @@ export function ExpandedRowContent({ player, selectedDay }: ExpandedRowContentPr
   // Separa logs por tipo e ordena por data (mais recente primeiro)
   const attackLogs = [...filteredLogs]
     .filter((log) => log.type === "attack")
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+
   const defenseLogs = [...filteredLogs]
     .filter((log) => log.type === "defense")
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
 
   // Determina o número máximo de pares
   const maxPairs = Math.max(attackLogs.length, defenseLogs.length);
 
   return (
-    <div className="p-2 bg-muted/10">
+    <div className="p-2 muted/10">
       {maxPairs > 0 ? (
         <div className="space-y-1.5">
           {Array.from({ length: maxPairs }).map((_, index) => {
@@ -83,7 +90,7 @@ export function ExpandedRowContent({ player, selectedDay }: ExpandedRowContentPr
             const defense = defenseLogs[index];
 
             return (
-              <div key={index} className="flex gap-2">
+              <div key={index} className="grid grid-cols-2 gap-1">
                 {attack ? (
                   <LogCard log={attack} isAttack={true} />
                 ) : (

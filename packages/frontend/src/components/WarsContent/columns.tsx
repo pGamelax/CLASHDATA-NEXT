@@ -90,19 +90,19 @@ export const columns: ColumnDef<PlayerStatsWithRank>[] = [
       const score = row.getValue("bayesianScore") as number;
       const player = row.original;
       const perfectAttacks = player.perfectAttacks || 0;
-      // Calcula porcentagem baseada no máximo de 3.0
+
       const percentage = (score / 3.0) * 100;
       
       return (
-        <div className="min-w-[120px]">
-          <div className="flex items-center gap-1 mb-0.5">
+        <div className="min-w-30">
+          <div className="flex items-center gap-4 mb-0.5">
             <span className="font-bold text-sm">{score.toFixed(2)}</span>
-            <span className="text-xs text-muted-foreground">pts</span>
+      
             <span className="text-xs font-semibold text-muted-foreground">
               {perfectAttacks} PT
             </span>
           </div>
-          <Progress value={percentage} className="h-1 w-[80px] bg-primary/20 [&>div]:bg-primary" />
+          <Progress value={percentage} className="h-1 w-20 bg-primary/20 [&>div]:bg-primary" />
         </div>
       );
     },
@@ -120,7 +120,7 @@ export const columns: ColumnDef<PlayerStatsWithRank>[] = [
       
       return (
         <div className="flex items-center gap-2">
-          <Star className="h-4 w-4 text-yellow-500" />
+          <Star className="h-4 w-4 hidden sm:flex text-yellow-500" />
           <div className="flex flex-col">
             <span className="font-semibold">{avgStars.toFixed(2)}</span>
             <span className="text-xs text-muted-foreground">{avgDestruction.toFixed(0)}% destruição</span>
@@ -149,7 +149,7 @@ export const columns: ColumnDef<PlayerStatsWithRank>[] = [
       
       return (
         <div className="flex items-center gap-2">
-          <Swords className="h-4 w-4 text-green-500" />
+          <Swords className="h-4 w-4 hidden sm:flex text-green-500" />
           <div className="flex flex-col">
             <span className="font-semibold">{wars} Guerras</span>
             <span className="text-xs text-muted-foreground">{attackRatio} ATQ</span>

@@ -133,7 +133,7 @@ export class CurrentCWLRepository {
       );
     }
 
-    return await response.json();
+    return await response.json() as CurrentCWLGroupData;
   }
 
   async getCWLWar(warTag: string): Promise<CWLWarData> {
@@ -157,7 +157,6 @@ export class CurrentCWLRepository {
         `Erro ao buscar guerra CWL: ${response.status} - ${errorText}`
       );
     }
-
-    return await response.json();
+    return await response.json() as CWLWarData;
   }
 }

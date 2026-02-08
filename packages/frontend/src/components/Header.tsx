@@ -12,13 +12,35 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings, LayoutDashboard, Shield, Swords, BarChart3, Users, Trophy, Zap, TrendingUp, CreditCard, Menu, Bell, Check, X, Building2 } from "lucide-react";
+import {
+  LogOut,
+  Settings,
+  LayoutDashboard,
+  Shield,
+  Swords,
+  BarChart3,
+  Users,
+  Trophy,
+  Zap,
+  TrendingUp,
+  CreditCard,
+  Menu,
+  Bell,
+  Check,
+  X,
+  Building2,
+} from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { OrganizationSelector } from "./OrganizationSelector";
 import { ClanSelector } from "./ClanSelector";
-import { getPendingInvites, acceptInvite, rejectInvite, type Invite } from "@/lib/api";
+import {
+  getPendingInvites,
+  acceptInvite,
+  rejectInvite,
+  type Invite,
+} from "@/lib/api";
 import {
   Sheet,
   SheetContent,
@@ -71,6 +93,10 @@ const clanNavItems = [
   { title: "Player Push", href: "/player-push", icon: TrendingUp },
 ];
 
+const NavWithoutOrgOrClan = [
+  { title: "Organizações", href: "/organizations"},
+  { title: "Planos", href: "/pricing"},
+];
 // Componente para badge de notificação de convites
 function InviteBadge() {
   const [pendingCount, setPendingCount] = useState(0);
@@ -133,7 +159,10 @@ function PendingInvitesDropdown() {
   const router = useRouter();
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     loadInvites();
@@ -164,7 +193,10 @@ function PendingInvitesDropdown() {
         }, 500);
       }
     } catch (error: any) {
-      setMessage({ type: "error", text: error.message || "Erro ao aceitar convite" });
+      setMessage({
+        type: "error",
+        text: error.message || "Erro ao aceitar convite",
+      });
     }
   };
 
@@ -174,7 +206,10 @@ function PendingInvitesDropdown() {
       setMessage({ type: "success", text: "Convite rejeitado" });
       await loadInvites();
     } catch (error: any) {
-      setMessage({ type: "error", text: error.message || "Erro ao rejeitar convite" });
+      setMessage({
+        type: "error",
+        text: error.message || "Erro ao rejeitar convite",
+      });
     }
   };
 
@@ -204,7 +239,9 @@ function PendingInvitesDropdown() {
             variant={message.type === "error" ? "destructive" : "default"}
             className="mb-2"
           >
-            <AlertDescription className="text-xs">{message.text}</AlertDescription>
+            <AlertDescription className="text-xs">
+              {message.text}
+            </AlertDescription>
           </Alert>
         </div>
       )}
@@ -262,14 +299,25 @@ function PendingInvitesDropdown() {
   );
 }
 
-export function Header({ user: initialUser, organization, clan, clans = [] }: HeaderProps) {
+export function Header({
+  user: initialUser,
+  organization,
+  clan,
+  clans = [],
+}: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { data: session } = useSession();
-  const { data: organizations, isPending: isLoadingOrgs, refetch } = useOrganizations();
-  const [selectedOrganization, setSelectedOrganization] = useState<string | null>(null);
+  const {
+    data: organizations,
+    isPending: isLoadingOrgs,
+    refetch,
+  } = useOrganizations();
+  const [selectedOrganization, setSelectedOrganization] = useState<
+    string | null
+  >(null);
   const [sheetOpen, setSheetOpen] = useState(false);
-  
+
   // Usa o usuário da sessão se disponível (sempre atualizado), senão usa o initialUser (SSR)
   // Prioriza session?.user porque é atualizado em tempo real
   const user = session?.user || initialUser;
@@ -308,12 +356,12 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
       if (organizationId) {
         // Força um refetch para atualizar a lista
         await refetch();
-        
+
         // Aguarda um pouco e verifica se a organização está na lista
         // Tenta até 5 vezes (1 segundo total) para garantir que os dados foram atualizados
         let attempts = 0;
         const maxAttempts = 5;
-        
+
         const checkAndSet = () => {
           attempts++;
           // Busca a lista atualizada do localStorage ou do estado
@@ -323,7 +371,7 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
             // Se o ID está salvo, força a atualização do estado
             setSelectedOrganization(organizationId);
           }
-          
+
           // Se ainda não encontrou após várias tentativas, define mesmo assim
           if (attempts >= maxAttempts) {
             setSelectedOrganization(organizationId);
@@ -332,14 +380,17 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
             setTimeout(checkAndSet, 200);
           }
         };
-        
+
         setTimeout(checkAndSet, 300);
       }
     };
 
     window.addEventListener("organizationCreated", handleOrganizationCreated);
     return () => {
-      window.removeEventListener("organizationCreated", handleOrganizationCreated);
+      window.removeEventListener(
+        "organizationCreated",
+        handleOrganizationCreated,
+      );
     };
   }, [refetch]);
 
@@ -350,7 +401,10 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
       if (saved && saved !== selectedOrganization) {
         // Se há uma organização salva diferente da selecionada, verifica se está na lista
         const currentList = organizations?.data || organizations || [];
-        if (Array.isArray(currentList) && currentList.some((org: any) => org.id === saved)) {
+        if (
+          Array.isArray(currentList) &&
+          currentList.some((org: any) => org.id === saved)
+        ) {
           setSelectedOrganization(saved);
         } else {
           // Se não está na lista, força um refetch
@@ -364,77 +418,83 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
     return () => clearInterval(interval);
   }, [selectedOrganization, organizations, refetch]);
 
-
   const handleOrganizationChange = async (orgId: string) => {
     setSelectedOrganization(orgId);
     localStorage.setItem("selectedOrganization", orgId);
     // Atualiza o cookie para o servidor poder ler
     document.cookie = `selectedOrganization=${orgId}; path=/; max-age=31536000; SameSite=Lax`;
-    
+
     // Encontra o slug da organização selecionada
     const selectedOrg = Array.isArray(orgsList)
       ? orgsList.find((org: any) => org.id === orgId)
       : null;
-    
+
     if (selectedOrg) {
       // Redireciona para a página da organização
       router.push(`/org/${selectedOrg.slug}`);
     }
-    
+
     // Dispara evento customizado para notificar outros componentes
-    window.dispatchEvent(new CustomEvent("organizationChanged", { 
-      detail: { organizationId: orgId } 
-    }));
+    window.dispatchEvent(
+      new CustomEvent("organizationChanged", {
+        detail: { organizationId: orgId },
+      }),
+    );
     // Força atualização da página para buscar novos dados
     router.refresh();
   };
 
- 
   // Prepara lista de organizações com subscription para o seletor
-  const orgsForSelector = Array.isArray(orgsList) 
+  const orgsForSelector = Array.isArray(orgsList)
     ? orgsList.map((org: any) => ({
         id: org.id,
         name: org.name,
         slug: org.slug,
         logo: org.logo,
-        subscription: org.subscription ? {
-          plan: org.subscription.plan,
-          status: org.subscription.status,
-        } : null,
+        subscription: org.subscription
+          ? {
+              plan: org.subscription.plan,
+              status: org.subscription.status,
+            }
+          : null,
       }))
     : [];
-  
+
   // Encontra a organização atual com subscription processada
   // Prioriza a organização de orgsList (que tem subscription) se disponível
   const currentOrgId = organization?.id || selectedOrganization;
-  const currentOrgFromList = currentOrgId 
+  const currentOrgFromList = currentOrgId
     ? orgsForSelector.find((o: any) => o.id === currentOrgId)
     : null;
-  
+
   // Usa a organização de orgsList se disponível (tem subscription), senão usa a organization passada como prop
-  const currentOrg = currentOrgFromList || (organization 
-    ? {
-        id: organization.id,
-        name: organization.name,
-        slug: organization.slug,
-        logo: organization.logo,
-        subscription: organization.subscription ? {
-          plan: organization.subscription.plan,
-          status: organization.subscription.status,
-        } : null,
-      }
-    : null);
+  const currentOrg =
+    currentOrgFromList ||
+    (organization
+      ? {
+          id: organization.id,
+          name: organization.name,
+          slug: organization.slug,
+          logo: organization.logo,
+          subscription: organization.subscription
+            ? {
+                plan: organization.subscription.plan,
+                status: organization.subscription.status,
+              }
+            : null,
+        }
+      : null);
 
   // Determina a rota base
-  const basePath = clan 
+  const basePath = clan
     ? `/org/${organization?.slug}/${clan.clanTag.replace("#", "").toLowerCase()}`
-    : organization 
-    ? `/org/${organization.slug}` 
-    : "";
-  
+    : organization
+      ? `/org/${organization.slug}`
+      : "";
+
   // Verifica se está em uma rota de clan
   const isClanRoute = !!clan;
-  
+
   // Seleciona os itens de navegação apropriados
   const navItems = isClanRoute ? clanNavItems : orgNavItems;
 
@@ -456,13 +516,18 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
   return (
     <>
       {/* Top Header Bar */}
-      <header className={ `sticky px-2 top-0 z-50 w-full bg-background/95 backdrop-blur-xl supports-backdrop-filter:bg-background/90 border-b border-border/60 shadow-lg ${organization || clan ? "" : "border-b border-border"}`} >
+      <header
+        className={`sticky px-2 top-0 z-50 w-full bg-background/95 backdrop-blur-xl supports-backdrop-filter:bg-background/90 border-b border-border/60 shadow-lg ${organization || clan ? "" : "border-b border-border"}`}
+      >
         <div className="flex h-16 items-center justify-between px-2 sm:px-4 gap-2">
           {/* Logo, CLASHDATA e Links de Navegação */}
           <div className="flex items-center gap-1.5 sm:gap-3 text-sm min-w-0 flex-1">
             {/* Logo ClashData */}
-            <Link href="/" className="flex items-center gap-1.5 sm:gap-2 group shrink-0 px-2">
-              <div className="p-1.5 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 border-2 border-primary/30 shadow-md group-hover:scale-110 group-hover:shadow-lg group-hover:border-primary/50 transition-all duration-300">
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 sm:gap-2 group shrink-0 px-2"
+            >
+              <div className="p-1.5 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-linear-to-br from-primary/20 to-primary/10 border-2 border-primary/30 shadow-md group-hover:scale-110 group-hover:shadow-lg group-hover:border-primary/50 transition-all duration-300">
                 <svg
                   width="20"
                   height="20"
@@ -509,38 +574,55 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
                   />
                 </svg>
               </div>
-            </Link>
-            
-            {/* Mostra CLASHDATA sempre */}
-            <>
-              <div className="w-px h-5 sm:h-6 bg-border/50 shrink-0" />
-              <div className="flex items-center px-2">
+
+              <div className="hidden sm:flex items-center px-2">
                 <span className="text-sm sm:text-base font-bold">
                   CLASH<span className="text-primary">DATA</span>
                 </span>
               </div>
-            </>
+            </Link>
 
             {/* Seletor de Organização */}
-            {user && (organization || clan) && (
+            {user && (organization || clan) ? (
               <>
                 <div className="w-px h-5 sm:h-6 bg-border/50 shrink-0" />
                 <OrganizationSelector
                   organizations={orgsForSelector}
-                  currentOrganization={currentOrg ? {
-                    id: currentOrg.id,
-                    name: currentOrg.name,
-                    slug: currentOrg.slug,
-                    logo: currentOrg.logo,
-                    subscription: currentOrg.subscription ? {
-                      plan: currentOrg.subscription.plan,
-                      status: currentOrg.subscription.status,
-                    } : null,
-                  } : null}
+                  currentOrganization={
+                    currentOrg
+                      ? {
+                          id: currentOrg.id,
+                          name: currentOrg.name,
+                          slug: currentOrg.slug,
+                          logo: currentOrg.logo,
+                          subscription: currentOrg.subscription
+                            ? {
+                                plan: currentOrg.subscription.plan,
+                                status: currentOrg.subscription.status,
+                              }
+                            : null,
+                        }
+                      : null
+                  }
                   onSelect={handleOrganizationChange}
                   isLoading={isLoadingOrgs}
                   user={user}
                 />
+              </>
+            ) : (
+              <>
+                <div className="w-px h-5 sm:h-6 bg-border/50 shrink-0" />
+                <div className="flex items-center flex-row gap-2">
+                  {NavWithoutOrgOrClan.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="flex items-center gap-2 px-2 py-1.5 text-sm font-medium hover:bg-secondary/50 rounded-md transition-colors"
+                    >
+                      {item.title}
+                    </Link>
+                  ))}
+                </div>
               </>
             )}
 
@@ -559,34 +641,41 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
               </>
             )}
           </div>
-          
+
           {/* Lado Direito - Autenticação */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Avatar */}
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                 <div className="flex flex-row gap-2 items-center">
-                  <p className="hidden sm:block text-sm font-medium truncate">{user.name}</p>
-                  <Button
-                    variant={"ghost"}
-                    className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full ring-2 ring-transparent ring-offset-1 ring-offset-background transition-all hover:ring-primary/30 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
-                  > 
-                    <Avatar className="h-8 w-8 sm:h-9 sm:w-9">
-                      <AvatarImage src={user.image || ""} alt={user.name || ""} />
-                      <AvatarFallback className="text-[10px] sm:text-xs bg-primary/10 text-primary font-medium">
-                        {initials}
-                      </AvatarFallback>
-                    </Avatar>
-                    {/* Badge de notificação de convites */}
-                    <InviteBadge />
-                  </Button>
+                  <div className="flex flex-row gap-2 items-center">
+                    <p className="hidden sm:block text-sm font-medium truncate">
+                      {user.name}
+                    </p>
+                    <Button
+                      variant={"ghost"}
+                      className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full ring-2 ring-transparent ring-offset-1 ring-offset-background transition-all hover:ring-primary/30 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
+                    >
+                      <Avatar className="h-8 w-8 sm:h-9 sm:w-9">
+                        <AvatarImage
+                          src={user.image || ""}
+                          alt={user.name || ""}
+                        />
+                        <AvatarFallback className="text-[10px] sm:text-xs bg-primary/10 text-primary font-medium">
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      {/* Badge de notificação de convites */}
+                      <InviteBadge />
+                    </Button>
                   </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 sm:w-64">
                   <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium truncate">{user.name}</p>
+                      <p className="text-sm font-medium truncate">
+                        {user.name}
+                      </p>
                       <p className="text-xs text-muted-foreground font-mono truncate">
                         {user.email}
                       </p>
@@ -597,13 +686,16 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
                   <PendingInvitesDropdown />
                   {/* Separador após convites se houver */}
                   <PendingInvitesDropdownSeparator />
-                  {(user && "role" in user && user.role === "admin") && (
+                  {user && "role" in user && user.role === "admin" && (
                     <DropdownMenuItem onClick={() => router.push("/admin")}>
                       <Settings className="mr-2 h-4 w-4" />
                       Admin Panel
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                  <DropdownMenuItem
+                    onClick={handleSignOut}
+                    className="text-destructive"
+                  >
                     <LogOut className="mr-2 h-4 w-4" />
                     Sair
                   </DropdownMenuItem>
@@ -611,58 +703,22 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
               </DropdownMenu>
             ) : (
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <Button variant="ghost" size="sm" className="text-[11px] sm:text-sm px-2 sm:px-3 h-7 sm:h-8" onClick={() => router.push("/sign-in")}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-[11px] sm:text-sm px-2 sm:px-3 h-7 sm:h-8"
+                  onClick={() => router.push("/sign-in")}
+                >
                   Entrar
                 </Button>
-                <Button size="sm" className="text-[11px] sm:text-sm px-2 sm:px-3 h-7 sm:h-8" onClick={() => router.push("/sign-up")}>
+                <Button
+                  size="sm"
+                  className="text-[11px] sm:text-sm px-2 sm:px-3 h-7 sm:h-8"
+                  onClick={() => router.push("/sign-up")}
+                >
                   Cadastrar
                 </Button>
               </div>
-            )}
-
-            {/* Mobile: Menu hamburger - sempre visível */}
-            {user && (
-              <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-                <SheetTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="sm:hidden h-8 w-8 p-0"
-                  >
-                    <Menu className="h-5 w-5" />
-                    <span className="sr-only">Abrir menu</span>
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                  <SheetHeader>
-                    <SheetTitle>Menu</SheetTitle>
-                  </SheetHeader>
-                  <div className="mt-6 space-y-2">
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start text-base h-12"
-                      onClick={() => {
-                        setSheetOpen(false);
-                        router.push("/organizations");
-                      }}
-                    >
-                      <LayoutDashboard className="mr-3 h-5 w-5" />
-                      Organizações
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start text-base h-12"
-                      onClick={() => {
-                        setSheetOpen(false);
-                        router.push("/pricing");
-                      }}
-                    >
-                      <CreditCard className="mr-3 h-5 w-5" />
-                      Planos
-                    </Button>
-                  </div>
-                </SheetContent>
-              </Sheet>
             )}
           </div>
         </div>
@@ -687,7 +743,7 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
                     "flex items-center px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap border-b-2 border-transparent shrink-0",
                     isActive
                       ? "text-foreground border-primary"
-                      : "text-muted-foreground hover:text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   <span>{item.title}</span>
@@ -700,4 +756,3 @@ export function Header({ user: initialUser, organization, clan, clans = [] }: He
     </>
   );
 }
-

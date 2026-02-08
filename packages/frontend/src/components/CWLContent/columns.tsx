@@ -20,7 +20,7 @@ export const columns: ColumnDef<CWLPlayerStatsWithRank>[] = [
       const pageIndex = table.getState().pagination.pageIndex;
       const pageSize = table.getState().pagination.pageSize;
       const actualRank = pageIndex * pageSize + rank;
-      
+
       if (actualRank === 1) {
         return (
           <div className="flex items-center justify-center w-8 h-8">
@@ -74,7 +74,9 @@ export const columns: ColumnDef<CWLPlayerStatsWithRank>[] = [
           </Button>
           <div className="flex flex-col">
             <div className="font-medium">{player.name}</div>
-            <div className="text-xs text-muted-foreground font-mono">{player.tag}</div>
+            <div className="text-xs text-muted-foreground font-mono">
+              {player.tag}
+            </div>
           </div>
         </div>
       );
@@ -92,19 +94,21 @@ export const columns: ColumnDef<CWLPlayerStatsWithRank>[] = [
       const perfectAttacks = player.perfectAttacks || 0;
       // Calcula porcentagem baseada no máximo de 3.0
       const percentage = (score / 3.0) * 100;
-      
+
       return (
-        <div className="min-w-[120px]">
+        <div className="min-w-30">
           <div className="flex items-center gap-4 mb-0.5">
-            <div className="flex items-center gap-1">
-            <span className="font-bold text-sm">{score.toFixed(2)}</span>
-            <span className="text-xs text-muted-foreground">pts</span>
+            <div className="flex items-center">
+              <span className="font-bold text-sm">{score.toFixed(2)}</span>
             </div>
             <span className="text-xs font-semibold text-muted-foreground">
               {perfectAttacks} PT
             </span>
           </div>
-          <Progress value={percentage} className="h-1 w-[80px] bg-primary/20 [&>div]:bg-primary" />
+          <Progress
+            value={percentage}
+            className="h-1 w-20 bg-primary/20 [&>div]:bg-primary"
+          />
         </div>
       );
     },
@@ -119,13 +123,15 @@ export const columns: ColumnDef<CWLPlayerStatsWithRank>[] = [
       const player = row.original;
       const avgStars = player.averageStars;
       const avgDestruction = player.averageDestruction;
-      
+
       return (
         <div className="flex items-center gap-2">
-          <Star className="h-4 w-4 text-yellow-500" />
+          <Star className="h-4 w-4 hidden sm:flex text-yellow-500" />
           <div className="flex flex-col">
             <span className="font-semibold">{avgStars.toFixed(2)}</span>
-            <span className="text-xs text-muted-foreground">{avgDestruction.toFixed(0)}% destruição</span>
+            <span className="text-xs text-muted-foreground">
+              {avgDestruction.toFixed(0)}% destruição
+            </span>
           </div>
         </div>
       );
@@ -149,13 +155,15 @@ export const columns: ColumnDef<CWLPlayerStatsWithRank>[] = [
       const attacks = player.totalAttacks ?? 0;
       const maxAttacks = wars > 0 ? wars * 1 : attacks; // Na CWL é apenas 1 ataque por guerra
       const attackRatio = `${attacks}/${maxAttacks}`;
-      
+
       return (
         <div className="flex items-center gap-2">
-          <Swords className="h-4 w-4 text-green-500" />
+          <Swords className="h-4 w-4 hidden sm:flex text-green-500" />
           <div className="flex flex-col">
             <span className="font-semibold">{wars || 0} Guerras</span>
-            <span className="text-xs text-muted-foreground">{attackRatio} ATQ</span>
+            <span className="text-xs text-muted-foreground">
+              {attackRatio} ATQ
+            </span>
           </div>
         </div>
       );
@@ -167,4 +175,3 @@ export const columns: ColumnDef<CWLPlayerStatsWithRank>[] = [
     },
   },
 ];
-

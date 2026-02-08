@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, ArrowLeft, Sparkles, Shield, XCircle } from "lucide-react";
+import { Loader2, ArrowLeft, Sparkles, Shield, XCircle, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { useOrganizations, useSession } from "@/auth";
 import { ClientHeader } from "@/components/ClientHeader";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 
 // Client component para atualizar o título
 function TitleUpdater({ title }: { title: string }) {
@@ -25,6 +26,7 @@ function TitleUpdater({ title }: { title: string }) {
 
 const organizationSchema = z.object({
   name: z.string().min(1, "Nome da organização é obrigatório").max(100, "Nome muito longo"),
+  customClansCount: z.number().min(1).max(50).optional(),
 });
 
 type OrganizationSchema = z.infer<typeof organizationSchema>;
@@ -35,6 +37,7 @@ const PLAN_NAMES = {
   MESTRE: "Mestre",
   CAMPEAO: "Campeão",
   TITA: "Titã",
+  LEGEND: "Legend",
 };
 
 export default function NewOrganizationPage() {
@@ -42,11 +45,10 @@ export default function NewOrganizationPage() {
   const searchParams = useSearchParams();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { refetch } = useOrganizations();
   const { data: session } = useSession();
 
   // Pega plano e período da URL ou localStorage
-  const plan = (searchParams.get("plan") || localStorage.getItem("selectedPlan") || "MESTRE") as "MESTRE" | "CAMPEAO" | "TITA";
+  const plan = (searchParams.get("plan") || localStorage.getItem("selectedPlan") || "MESTRE") as "MESTRE" | "CAMPEAO" | "TITA" | "LEGEND";
   const period = (searchParams.get("period") || localStorage.getItem("selectedPeriod") || "monthly") as "monthly" | "quarterly" | "yearly";
 
   const {
@@ -107,12 +109,12 @@ export default function NewOrganizationPage() {
 
   // Se não tiver plano, redireciona para pricing
   useEffect(() => {
-    if (!plan || !["MESTRE", "CAMPEAO", "TITA"].includes(plan)) {
+    if (!plan || !["MESTRE", "CAMPEAO", "TITA", "LEGEND"].includes(plan)) {
       router.push("/pricing");
     }
   }, [plan, router]);
 
-  if (!plan || !["MESTRE", "CAMPEAO", "TITA"].includes(plan)) {
+  if (!plan || !["MESTRE", "CAMPEAO", "TITA", "LEGEND"].includes(plan)) {
     return null;
   }
 
@@ -178,6 +180,8 @@ export default function NewOrganizationPage() {
                 )}
               </CardContent>
             </Card>
+
+           
 
             <div className="flex flex-col sm:flex-row gap-2">
               <Button

@@ -70,6 +70,7 @@ export function WarsContent({
     }
 
     setIsLoading(true);
+    console.log("[WarsContent] Carregando ranking para clanTag:", clanTag, "e meses:", selectedMonths);
     try {
       const cleanTag = clanTag.replace("#", "");
       const data = await getWarRanking(cleanTag, selectedMonths, true);

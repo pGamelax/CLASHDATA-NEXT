@@ -251,24 +251,47 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
 
           <Separator />
 
-          <Button
-            onClick={handleManageSubscription}
-            disabled={openingPortal}
-            className="w-full"
-            size="lg"
-          >
-            {openingPortal ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Abrindo portal...
-              </>
-            ) : (
-              <>
-                <CreditCard className="mr-2 h-4 w-4" />
-                Gerenciar Assinatura no Stripe
-              </>
-            )}
-          </Button>
+          <div className="flex flex-col gap-3">
+            <Button
+              onClick={handleManageSubscription}
+              disabled={openingPortal}
+              className="w-full"
+              size="lg"
+              variant="default"
+            >
+              {openingPortal ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Abrindo portal...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Gerenciar Assinatura no Stripe
+                </>
+              )}
+            </Button>
+            
+            <Button
+              onClick={handleManageSubscription}
+              disabled={openingPortal}
+              className="w-full"
+              size="lg"
+              variant="outline"
+            >
+              {openingPortal ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Abrindo portal...
+                </>
+              ) : (
+                <>
+                  <Zap className="mr-2 h-4 w-4" />
+                  Trocar de Assinatura
+                </>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

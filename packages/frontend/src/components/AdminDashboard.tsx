@@ -210,7 +210,7 @@ export function AdminDashboard() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">Painel Administrativo</h1>
           <p className="text-muted-foreground">
