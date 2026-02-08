@@ -13,7 +13,7 @@ COPY packages/frontend/package.json ./packages/frontend/
 # Install dependencies (including devDependencies for build)
 # Bun will install all workspaces when installing from root
 # Try with --frozen-lockfile first, fallback to regular install if lockfile is out of sync
-RUN bun install --frozen-lockfile || bun install 
+RUN bun install || bun install 
 
 # Copy all backend source code
 COPY packages/backend ./packages/backend
