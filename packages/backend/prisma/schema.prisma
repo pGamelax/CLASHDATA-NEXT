@@ -162,6 +162,7 @@ enum SubscriptionPlan {
   MESTRE   // R$ 29,90 - 1 clan, 1 convite
   CAMPEAO  // R$ 45,90 - 2 clans, 2 convites
   TITA     // R$ 74,90 - 3 clans, 3 convites
+  LEGEND   // R$ 119,90 - 5 clans, 5 convites
 }
 
 enum SubscriptionStatus {

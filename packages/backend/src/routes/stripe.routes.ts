@@ -94,6 +94,7 @@ export const stripeRoutes = new Elysia({ prefix: "/stripe" })
           t.Literal("MESTRE"),
           t.Literal("CAMPEAO"),
           t.Literal("TITA"),
+          t.Literal("LEGEND"),
         ]),
         period: t.Union([
           t.Literal("monthly"),

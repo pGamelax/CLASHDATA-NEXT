@@ -2,13 +2,24 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Crown, Trophy, Zap, Sparkles, ArrowRight, Shield, Users, TrendingUp, BarChart3, Wine } from "lucide-react";
+import {
+  Check,
+  Crown,
+  Trophy,
+  Zap,
+  Sparkles,
+  ArrowRight,
+  Shield,
+  Users,
+  TrendingUp,
+  BarChart3,
+  Wine,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ClientHeader } from "@/components/ClientHeader";
 import { useSession } from "@/auth";
-
 
 type PaymentPeriod = "monthly" | "quarterly" | "yearly";
 
@@ -33,7 +44,7 @@ const PLAN_PRICES = {
     monthly: { amount: 11990, originalAmount: null },
     quarterly: { amount: 32373, originalAmount: 35970 },
     yearly: { amount: 115104, originalAmount: 143880 },
-},
+  },
 };
 
 const PLAN_DETAILS = {
@@ -62,7 +73,7 @@ const PLAN_DETAILS = {
     borderColor: "border-blue-500/30",
     maxClans: 2,
     maxInvites: 2,
-    
+
     features: [
       "2 Clans",
       "2 Convites",
@@ -102,8 +113,8 @@ const PLAN_DETAILS = {
     maxClans: 4,
     maxInvites: 4,
     features: [
-      "4 Clans",
-      "4 Convites",
+      "5 Clans",
+      "5 Convites",
       "Dashboard Completo",
       "Rankings de Guerras",
       "Estatísticas Avançadas",
@@ -129,7 +140,8 @@ function calculateDiscount(original: number, current: number): number {
 export default function PricingPage() {
   const router = useRouter();
   const { data: session } = useSession();
-  const [selectedPeriod, setSelectedPeriod] = useState<PaymentPeriod>("monthly");
+  const [selectedPeriod, setSelectedPeriod] =
+    useState<PaymentPeriod>("monthly");
 
   const handleSelectPlan = (plan: "MESTRE" | "CAMPEAO" | "TITA" | "LEGEND") => {
     // Salva o plano e período no localStorage
@@ -142,16 +154,22 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-primary/5 to-background">
       <ClientHeader initialUser={session?.user} />
-      
+
       <div className="container mx-auto px-4 py-12 sm:py-16 lg:py-20">
         {/* Header */}
         <div className="text-center mb-12 sm:mb-16">
           <div className="inline-flex items-center gap-2 rounded-full border-2 border-primary/20 bg-primary/5 backdrop-blur-sm px-4 py-2 text-sm mb-6">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span className="font-semibold">Escolha o plano perfeito para você</span>
+            <span className="font-semibold">
+              Escolha o plano perfeito para você
+            </span>
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
-            Planos que <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">crescem</span> com você
+            Planos que{" "}
+            <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+              crescem
+            </span>{" "}
+            com você
           </h1>
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
             Comece com 3 dias grátis. Sem compromisso. Cancele quando quiser.
@@ -181,7 +199,10 @@ export default function PricingPage() {
                 }`}
               >
                 Trimestral
-                <Badge variant="secondary" className="ml-1 sm:ml-2 bg-green-500/10 text-green-600 dark:text-green-400 text-[9px] sm:text-[10px]">
+                <Badge
+                  variant="secondary"
+                  className="ml-1 sm:ml-2 bg-green-500/10 text-green-600 dark:text-green-400 text-[9px] sm:text-[10px]"
+                >
                   10% OFF
                 </Badge>
               </button>
@@ -195,7 +216,10 @@ export default function PricingPage() {
                 }`}
               >
                 Anual
-                <Badge variant="secondary" className="ml-1 sm:ml-2 bg-green-500/10 text-green-600 dark:text-green-400 text-[9px] sm:text-[10px]">
+                <Badge
+                  variant="secondary"
+                  className="ml-1 sm:ml-2 bg-green-500/10 text-green-600 dark:text-green-400 text-[9px] sm:text-[10px]"
+                >
                   20% OFF
                 </Badge>
               </button>
@@ -211,7 +235,13 @@ export default function PricingPage() {
             const price = prices[selectedPeriod];
             const Icon = details.icon;
             const isPopular = "popular" in details && details.popular === true;
-            const planMonthlyPrice = price.amount / (selectedPeriod === "monthly" ? 1 : selectedPeriod === "quarterly" ? 3 : 12);
+            const planMonthlyPrice =
+              price.amount /
+              (selectedPeriod === "monthly"
+                ? 1
+                : selectedPeriod === "quarterly"
+                  ? 3
+                  : 12);
 
             return (
               <Card
@@ -232,19 +262,27 @@ export default function PricingPage() {
 
                 <CardHeader className="text-center pb-4 pt-8">
                   <div className="flex justify-center mb-4">
-                    <div className={`p-4 rounded-2xl bg-gradient-to-br ${details.gradient} border-2 ${details.borderColor} shadow-lg`}>
+                    <div
+                      className={`p-4 rounded-2xl bg-gradient-to-br ${details.gradient} border-2 ${details.borderColor} shadow-lg`}
+                    >
                       <Icon className={`h-10 w-10 ${details.iconColor}`} />
                     </div>
                   </div>
-                  <CardTitle className="text-3xl font-bold mb-2">{details.name}</CardTitle>
-                  
+                  <CardTitle className="text-3xl font-bold mb-2">
+                    {details.name}
+                  </CardTitle>
+
                   {price.originalAmount && (
                     <div className="flex items-center justify-center gap-2 mb-3">
                       <span className="text-sm text-muted-foreground line-through">
                         {formatPrice(price.originalAmount)}
                       </span>
-                      <Badge variant="secondary" className="bg-green-500/10 text-green-600 dark:text-green-400 font-semibold">
-                        {calculateDiscount(price.originalAmount, price.amount)}% OFF
+                      <Badge
+                        variant="secondary"
+                        className="bg-green-500/10 text-green-600 dark:text-green-400 font-semibold"
+                      >
+                        {calculateDiscount(price.originalAmount, price.amount)}%
+                        OFF
                       </Badge>
                     </div>
                   )}
@@ -254,7 +292,12 @@ export default function PricingPage() {
                       {formatPrice(price.amount)}
                     </span>
                     <span className="text-muted-foreground text-lg ml-2">
-                      /{selectedPeriod === "monthly" ? "mês" : selectedPeriod === "quarterly" ? "trimestre" : "ano"}
+                      /
+                      {selectedPeriod === "monthly"
+                        ? "mês"
+                        : selectedPeriod === "quarterly"
+                          ? "trimestre"
+                          : "ano"}
                     </span>
                   </div>
 
@@ -265,8 +308,12 @@ export default function PricingPage() {
                   )}
 
                   <div className="mt-4 pt-4 border-t border-border">
-                    <p className="text-sm text-muted-foreground mb-1">3 dias grátis</p>
-                    <p className="text-xs text-muted-foreground">Cancele quando quiser</p>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      3 dias grátis
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Cancele quando quiser
+                    </p>
                   </div>
                 </CardHeader>
 
@@ -285,13 +332,17 @@ export default function PricingPage() {
                   </Button>
 
                   <div className="space-y-3 pt-4 border-t border-border">
-                    <p className="text-sm font-semibold text-foreground mb-3">Tudo incluído:</p>
+                    <p className="text-sm font-semibold text-foreground mb-3">
+                      Tudo incluído:
+                    </p>
                     {details.features.map((feature, index) => (
                       <div key={index} className="flex items-start gap-3">
                         <div className="p-1 rounded-full bg-green-500/10 mt-0.5 shrink-0">
                           <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
                         </div>
-                        <span className="text-sm text-muted-foreground">{feature}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {feature}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -304,19 +355,50 @@ export default function PricingPage() {
         {/* Features Section */}
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-2">Recursos incluídos em todos os planos</h2>
-            <p className="text-muted-foreground">Tudo que você precisa para gerenciar seu clã</p>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+              Recursos incluídos em todos os planos
+            </h2>
+            <p className="text-muted-foreground">
+              Tudo que você precisa para gerenciar seu clã
+            </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
-              { icon: Shield, title: "Dashboard Completo", desc: "Visão geral de todas as estatísticas" },
-              { icon: BarChart3, title: "Analytics Avançado", desc: "Estatísticas detalhadas e métricas" },
-              { icon: Trophy, title: "Rankings", desc: "Rankings de guerras e CWL" },
-              { icon: Zap, title: "Guerra Atual", desc: "Acompanhe guerras em tempo real" },
-              { icon: TrendingUp, title: "Previsões", desc: "Sistema de previsão inteligente" },
-              { icon: Users, title: "Gestão de Membros", desc: "Gerencie membros e convites" },
+              {
+                icon: Shield,
+                title: "Dashboard Completo",
+                desc: "Visão geral de todas as estatísticas",
+              },
+              {
+                icon: BarChart3,
+                title: "Analytics Avançado",
+                desc: "Estatísticas detalhadas e métricas",
+              },
+              {
+                icon: Trophy,
+                title: "Rankings",
+                desc: "Rankings de guerras e CWL",
+              },
+              {
+                icon: Zap,
+                title: "Guerra Atual",
+                desc: "Acompanhe guerras em tempo real",
+              },
+              {
+                icon: TrendingUp,
+                title: "Previsões",
+                desc: "Sistema de previsão inteligente",
+              },
+              {
+                icon: Users,
+                title: "Gestão de Membros",
+                desc: "Gerencie membros e convites",
+              },
             ].map((feature, index) => (
-              <div key={index} className="p-4 rounded-xl border border-border bg-card hover:border-primary/50 transition-colors">
+              <div
+                key={index}
+                className="p-4 rounded-xl border border-border bg-card hover:border-primary/50 transition-colors"
+              >
                 <div className="p-2 rounded-lg bg-primary/10 w-fit mb-3">
                   <feature.icon className="h-5 w-5 text-primary" />
                 </div>
@@ -330,7 +412,9 @@ export default function PricingPage() {
         {/* FAQ Section */}
         <div className="max-w-3xl mx-auto mt-16">
           <div className="text-center mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-2">Perguntas Frequentes</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+              Perguntas Frequentes
+            </h2>
           </div>
           <div className="space-y-4">
             {[

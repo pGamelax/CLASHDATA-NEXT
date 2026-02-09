@@ -43,16 +43,16 @@ export const STRIPE_PLANS: Record<
     },
     prices: {
       monthly: {
-        priceId: process.env.STRIPE_PRICE_MESTRE_MONTHLY || "price_1SwvgAH79GvMz9yn6fNaEyRw",
+        priceId: env.STRIPE_PRICE_MESTRE_MONTHLY,
         amount: 2990, // R$ 29,90 em centavos
       },
       quarterly: {
-        priceId: process.env.STRIPE_PRICE_MESTRE_QUARTERLY || "price_1SxHOcH79GvMz9ynKtNL8xHa",
+        priceId: env.STRIPE_PRICE_MESTRE_QUARTERLY,
         amount: 8073, // R$ 80,73 (R$ 26,91/mês) - 10% desconto
         originalAmount: 8970, // R$ 89,70 (R$ 29,90 x 3)
       },
       yearly: {
-        priceId: process.env.STRIPE_PRICE_MESTRE_YEARLY || "price_1SxHPBH79GvMz9yn1qUVfNSm",
+        priceId: env.STRIPE_PRICE_MESTRE_YEARLY,
         amount: 28704, // R$ 287,04 (R$ 23,92/mês) - 20% desconto
         originalAmount: 35880, // R$ 358,80 (R$ 29,90 x 12)
       },
@@ -66,16 +66,16 @@ export const STRIPE_PLANS: Record<
     },
     prices: {
       monthly: {
-        priceId: process.env.STRIPE_PRICE_CAMPEAO_MONTHLY || "price_1SwvhBH79GvMz9ynWmETZxDj",
+        priceId: env.STRIPE_PRICE_CAMPEAO_MONTHLY,
         amount: 4590, // R$ 45,90 em centavos
       },
       quarterly: {
-        priceId: process.env.STRIPE_PRICE_CAMPEAO_QUARTERLY || "price_1SxHNhH79GvMz9yn7M3dx1h3",
+        priceId: env.STRIPE_PRICE_CAMPEAO_QUARTERLY,
         amount: 12393, // R$ 123,93 (R$ 41,31/mês) - 10% desconto
         originalAmount: 13770, // R$ 137,70 (R$ 45,90 x 3)
       },
       yearly: {
-        priceId: process.env.STRIPE_PRICE_CAMPEAO_YEARLY || "price_1SxEyrH79GvMz9ynHwXJZTox",
+        priceId: env.STRIPE_PRICE_CAMPEAO_YEARLY,
         amount: 44064, // R$ 440,64 (R$ 36,72/mês) - 20% desconto
         originalAmount: 55080, // R$ 550,80 (R$ 45,90 x 12)
       },
@@ -89,18 +89,42 @@ export const STRIPE_PLANS: Record<
     },
     prices: {
       monthly: {
-        priceId: process.env.STRIPE_PRICE_TITA_MONTHLY || "price_1Swvj5H79GvMz9yn9clu0bRI",
+        priceId: env.STRIPE_PRICE_TITA_MONTHLY,
         amount: 7490, // R$ 74,90 em centavos
       },
       quarterly: {
-        priceId: process.env.STRIPE_PRICE_TITA_QUARTERLY || "price_1SxEuSH79GvMz9yn0tUmqf1z",
+        priceId: env.STRIPE_PRICE_TITA_QUARTERLY,
         amount: 20223, // R$ 202,23 (R$ 67,41/mês) - 10% desconto
         originalAmount: 22470, // R$ 224,70 (R$ 74,90 x 3)
       },
       yearly: {
-        priceId: process.env.STRIPE_PRICE_TITA_YEARLY || "price_1SxEy2H79GvMz9ynSYFtquFy",
+        priceId: env.STRIPE_PRICE_TITA_YEARLY,
         amount: 71904, // R$ 719,04 (R$ 59,92/mês) - 20% desconto
         originalAmount: 89880, // R$ 898,80 (R$ 74,90 x 12)
+      },
+    },
+  },
+  LEGEND: {
+    name: "Legend",
+    limits: {
+      maxClans: 5,
+      maxInvites: 5,
+    },
+    prices: {
+      monthly: {
+        priceId: env.STRIPE_PRICE_LEGEND_MONTHLY,
+        amount: 11990,
+      },
+      quarterly: {
+        priceId: env.STRIPE_PRICE_LEGEND_QUARTERLY,
+
+        amount: 32373,
+        originalAmount: 35970,
+      },
+      yearly: {
+        priceId: env.STRIPE_PRICE_LEGEND_YEARLY,
+        amount: 115104,
+        originalAmount: 143880,
       },
     },
   },
@@ -119,7 +143,7 @@ export class StripeService {
     },
     period: PaymentPeriod,
     userId: string,
-    userEmail: string
+    userEmail: string,
   ): Promise<Stripe.Checkout.Session> {
     const planConfig = STRIPE_PLANS[organizationData.plan];
     const priceConfig = planConfig.prices[period];
@@ -152,8 +176,8 @@ export class StripeService {
         plan: organizationData.plan,
         period,
       },
-      success_url: `${process.env.BETTER_AUTH_TRUSTED_ORIGIN || "http://localhost:3001"}/organizations/callback?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.BETTER_AUTH_TRUSTED_ORIGIN || "http://localhost:3001"}/org/new?canceled=true`,
+      success_url: `${env.BETTER_AUTH_TRUSTED_ORIGIN || "http://localhost:3001"}/organizations/callback?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${env.BETTER_AUTH_TRUSTED_ORIGIN || "http://localhost:3001"}/org/new?canceled=true`,
     });
 
     return session;
@@ -164,7 +188,7 @@ export class StripeService {
    */
   async createPortalSession(
     customerId: string,
-    returnUrl: string
+    returnUrl: string,
   ): Promise<Stripe.BillingPortal.Session> {
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
@@ -186,7 +210,7 @@ export class StripeService {
    */
   async cancelSubscription(
     subscriptionId: string,
-    cancelAtPeriodEnd: boolean = true
+    cancelAtPeriodEnd: boolean = true,
   ): Promise<Stripe.Subscription> {
     if (cancelAtPeriodEnd) {
       return await stripe.subscriptions.update(subscriptionId, {
@@ -202,7 +226,7 @@ export class StripeService {
    */
   async handleWebhook(
     payload: string | Buffer,
-    signature: string
+    signature: string,
   ): Promise<Stripe.Event> {
     if (!env.STRIPE_WEBHOOK_SECRET) {
       console.error("❌ STRIPE_WEBHOOK_SECRET não configurada");
@@ -214,10 +238,11 @@ export class StripeService {
       return await stripe.webhooks.constructEventAsync(
         payload,
         signature,
-        env.STRIPE_WEBHOOK_SECRET
+        env.STRIPE_WEBHOOK_SECRET,
       );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+      const errorMessage =
+        error instanceof Error ? error.message : "Erro desconhecido";
       console.error("❌ Erro ao construir evento do webhook:", errorMessage);
       throw error;
     }
@@ -226,7 +251,9 @@ export class StripeService {
   /**
    * Busca uma sessão de checkout
    */
-  async getCheckoutSession(sessionId: string): Promise<Stripe.Checkout.Session> {
+  async getCheckoutSession(
+    sessionId: string,
+  ): Promise<Stripe.Checkout.Session> {
     return await stripe.checkout.sessions.retrieve(sessionId);
   }
 }

@@ -50,9 +50,9 @@ export class StripeController {
         });
       }
 
-      if (!plan || !["MESTRE", "CAMPEAO", "TITA"].includes(plan)) {
+      if (!plan || !["MESTRE", "CAMPEAO", "TITA", "LEGEND"].includes(plan)) {
         return status(400, {
-          message: "Plano inválido. Deve ser MESTRE, CAMPEAO ou TITA",
+          message: "Plano inválido. Deve ser MESTRE, CAMPEAO, TITA ou LEGEND",
         });
       }
 
