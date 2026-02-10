@@ -86,7 +86,7 @@ export const columns: ColumnDef<CWLPlayerStatsWithRank>[] = [
     accessorKey: "bayesianScore",
     enableSorting: true,
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="EFICIÊNCIA" />
+      <DataTableColumnHeader column={column} title="PONTOS" />
     ),
     cell: ({ row }) => {
       const score = row.getValue("bayesianScore") as number;
@@ -117,7 +117,7 @@ export const columns: ColumnDef<CWLPlayerStatsWithRank>[] = [
     id: "attackAverage",
     enableSorting: true,
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="MÉDIA ATAQUE" />
+      <DataTableColumnHeader column={column} title="MÉDIA ESTRELAS" />
     ),
     cell: ({ row }) => {
       const player = row.original;
