@@ -85,7 +85,7 @@ export function OrganizationSelector({
         <button
           className={cn(
             "flex items-center gap-1.5 sm:gap-2.5 p-1 rounded-md sm:rounded-lg bg-muted/80 hover:bg-muted transition-colors text-xs sm:text-sm font-medium",
-            "sm:min-w-[160px] sm:max-w-[220px]",
+            "sm:min-w-40 sm:max-w-55",
             "focus:outline-none"
           )}
           disabled={isLoading}
@@ -115,7 +115,7 @@ export function OrganizationSelector({
           <ChevronsUpDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" sideOffset={4} className="w-[240px] z-50">
+      <DropdownMenuContent align="start" sideOffset={4} className="w-60 z-50">
         {organizations.length > 0 ? (
           <>
             {organizations.map((org) => {
@@ -165,7 +165,7 @@ export function OrganizationSelector({
             <DropdownMenuItem
               onClick={() => {
                 setOpen(false);
-                router.push("/org/new");
+                router.push("/pricing");
               }}
               className="flex items-center gap-2 p-1 cursor-pointer"
             >

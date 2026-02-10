@@ -316,10 +316,7 @@ export function Header({
   const [selectedOrganization, setSelectedOrganization] = useState<
     string | null
   >(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
 
-  // Usa o usuário da sessão se disponível (sempre atualizado), senão usa o initialUser (SSR)
-  // Prioriza session?.user porque é atualizado em tempo real
   const user = session?.user || initialUser;
 
   // O endpoint /organizations/list retorna { success: true, data: [...] }
