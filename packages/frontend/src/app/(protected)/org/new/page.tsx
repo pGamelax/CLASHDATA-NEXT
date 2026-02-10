@@ -5,10 +5,23 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, ArrowLeft, Sparkles, Shield, XCircle, Users } from "lucide-react";
+import {
+  Loader2,
+  ArrowLeft,
+  Sparkles,
+  Shield,
+  XCircle,
+  Users,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useOrganizations, useSession } from "@/auth";
 import { ClientHeader } from "@/components/ClientHeader";
@@ -25,7 +38,10 @@ function TitleUpdater({ title }: { title: string }) {
 }
 
 const organizationSchema = z.object({
-  name: z.string().min(1, "Nome da organização é obrigatório").max(100, "Nome muito longo"),
+  name: z
+    .string()
+    .min(1, "Nome da organização é obrigatório")
+    .max(100, "Nome muito longo"),
   customClansCount: z.number().min(1).max(50).optional(),
 });
 
@@ -48,8 +64,12 @@ export default function NewOrganizationPage() {
   const { data: session } = useSession();
 
   // Pega plano e período da URL ou localStorage
-  const plan = (searchParams.get("plan") || localStorage.getItem("selectedPlan") || "MESTRE") as "MESTRE" | "CAMPEAO" | "TITA" | "LEGEND";
-  const period = (searchParams.get("period") || localStorage.getItem("selectedPeriod") || "monthly") as "monthly" | "quarterly" | "yearly";
+  const plan = (searchParams.get("plan") ||
+    localStorage.getItem("selectedPlan") ||
+    "MESTRE") as "MESTRE" | "CAMPEAO" | "TITA" | "LEGEND";
+  const period = (searchParams.get("period") ||
+    localStorage.getItem("selectedPeriod") ||
+    "monthly") as "monthly" | "quarterly" | "yearly";
 
   const {
     register,
@@ -73,19 +93,22 @@ export default function NewOrganizationPage() {
         .replace(/(^-|-$)/g, "");
 
       // Cria sessão de checkout no Stripe
-      const checkoutResponse = await fetch(`${API_URL}/stripe/create-checkout-session`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const checkoutResponse = await fetch(
+        `${API_URL}/stripe/create-checkout-session`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            name,
+            slug,
+            plan,
+            period,
+          }),
         },
-        credentials: "include",
-        body: JSON.stringify({
-          name,
-          slug,
-          plan,
-          period,
-        }),
-      });
+      );
 
       if (!checkoutResponse.ok) {
         const errorData = await checkoutResponse.json();
@@ -121,24 +144,31 @@ export default function NewOrganizationPage() {
   return (
     <>
       <TitleUpdater title="Criar Organização | CLASHDATA" />
-      <div className="min-h-screen bg-gradient-to-b from-background via-primary/5 to-background">
+      <div className="min-h-screen bg-linear-to-b from-background via-primary/5 to-background">
         <ClientHeader initialUser={session?.user} />
-      
+
         <div className="container mx-auto px-4 py-8 max-w-3xl">
           <div className="mb-8 text-center">
-            <Link 
-              href="/pricing"
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Voltar para Planos
-            </Link>
-            <div className="inline-flex items-center gap-2 rounded-full border-2 border-primary/20 bg-primary/5 backdrop-blur-sm px-4 py-2 text-sm mb-4">
-              <Badge variant="secondary" className="bg-primary/10 text-primary">
-                Plano {PLAN_NAMES[plan]}
-              </Badge>
+            <div className="flex items-center justify-center gap-4">
+              <Link
+                href="/pricing"
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Voltar para Planos
+              </Link>
+              <div className="inline-flex items-center gap-2 rounded-full border-2 border-primary/20 bg-primary/5 backdrop-blur-sm px-4 py-2 text-sm mb-4">
+                <Badge
+                  variant="secondary"
+                  className="bg-primary/10 text-primary"
+                >
+                  Plano {PLAN_NAMES[plan]}
+                </Badge>
+              </div>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-bold mb-2">Crie sua Organização</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-2">
+              Crie sua Organização
+            </h1>
             <p className="text-muted-foreground text-lg">
               Digite o nome da sua organização
             </p>
@@ -168,7 +198,9 @@ export default function NewOrganizationPage() {
                     autoFocus
                   />
                   {errors.name && (
-                    <p className="text-sm text-destructive font-medium">{errors.name.message}</p>
+                    <p className="text-sm text-destructive font-medium">
+                      {errors.name.message}
+                    </p>
                   )}
                 </div>
 
@@ -181,13 +213,14 @@ export default function NewOrganizationPage() {
               </CardContent>
             </Card>
 
-           
-
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="w-full mt-6">
+              {/* Removido o Flexbox de container e o botão Voltar */}
               <Button
                 type="submit"
                 disabled={isCreating}
-                className="flex-1 h-12 shadow-lg hover:shadow-xl hover:scale-105 transition-all order-2 sm:order-1"
+                // h-12 para manter a altura boa de clique
+                // w-full para garantir que ele preencha o container e fique robusto
+                className="w-full h-12 shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-95 transition-all"
                 size="lg"
               >
                 {isCreating ? (
@@ -198,20 +231,12 @@ export default function NewOrganizationPage() {
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Continuar para Pagamento</span>
+                    <span className="hidden sm:inline">
+                      Continuar para Pagamento
+                    </span>
                     <span className="sm:hidden">Continuar</span>
                   </>
                 )}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.push("/pricing")}
-                disabled={isCreating}
-                className="h-12 border-2 hover:bg-muted/50 transition-all order-1 sm:order-2"
-                size="lg"
-              >
-                Voltar
               </Button>
             </div>
 
