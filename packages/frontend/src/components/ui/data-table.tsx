@@ -101,97 +101,105 @@ export function DataTable<TData, TValue>({
   const [isCopied, setIsCopied] = React.useState(false);
 
   const copyToClipboard = async () => {
-  try {
-    const allRows = table.getFilteredRowModel().rows;
-    if (!allRows?.length) return;
+    try {
+      const allRows = table.getFilteredRowModel().rows;
+      if (!allRows?.length) return;
 
-    // 1. Pegar colunas visíveis, ignorando as de controle (rank, ações, etc.)
-    const visibleColumns = table.getVisibleLeafColumns().filter(col => {
-      const id = col.id.toLowerCase();
-      // Ignora colunas que não fazem sentido no texto
-      return id !== "rank" && id !== "actions" && id !== "select";
-    });
+      // 1. Pegar colunas visíveis, ignorando as de controle (rank, ações, etc.)
+      const visibleColumns = table.getVisibleLeafColumns().filter((col) => {
+        const id = col.id.toLowerCase();
+        // Ignora colunas que não fazem sentido no texto
+        return id !== "rank" && id !== "actions" && id !== "select";
+      });
 
-    const colWidth = 15;
-    const nameWidth = 20;
+      const colWidth = 15;
+      const nameWidth = 20;
 
-    // 2. Extrair títulos dos Headers (Trata se for String ou Componente DataTableColumnHeader)
-    const headerRow = visibleColumns.map((col, index) => {
-      let title = "";
-      const headerDef = col.columnDef.header;
+      // 2. Extrair títulos dos Headers (Trata se for String ou Componente DataTableColumnHeader)
+      const headerRow = visibleColumns
+        .map((col, index) => {
+          let title = "";
+          const headerDef = col.columnDef.header;
 
-      if (typeof headerDef === "string") {
-        title = headerDef;
-      } else if (typeof headerDef === "function") {
-        // Tenta extrair a prop 'title' do componente DataTableColumnHeader
-        const headerElement = headerDef({ column: col } as any);
-        title = headerElement?.props?.title || col.id;
-      } else {
-        title = col.id;
-      }
+          if (typeof headerDef === "string") {
+            title = headerDef;
+          } else if (typeof headerDef === "function") {
+            // Tenta extrair a prop 'title' do componente DataTableColumnHeader
+            const headerElement = headerDef({ column: col } as any);
+            title = headerElement?.props?.title || col.id;
+          } else {
+            title = col.id;
+          }
 
-      title = title.toLowerCase();
-      return index === 0 ? title.padEnd(nameWidth) : title.padStart(colWidth);
-    }).join("");
+          title = title.toLowerCase();
+          return index === 0
+            ? title.padEnd(nameWidth)
+            : title.padStart(colWidth);
+        })
+        .join("");
 
-    // 3. Processar as Linhas de forma dinâmica
-    const body = allRows.map((row) => {
-      return visibleColumns.map((col, index) => {
-        const rowData = row.original as any;
-        const columnId = col.id;
-        let value = "";
+      // 3. Processar as Linhas de forma dinâmica
+      const body = allRows
+        .map((row) => {
+          return visibleColumns
+            .map((col, index) => {
+              const rowData = row.original as any;
+              const columnId = col.id;
+              let value = "";
 
-        // LÓGICA DE FORMATAÇÃO POR COLUNA
-        switch (columnId) {
-          case "name":
-            value = rowData.name || "N/A";
-            break;
-          case "currentTrophies":
-            value = String(rowData.currentTrophies);
-            break;
-          case "attacks": // Coluna de Troféus (Gain)
-            value = `+${rowData.totalAttack}`;
-            break;
-          case "defenses": // Coluna de Troféus (Loss)
-            value = `-${rowData.totalDefense}`;
-            break;
-          case "bayesianScore": // Coluna CWL (Eficiência)
-            value = rowData.bayesianScore.toFixed(2);
-            break;
-          case "attackAverage": // Coluna CWL (Média)
-            value = `${rowData.averageStars.toFixed(2)}`;
-            break;
-          case "participation": // Coluna CWL (Guerras)
-            value = `${rowData.totalAttacks || 0}atq`;
-            break;
-          default:
-            // Fallback para qualquer outra coluna dinâmica
-            value = String(row.getValue(columnId) || "");
-        }
+              // LÓGICA DE FORMATAÇÃO POR COLUNA
+              switch (columnId) {
+                case "name":
+                  value = rowData.name || "N/A";
+                  break;
+                case "currentTrophies":
+                  value = String(rowData.currentTrophies);
+                  break;
+                case "attacks": // Coluna de Troféus (Gain)
+                  value = `+${rowData.totalAttack}`;
+                  break;
+                case "defenses": // Coluna de Troféus (Loss)
+                  value = `-${rowData.totalDefense}`;
+                  break;
+                case "bayesianScore": // Coluna CWL (Eficiência)
+                  value = rowData.bayesianScore.toFixed(2);
+                  break;
+                case "attackAverage": // Coluna CWL (Média)
+                  value = `${rowData.averageStars.toFixed(2)}`;
+                  break;
+                case "participation": // Coluna CWL (Guerras)
+                  value = `${rowData.totalAttacks || 0}atq`;
+                  break;
+                default:
+                  // Fallback para qualquer outra coluna dinâmica
+                  value = String(row.getValue(columnId) || "");
+              }
 
-        // Limita o nome para não quebrar o layout
-        if (index === 0) {
-          return value.substring(0, nameWidth - 1).padEnd(nameWidth);
-        }
-        return value.padStart(colWidth);
-      }).join("");
-    }).join("\n");
+              // Limita o nome para não quebrar o layout
+              if (index === 0) {
+                return value.substring(0, nameWidth - 1).padEnd(nameWidth);
+              }
+              return value.padStart(colWidth);
+            })
+            .join("");
+        })
+        .join("\n");
 
-    const finalString = "```\n" + headerRow + "\n" + body + "\n```";
+      const finalString = "```\n" + headerRow + "\n" + body + "\n```";
 
-    await navigator.clipboard.writeText(finalString);
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2000);
-  } catch (err) {
-    console.error("Erro ao copiar:", err);
-  }
-};
+      await navigator.clipboard.writeText(finalString);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      console.error("Erro ao copiar:", err);
+    }
+  };
 
   // Renderiza cards para mobile
   if (isMobile) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center py-2">
+        <div className="flex flex-col w-full gap-2 py-2">
           <div className="relative flex-1 max-w-full">
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -201,6 +209,9 @@ export function DataTable<TData, TValue>({
               className="pl-8 h-8 text-xs"
             />
           </div>
+          <Button variant={"outline"} onClick={copyToClipboard} className="">
+            {isCopied ? "Copiado!" : "Copiar"}
+          </Button>
         </div>
         <div className="space-y-2">
           {table.getRowModel().rows?.length ? (
