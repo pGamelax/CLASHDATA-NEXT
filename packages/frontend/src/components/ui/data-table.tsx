@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import * as htmlToImage from "html-to-image";
+
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -34,7 +36,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useState } from "react";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -52,17 +53,15 @@ export function DataTable<TData, TValue>({
   pageSize = 10,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    [],
-  );
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [isMobile, setIsMobile] = React.useState(false);
+  const [isCopied, setIsCopied] = React.useState(false);
 
-  // Detecta se está em mobile
+  const exportRef = React.useRef<HTMLDivElement>(null);
+
   React.useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640); // sm breakpoint
-    };
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
@@ -86,444 +85,177 @@ export function DataTable<TData, TValue>({
         return value?.toString().toLowerCase().includes(searchValue);
       });
     },
-    initialState: {
-      pagination: {
-        pageSize: pageSize,
-      },
-    },
-    state: {
-      sorting,
-      columnFilters,
-      globalFilter,
-    },
+    initialState: { pagination: { pageSize } },
+    state: { sorting, columnFilters, globalFilter },
   });
 
-  const [isCopied, setIsCopied] = React.useState(false);
-
   const copyToClipboard = async () => {
-    try {
-      const allRows = table.getFilteredRowModel().rows;
-      if (!allRows?.length) return;
+    if (!exportRef.current) return;
 
-      // 1. Pegar colunas visíveis, ignorando as de controle (rank, ações, etc.)
-      const visibleColumns = table.getVisibleLeafColumns().filter((col) => {
-        const id = col.id.toLowerCase();
-        // Ignora colunas que não fazem sentido no texto
-        return id !== "rank" && id !== "actions" && id !== "select";
+    try {
+      const blob = await htmlToImage.toBlob(exportRef.current, {
+        backgroundColor: "#020617",
+        pixelRatio: 3,
+        cacheBust: true,
+        width: 1200,
       });
 
-      const colWidth = 15;
-      const nameWidth = 20;
+      if (!blob) return;
 
-      // 2. Extrair títulos dos Headers (Trata se for String ou Componente DataTableColumnHeader)
-      const headerRow = visibleColumns
-        .map((col, index) => {
-          let title = "";
-          const headerDef = col.columnDef.header;
+      // Detecção real de Mobile (Touch + UserAgent)
+      const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || 
+                             (navigator.maxTouchPoints > 0 && window.innerWidth < 1024);
 
-          if (typeof headerDef === "string") {
-            title = headerDef;
-          } else if (typeof headerDef === "function") {
-            // Tenta extrair a prop 'title' do componente DataTableColumnHeader
-            const headerElement = headerDef({ column: col } as any);
-            title = headerElement?.props?.title || col.id;
-          } else {
-            title = col.id;
-          }
-
-          title = title.toLowerCase();
-          return index === 0
-            ? title.padEnd(nameWidth)
-            : title.padStart(colWidth);
-        })
-        .join("");
-
-      // 3. Processar as Linhas de forma dinâmica
-      const body = allRows
-        .map((row) => {
-          return visibleColumns
-            .map((col, index) => {
-              const rowData = row.original as any;
-              const columnId = col.id;
-              let value = "";
-
-              // LÓGICA DE FORMATAÇÃO POR COLUNA
-              switch (columnId) {
-                case "name":
-                  value = rowData.name || "N/A";
-                  break;
-                case "currentTrophies":
-                  value = String(rowData.currentTrophies);
-                  break;
-                case "attacks": // Coluna de Troféus (Gain)
-                  value = `+${rowData.totalAttack}`;
-                  break;
-                case "defenses": // Coluna de Troféus (Loss)
-                  value = `-${rowData.totalDefense}`;
-                  break;
-                case "bayesianScore": // Coluna CWL (Eficiência)
-                  value = rowData.bayesianScore.toFixed(2);
-                  break;
-                case "attackAverage": // Coluna CWL (Média)
-                  value = `${rowData.averageStars.toFixed(2)}`;
-                  break;
-                case "participation": // Coluna CWL (Guerras)
-                  value = `${rowData.totalAttacks || 0}atq`;
-                  break;
-                default:
-                  // Fallback para qualquer outra coluna dinâmica
-                  value = String(row.getValue(columnId) || "");
-              }
-
-              // Limita o nome para não quebrar o layout
-              if (index === 0) {
-                return value.substring(0, nameWidth - 1).padEnd(nameWidth);
-              }
-              return value.padStart(colWidth);
-            })
-            .join("");
-        })
-        .join("\n");
-
-      const finalString = "```\n" + headerRow + "\n" + body + "\n```";
-
-      await navigator.clipboard.writeText(finalString);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
+      if (isMobileDevice && navigator.share) {
+        // MOBILE: Abre o "Compartilhar" (onde tem o botão Copiar do sistema)
+        const file = new File([blob], "ranking.png", { type: "image/png" });
+        await navigator.share({
+          files: [file],
+          title: "Ranking",
+        });
+      } else {
+        // DESKTOP: Clipboard direto
+        const item = new ClipboardItem({ "image/png": blob });
+        await navigator.clipboard.write([item]);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+      }
     } catch (err) {
-      console.error("Erro ao copiar:", err);
+      console.error("Erro na cópia:", err);
     }
   };
 
-  // Renderiza cards para mobile
-  if (isMobile) {
+  const renderContent = () => {
+    if (isMobile) {
+      return (
+        <div className="space-y-4">
+          <div className="flex flex-col w-full gap-2 py-2">
+            <div className="relative flex-1 max-w-full">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder={searchPlaceholder}
+                value={globalFilter ?? ""}
+                onChange={(e) => setGlobalFilter(e.target.value)}
+                className="pl-8 h-8 text-xs"
+              />
+            </div>
+            <Button variant="outline" onClick={copyToClipboard}>
+              {isCopied ? "Copiado!" : "Copiar"}
+            </Button>
+          </div>
+          <div className="space-y-2">
+            {table.getRowModel().rows?.map((row) => {
+              const rowData = row.original as any;
+              const actualRank = table.getState().pagination.pageIndex * table.getState().pagination.pageSize + (row.index + 1);
+              return (
+                <Card key={row.id} className="border-2">
+                  <CardContent className="p-2.5">
+                    <div className="cursor-pointer" onClick={() => row.toggleExpanded()}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={(e) => { e.stopPropagation(); row.toggleExpanded(); }}>
+                            {row.getIsExpanded() ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                          </Button>
+                          <span className="text-[10px] text-muted-foreground font-semibold">#{actualRank}</span>
+                          <span className="font-medium text-sm">{rowData.name}</span>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {row.getVisibleCells().filter(c => !["rank", "name"].includes(c.column.id)).map(cell => (
+                          <div key={cell.id} className="flex flex-col">
+                            <span className="text-[9px] text-muted-foreground uppercase truncate">{String(cell.column.columnDef.header || cell.column.id)}</span>
+                            <span className="text-xs font-bold truncate">{flexRender(cell.column.columnDef.cell, cell.getContext())}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-4">
-        <div className="flex flex-col w-full gap-2 py-2">
-          <div className="relative flex-1 max-w-full">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder={searchPlaceholder}
-              value={globalFilter ?? ""}
-              onChange={(event) => setGlobalFilter(String(event.target.value))}
-              className="pl-8 h-8 text-xs"
-            />
+        <div className="flex items-center justify-between py-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder={searchPlaceholder} value={globalFilter ?? ""} onChange={(e) => setGlobalFilter(e.target.value)} className="pl-9" />
           </div>
-          <Button variant={"outline"} onClick={copyToClipboard} className="">
+          <Button variant="outline" onClick={copyToClipboard}>
             {isCopied ? "Copiado!" : "Copiar"}
           </Button>
         </div>
-        <div className="space-y-2">
-          {table.getRowModel().rows?.length ? (
-            <>
-              {table.getRowModel().rows.map((row) => {
-                const rowData = row.original as any;
-                const expanded = row.getIsExpanded();
-                const rank = row.index + 1;
-                const pageIndex = table.getState().pagination.pageIndex;
-                const pageSize = table.getState().pagination.pageSize;
-                const actualRank = pageIndex * pageSize + rank;
-
-                return (
-                  <Card key={row.id} className="border-2">
-                    <CardContent className="p-2.5">
-                      <div
-                        className="cursor-pointer"
-                        onClick={() => row.toggleExpanded()}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-1.5">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-5 w-5 p-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                row.toggleExpanded();
-                              }}
-                            >
-                              {expanded ? (
-                                <ChevronUp className="h-3.5 w-3.5" />
-                              ) : (
-                                <ChevronDown className="h-3.5 w-3.5" />
-                              )}
-                            </Button>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[10px] text-muted-foreground font-semibold w-5">
-                                #{actualRank}
-                              </span>
-                              <div className="flex flex-col">
-                                <div className="font-medium text-sm leading-tight">
-                                  {rowData.name || "N/A"}
-                                </div>
-                                {rowData.tag && (
-                                  <div className="text-[10px] text-muted-foreground font-mono leading-tight">
-                                    {rowData.tag}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-3 gap-x-2 gap-y-1.5">
-                          {row.getVisibleCells().map((cell) => {
-                            // Pula a coluna de rank e name (já mostrados acima)
-                            if (
-                              cell.column.id === "rank" ||
-                              cell.column.id === "name"
-                            ) {
-                              return null;
-                            }
-
-                            // Extrai o título do header
-                            let headerText = cell.column.id;
-                            const headerDef = cell.column.columnDef.header;
-                            if (typeof headerDef === "function") {
-                              try {
-                                const headerElement = headerDef({
-                                  column: cell.column,
-                                } as any);
-                                if (headerElement?.props?.title) {
-                                  headerText = headerElement.props.title;
-                                } else if (headerElement?.props?.children) {
-                                  headerText = headerElement.props.children;
-                                }
-                              } catch {
-                                // Se falhar, usa o ID da coluna
-                              }
-                            } else if (headerDef) {
-                              headerText = headerDef.toString();
-                            }
-
-                            return (
-                              <div
-                                key={cell.id}
-                                className="flex flex-col min-w-0"
-                              >
-                                <span className="text-muted-foreground font-medium text-[10px] mb-0.5 truncate">
-                                  {headerText}
-                                </span>
-                                <div className="flex items-start gap-1 min-w-0 overflow-hidden">
-                                  {flexRender(
-                                    cell.column.columnDef.cell,
-                                    cell.getContext(),
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      {/* Conteúdo expandido */}
-                      {expanded && rowData.renderExpandedContent && (
-                        <div className="mt-2 pt-2 border-t">
-                          {rowData.renderExpandedContent(rowData)}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </>
-          ) : (
-            <Card className="border-2">
-              <CardContent className="p-4 text-center">
-                <p className="text-xs text-muted-foreground">
-                  Nenhum resultado.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-        {/* Paginação */}
-        <div className="flex flex-col items-center justify-between gap-1.5 px-2 pt-2">
-          <div className="text-[10px] text-muted-foreground">
-            {table.getFilteredRowModel().rows.length} membro(s) total
-          </div>
-          <div className="flex items-center space-x-1.5">
-            <Button
-              variant="outline"
-              className="h-7 w-7 p-0"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              <span className="sr-only">Ir para página anterior</span>
-              <ChevronLeft className="h-3.5 w-3.5" />
-            </Button>
-            <div className="text-xs font-medium">
-              Página {table.getState().pagination.pageIndex + 1} de{" "}
-              {table.getPageCount()}
-            </div>
-            <Button
-              variant="outline"
-              className="h-7 w-7 p-0"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              <span className="sr-only">Ir para próxima página</span>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Renderiza tabela para desktop
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between py-4">
-        <div className="relative flex-1 max-w-full sm:max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder={searchPlaceholder}
-            value={globalFilter ?? ""}
-            onChange={(event) => setGlobalFilter(String(event.target.value))}
-            className="pl-9 text-sm sm:text-base"
-          />
-        </div>
-        <Button variant={"outline"} onClick={copyToClipboard} className="">
-          {isCopied ? "Copiado!" : "Copiar"}
-        </Button>
-      </div>
-      <div className="overflow-x-auto rounded-md border scrollbar-hide">
-        <div className="relative min-h-75 sm:min-h-100">
-          <Table className="min-w-150">
+        <div className="rounded-md border">
+          <Table>
             <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    return (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
-                      </TableHead>
-                    );
-                  })}
+              {table.getHeaderGroups().map((group) => (
+                <TableRow key={group.id}>
+                  {group.headers.map((header) => (
+                    <TableHead key={header.id}>{flexRender(header.column.columnDef.header, header.getContext())}</TableHead>
+                  ))}
                 </TableRow>
               ))}
             </TableHeader>
             <TableBody>
-              {table.getRowModel().rows?.length ? (
-                <>
-                  {table.getRowModel().rows.map((row) => (
-                    <>
-                      <TableRow
-                        key={row.id}
-                        data-state={row.getIsSelected() && "selected"}
-                        onClick={() => row.toggleExpanded()}
-                        className="cursor-pointer hover:bg-muted/50"
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext(),
-                            )}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                      {/* Linha expandida */}
-                      {row.getIsExpanded() && (
-                        <TableRow>
-                          <TableCell
-                            colSpan={columns.length}
-                            className="p-0 bg-muted/20"
-                          >
-                            {(row.original as any).renderExpandedContent?.(
-                              row.original,
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </>
-                  ))}
-                  {/* Linhas vazias para manter altura fixa quando há menos de pageSize itens */}
-                  {table.getRowModel().rows.length < pageSize &&
-                    Array.from({
-                      length: pageSize - table.getRowModel().rows.length,
-                    }).map((_, index) => (
-                      <TableRow key={`empty-${index}`}>
-                        <TableCell colSpan={columns.length} className="h-12" />
-                      </TableRow>
+              {table.getRowModel().rows.map((row) => (
+                <React.Fragment key={row.id}>
+                  <TableRow onClick={() => row.toggleExpanded()} className="cursor-pointer hover:bg-muted/50">
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                     ))}
-                </>
-              ) : (
-                <>
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-12 text-center"
-                    >
-                      Nenhum resultado.
-                    </TableCell>
                   </TableRow>
-                  {/* Linhas vazias para manter altura fixa quando não há resultados */}
-                  {Array.from({ length: pageSize - 1 }).map((_, index) => (
-                    <TableRow key={`empty-no-results-${index}`}>
-                      <TableCell colSpan={columns.length} className="h-12" />
+                  {row.getIsExpanded() && (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="bg-muted/20">
+                        {(row.original as any).renderExpandedContent?.(row.original)}
+                      </TableCell>
                     </TableRow>
-                  ))}
-                </>
-              )}
+                  )}
+                </React.Fragment>
+              ))}
             </TableBody>
           </Table>
         </div>
       </div>
-      {/* Paginação */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-2">
-        <div className="flex-1 text-xs sm:text-sm text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} membro(s) total
-        </div>
-        <div className="flex items-center space-x-2 sm:space-x-6 lg:space-x-8">
-          <div className="hidden sm:flex items-center justify-center text-sm font-medium">
-            Página {table.getState().pagination.pageIndex + 1} de{" "}
-            {table.getPageCount()}
-          </div>
-          <div className="flex items-center space-x-1 sm:space-x-2">
-            <Button
-              variant="outline"
-              className="hidden h-8 w-8 p-0 lg:flex"
-              onClick={() => table.setPageIndex(0)}
-              disabled={!table.getCanPreviousPage()}
-            >
-              <span className="sr-only">Ir para primeira página</span>
-              <ChevronsLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              className="h-8 w-8 p-0"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              <span className="sr-only">Ir para página anterior</span>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              className="h-8 w-8 p-0"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              <span className="sr-only">Ir para próxima página</span>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              className="hidden h-8 w-8 p-0 lg:flex"
-              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-              disabled={!table.getCanNextPage()}
-            >
-              <span className="sr-only">Ir para última página</span>
-              <ChevronsRight className="h-4 w-4" />
-            </Button>
-          </div>
+    );
+  };
+
+  return (
+    <>
+      {renderContent()}
+      {/* EXPORTAÇÃO: TOP 10, SEMPRE DESKTOP, SEMPRE ESCONDIDO */}
+      <div style={{ position: "absolute", left: "-9999px", top: 0, pointerEvents: "none" }}>
+        <div ref={exportRef} style={{ width: "1200px" }} className="bg-[#020617] p-6 text-white">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((group) => (
+                <TableRow key={group.id} className="border-b border-slate-700">
+                  {group.headers.map((header) => (
+                    <TableHead key={header.id} className="text-slate-400 font-bold uppercase text-[10px]">
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows.slice(0, 10).map((row) => (
+                <TableRow key={row.id} className="border-b border-slate-800">
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id} className="py-2 text-sm font-bold">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       </div>
-    </div>
+    </>
   );
 }
