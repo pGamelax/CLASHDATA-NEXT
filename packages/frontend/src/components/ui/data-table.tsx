@@ -89,9 +89,30 @@ export function DataTable<TData, TValue>({
     state: { sorting, columnFilters, globalFilter },
   });
 
+  // FUNÇÃO CORRIGIDA PARA PEGAR O "TITLE" DO SEU COMPONENTE
+  const getHeaderTitle = (column: any) => {
+    const header = column.columnDef.header;
+
+    if (typeof header === "string") return header;
+
+    // Se for uma função (seu caso), tentamos executar e pegar o prop "title"
+    if (typeof header === "function") {
+      try {
+        const renderedHeader = header({ column });
+        if (renderedHeader?.props?.title) {
+          return renderedHeader.props.title;
+        }
+      } catch (e) {
+        console.error("Erro ao ler header title", e);
+      }
+    }
+
+    // Fallback: usa o ID da coluna formatado
+    return column.id.replace(/([A-Z])/g, " $1").toUpperCase();
+  };
+
   const copyToClipboard = async () => {
     if (!exportRef.current) return;
-
     try {
       const blob = await htmlToImage.toBlob(exportRef.current, {
         backgroundColor: "#020617",
@@ -99,22 +120,15 @@ export function DataTable<TData, TValue>({
         cacheBust: true,
         width: 1200,
       });
-
       if (!blob) return;
 
-      // Detecção real de Mobile (Touch + UserAgent)
       const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || 
                              (navigator.maxTouchPoints > 0 && window.innerWidth < 1024);
 
       if (isMobileDevice && navigator.share) {
-        // MOBILE: Abre o "Compartilhar" (onde tem o botão Copiar do sistema)
         const file = new File([blob], "ranking.png", { type: "image/png" });
-        await navigator.share({
-          files: [file],
-          title: "Ranking",
-        });
+        await navigator.share({ files: [file], title: "Ranking" });
       } else {
-        // DESKTOP: Clipboard direto
         const item = new ClipboardItem({ "image/png": blob });
         await navigator.clipboard.write([item]);
         setIsCopied(true);
@@ -130,7 +144,7 @@ export function DataTable<TData, TValue>({
       return (
         <div className="space-y-4">
           <div className="flex flex-col w-full gap-2 py-2">
-            <div className="relative flex-1 max-w-full">
+            <div className="relative flex-1">
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder={searchPlaceholder}
@@ -140,21 +154,23 @@ export function DataTable<TData, TValue>({
               />
             </div>
             <Button variant="outline" onClick={copyToClipboard}>
-              {isCopied ? "Copiado!" : "Copiar"}
+              {isCopied ? "Copiado!" : "Copiar Tabela"}
             </Button>
           </div>
           <div className="space-y-2">
             {table.getRowModel().rows?.map((row) => {
               const rowData = row.original as any;
               const actualRank = table.getState().pagination.pageIndex * table.getState().pagination.pageSize + (row.index + 1);
+              const isExpanded = row.getIsExpanded();
+
               return (
                 <Card key={row.id} className="border-2">
                   <CardContent className="p-2.5">
                     <div className="cursor-pointer" onClick={() => row.toggleExpanded()}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-1.5">
-                          <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={(e) => { e.stopPropagation(); row.toggleExpanded(); }}>
-                            {row.getIsExpanded() ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                          <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
+                            {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                           </Button>
                           <span className="text-[10px] text-muted-foreground font-semibold">#{actualRank}</span>
                           <span className="font-medium text-sm">{rowData.name}</span>
@@ -163,12 +179,21 @@ export function DataTable<TData, TValue>({
                       <div className="grid grid-cols-3 gap-1.5">
                         {row.getVisibleCells().filter(c => !["rank", "name"].includes(c.column.id)).map(cell => (
                           <div key={cell.id} className="flex flex-col">
-                            <span className="text-[9px] text-muted-foreground uppercase truncate">{String(cell.column.columnDef.header || cell.column.id)}</span>
-                            <span className="text-xs font-bold truncate">{flexRender(cell.column.columnDef.cell, cell.getContext())}</span>
+                            <span className="text-[9px] text-muted-foreground uppercase truncate">
+                              {getHeaderTitle(cell.column)}
+                            </span>
+                            <span className="text-xs font-bold">
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </span>
                           </div>
                         ))}
                       </div>
                     </div>
+                    {isExpanded && rowData.renderExpandedContent && (
+                      <div className="mt-2 pt-2 border-t">
+                        {rowData.renderExpandedContent(rowData)}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );
@@ -186,7 +211,7 @@ export function DataTable<TData, TValue>({
             <Input placeholder={searchPlaceholder} value={globalFilter ?? ""} onChange={(e) => setGlobalFilter(e.target.value)} className="pl-9" />
           </div>
           <Button variant="outline" onClick={copyToClipboard}>
-            {isCopied ? "Copiado!" : "Copiar"}
+            {isCopied ? "Copiado!" : "Copiar Tabela"}
           </Button>
         </div>
         <div className="rounded-md border">
@@ -195,7 +220,9 @@ export function DataTable<TData, TValue>({
               {table.getHeaderGroups().map((group) => (
                 <TableRow key={group.id}>
                   {group.headers.map((header) => (
-                    <TableHead key={header.id}>{flexRender(header.column.columnDef.header, header.getContext())}</TableHead>
+                    <TableHead key={header.id}>
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
                   ))}
                 </TableRow>
               ))}
@@ -227,7 +254,8 @@ export function DataTable<TData, TValue>({
   return (
     <>
       {renderContent()}
-      {/* EXPORTAÇÃO: TOP 10, SEMPRE DESKTOP, SEMPRE ESCONDIDO */}
+      
+      {/* EXPORTAÇÃO DESKTOP */}
       <div style={{ position: "absolute", left: "-9999px", top: 0, pointerEvents: "none" }}>
         <div ref={exportRef} style={{ width: "1200px" }} className="bg-[#020617] p-6 text-white">
           <Table>
@@ -236,7 +264,7 @@ export function DataTable<TData, TValue>({
                 <TableRow key={group.id} className="border-b border-slate-700">
                   {group.headers.map((header) => (
                     <TableHead key={header.id} className="text-slate-400 font-bold uppercase text-[10px]">
-                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {getHeaderTitle(header.column)}
                     </TableHead>
                   ))}
                 </TableRow>
@@ -246,7 +274,7 @@ export function DataTable<TData, TValue>({
               {table.getRowModel().rows.slice(0, 10).map((row) => (
                 <TableRow key={row.id} className="border-b border-slate-800">
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-2 text-sm font-bold">
+                    <TableCell key={cell.id} className="py-2 text-sm font-bold text-white">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
