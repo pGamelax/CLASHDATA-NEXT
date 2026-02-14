@@ -89,25 +89,17 @@ export function DataTable<TData, TValue>({
     state: { sorting, columnFilters, globalFilter },
   });
 
-  // FUNÇÃO CORRIGIDA PARA PEGAR O "TITLE" DO SEU COMPONENTE
   const getHeaderTitle = (column: any) => {
     const header = column.columnDef.header;
-
     if (typeof header === "string") return header;
-
-    // Se for uma função (seu caso), tentamos executar e pegar o prop "title"
     if (typeof header === "function") {
       try {
         const renderedHeader = header({ column });
-        if (renderedHeader?.props?.title) {
-          return renderedHeader.props.title;
-        }
+        if (renderedHeader?.props?.title) return renderedHeader.props.title;
       } catch (e) {
         console.error("Erro ao ler header title", e);
       }
     }
-
-    // Fallback: usa o ID da coluna formatado
     return column.id.replace(/([A-Z])/g, " $1").toUpperCase();
   };
 
@@ -138,6 +130,50 @@ export function DataTable<TData, TValue>({
       console.error("Erro na cópia:", err);
     }
   };
+
+  // Componente de Paginação Reaproveitável
+  const PaginationControls = () => (
+    <div className="flex items-center justify-between px-2 py-4">
+      <div className="flex-1 text-sm text-muted-foreground">
+        Página {table.getState().pagination.pageIndex + 1} de{" "}
+        {table.getPageCount()}
+      </div>
+      <div className="flex items-center space-x-2">
+        <Button
+          variant="outline"
+          className="hidden h-8 w-8 p-0 lg:flex"
+          onClick={() => table.setPageIndex(0)}
+          disabled={!table.getCanPreviousPage()}
+        >
+          <ChevronsLeft className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          className="h-8 w-8 p-0"
+          onClick={() => table.previousPage()}
+          disabled={!table.getCanPreviousPage()}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          className="h-8 w-8 p-0"
+          onClick={() => table.nextPage()}
+          disabled={!table.getCanNextPage()}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          className="hidden h-8 w-8 p-0 lg:flex"
+          onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+          disabled={!table.getCanNextPage()}
+        >
+          <ChevronsRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
 
   const renderContent = () => {
     if (isMobile) {
@@ -199,6 +235,7 @@ export function DataTable<TData, TValue>({
               );
             })}
           </div>
+          <PaginationControls />
         </div>
       );
     }
@@ -247,6 +284,7 @@ export function DataTable<TData, TValue>({
             </TableBody>
           </Table>
         </div>
+        <PaginationControls />
       </div>
     );
   };
@@ -255,7 +293,7 @@ export function DataTable<TData, TValue>({
     <>
       {renderContent()}
       
-      {/* EXPORTAÇÃO DESKTOP */}
+      {/* EXPORTAÇÃO DESKTOP (Sempre os top 10 do ranking geral ou da busca) */}
       <div style={{ position: "absolute", left: "-9999px", top: 0, pointerEvents: "none" }}>
         <div ref={exportRef} style={{ width: "1200px" }} className="bg-[#020617] p-6 text-white">
           <Table>
