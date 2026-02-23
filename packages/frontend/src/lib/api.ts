@@ -61,7 +61,8 @@ export async function getSession(cookieHeader?: string) {
 }
 
 export async function getOrganizations(cookieHeader?: string) {
-  const response = await fetch(`${API_URL}/auth/organization/list`, {
+  // Usa nossa API customizada que retorna organizations com members incluídos
+  const response = await fetch(`${API_URL}/organizations/list`, {
     headers: cookieHeader
       ? {
           Cookie: cookieHeader,
@@ -78,7 +79,9 @@ export async function getOrganizations(cookieHeader?: string) {
     return null;
   }
 
-  return response.json();
+  const result = await response.json();
+  // Retorna no formato esperado (data ou diretamente o array)
+  return result.data || result;
 }
 
 export interface PlayerStats {

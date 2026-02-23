@@ -25,7 +25,23 @@ export function OrganizationOverview({ organization }: OrganizationOverviewProps
           const member = organization.members?.find(
             (m: any) => m.userId === session.user.id
           );
-          setIsOwner(member?.role === "owner" || session.user.role === "admin");
+          // Apenas o owner pode adicionar clans
+          setIsOwner(member?.role === "owner");
+          
+          // Log para debug
+          if (!member) {
+            console.warn("Usuário não encontrado nos members da organização:", {
+              userId: session.user.id,
+              organizationId: organization.id,
+              members: organization.members?.map((m: any) => ({ userId: m.userId, role: m.role })),
+            });
+          } else {
+            console.log("Permissão verificada:", {
+              userId: session.user.id,
+              memberRole: member.role,
+              isOwner: member.role === "owner",
+            });
+          }
         }
       } catch (error) {
         console.error("Erro ao verificar permissões:", error);
