@@ -32,20 +32,15 @@ export class ClanService {
       throw new Error("Organização não encontrada");
     }
 
-    // Verifica se o usuário é owner da organização (ou admin)
+    // Verifica se o usuário é owner da organização
     if (userId) {
       const member = organization.members?.find((m: any) => m.userId === userId);
       if (!member) {
         throw new Error("Você não é membro desta organização");
       }
       
-      // Verifica se é admin (admins podem criar clans)
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { role: true }
-      });
-      
-      if (member.role !== "owner" && user?.role !== "admin") {
+      // Apenas o owner pode criar clans
+      if (member.role !== "owner") {
         throw new Error("Apenas o dono da organização pode adicionar clans");
       }
     }
