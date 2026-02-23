@@ -248,7 +248,7 @@ export class OrganizationService {
     return await this.organizationRepository.update(organizationId, data);
   }
 
-  async deleteOrganization(organizationId: string, userId: string) {
+  async deleteOrganization(organizationId: string, userId: string, skipStripeCancel: boolean = false) {
     // Verifica se a organização existe
     const organization = await this.organizationRepository.findById(organizationId);
     if (!organization) {
@@ -273,8 +273,8 @@ export class OrganizationService {
       throw new Error("Apenas o dono da organização pode deletar");
     }
 
-    // Cancela a subscription no Stripe se existir
-    if (organization.subscription?.paymentProviderId) {
+    // Cancela a subscription no Stripe se existir (a menos que skipStripeCancel seja true)
+    if (!skipStripeCancel && organization.subscription?.paymentProviderId) {
       try {
         const { StripeService } = await import("./stripe.service");
         const stripeService = new StripeService();

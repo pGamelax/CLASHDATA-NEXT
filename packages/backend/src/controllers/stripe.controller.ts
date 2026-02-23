@@ -414,6 +414,30 @@ export class StripeController {
       status = SubscriptionStatus.TRIAL;
     } else if (subscription.status === "canceled") {
       status = SubscriptionStatus.CANCELLED;
+      // Quando a subscription é cancelada, deleta a organização
+      try {
+        // Busca o owner da organização para passar como userId
+        const { prisma } = await import("../lib/prisma");
+        const org = await prisma.organization.findUnique({
+          where: { id: organizationId },
+          include: {
+            members: {
+              where: { role: "owner" },
+              take: 1,
+            },
+          },
+        });
+        
+        if (org && org.members.length > 0) {
+          const ownerId = org.members[0].userId;
+          // skipStripeCancel = true porque a subscription já foi cancelada no Stripe
+          await this.organizationService.deleteOrganization(organizationId, ownerId, true);
+          console.log(`Organização ${organizationId} deletada após cancelamento de subscription via Stripe`);
+        }
+      } catch (error) {
+        // Log do erro mas não bloqueia a atualização
+        console.error("Erro ao deletar organização após cancelamento via Stripe:", error);
+      }
     } else if (subscription.status === "past_due" || subscription.status === "unpaid") {
       status = SubscriptionStatus.EXPIRED;
     }
@@ -461,6 +485,32 @@ export class StripeController {
 
       // Expira a subscription
       await this.subscriptionRepository.expire(organizationId);
+      
+      // Deleta a organização quando a subscription é deletada
+      try {
+        // Busca o owner da organização para passar como userId
+        const { prisma } = await import("../lib/prisma");
+        const org = await prisma.organization.findUnique({
+          where: { id: organizationId },
+          include: {
+            members: {
+              where: { role: "owner" },
+              take: 1,
+            },
+          },
+        });
+        
+        if (org && org.members.length > 0) {
+          const ownerId = org.members[0].userId;
+          // skipStripeCancel = true porque a subscription já foi deletada no Stripe
+          await this.organizationService.deleteOrganization(organizationId, ownerId, true);
+          console.log(`Organização ${organizationId} deletada após subscription deletada no Stripe`);
+        }
+      } catch (error) {
+        // Log do erro mas não bloqueia a expiração
+        console.error("Erro ao deletar organização após subscription deletada:", error);
+      }
+      
       console.log(`Subscription expirada para organização ${organizationId}`);
     } catch (error) {
       console.error("Erro ao processar subscription deleted:", error);

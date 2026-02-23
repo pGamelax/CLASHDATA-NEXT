@@ -189,16 +189,45 @@ export class SubscriptionsController {
         });
       }
 
-      // Cancela a subscription
+      // Busca a subscription para verificar se tem paymentProviderId
       const { SubscriptionRepository } = await import(
         "../repositories/subscription.repository"
       );
       const subscriptionRepository = new SubscriptionRepository();
+      const existingSubscription = await subscriptionRepository.findByOrganizationId(organizationId);
+      
+      // Cancela no Stripe se tiver paymentProviderId
+      if (existingSubscription?.paymentProviderId) {
+        try {
+          const { StripeService } = await import("../services/stripe.service");
+          const stripeService = new StripeService();
+          await stripeService.cancelSubscription(
+            existingSubscription.paymentProviderId,
+            false // cancelAtPeriodEnd = false (cancela imediatamente)
+          );
+        } catch (error) {
+          console.error("Erro ao cancelar subscription no Stripe:", error);
+          // Continua mesmo se houver erro no Stripe
+        }
+      }
+
+      // Cancela a subscription no banco
       const subscription = await subscriptionRepository.cancel(organizationId);
+
+      // Deleta a organização quando o plano for cancelado
+      try {
+        // skipStripeCancel = true porque já cancelamos no Stripe acima
+        await this.organizationService.deleteOrganization(organizationId, session.user.id, true);
+        console.log(`Organização ${organizationId} deletada após cancelamento de subscription`);
+      } catch (error) {
+        // Log do erro mas não bloqueia o cancelamento
+        console.error("Erro ao deletar organização após cancelamento:", error);
+      }
 
       return {
         success: true,
         subscription,
+        message: "Subscription cancelada e organização removida",
       };
     } catch (error) {
       const message =
