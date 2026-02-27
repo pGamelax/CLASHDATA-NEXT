@@ -23,9 +23,9 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Use bun filter to run build from the root, 
-# or call the binary directly via its relative path.
-RUN bun run --filter ./packages/frontend build
+# Build apenas o frontend (monorepo) garantindo que o binário do Next exista
+# Usamos o bun dentro do diretório do frontend para evitar problemas de PATH.
+RUN cd packages/frontend && bun run build
 
 # 3. Runner: Final Image
 FROM oven/bun:1-slim AS runner
