@@ -220,6 +220,47 @@ export function AdminDashboardStats() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Organizações sem Assinatura</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold mb-2">{stats.organizations.withoutSubscription}</div>
+            <p className="text-sm text-muted-foreground">
+              Organizações criadas por admins ou sem subscription
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Resumo de Assinaturas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Total</span>
+                <span className="font-bold">{stats.subscriptions.total}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Ativas</span>
+                <span className="font-bold text-green-500">{stats.subscriptions.active}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Expiradas</span>
+                <span className="font-bold text-red-500">{stats.subscriptions.expired}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Canceladas</span>
+                <span className="font-bold text-gray-500">{stats.subscriptions.cancelled}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

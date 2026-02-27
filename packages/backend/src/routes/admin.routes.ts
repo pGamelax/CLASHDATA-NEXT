@@ -101,4 +101,70 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         description: "Exclui uma organização e todos os seus dados. Apenas para administradores.",
       },
     }
+  )
+  .delete(
+    "/users/:userId",
+    async (context) => await adminController.deleteUser(context),
+    {
+      params: t.Object({
+        userId: t.String(),
+      }),
+      detail: {
+        tags: ["Admin"],
+        summary: "Excluir usuário (admin)",
+        description: "Exclui um usuário e todos os seus dados. Apenas para administradores.",
+      },
+    }
+  )
+  .put(
+    "/users/:userId",
+    async (context) => await adminController.updateUser(context),
+    {
+      params: t.Object({
+        userId: t.String(),
+      }),
+      body: t.Object({
+        name: t.Optional(t.String()),
+        email: t.Optional(t.String()),
+        role: t.Optional(t.String()),
+        banned: t.Optional(t.Boolean()),
+      }),
+      detail: {
+        tags: ["Admin"],
+        summary: "Atualizar usuário (admin)",
+        description: "Atualiza informações de um usuário. Apenas para administradores.",
+      },
+    }
+  )
+  .put(
+    "/organizations/:organizationId",
+    async (context) => await adminController.updateOrganization(context),
+    {
+      params: t.Object({
+        organizationId: t.String(),
+      }),
+      body: t.Object({
+        name: t.Optional(t.String()),
+        slug: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ["Admin"],
+        summary: "Atualizar organização (admin)",
+        description: "Atualiza informações de uma organização. Apenas para administradores.",
+      },
+    }
+  )
+  .delete(
+    "/clans/:clanId",
+    async (context) => await adminController.deleteClan(context),
+    {
+      params: t.Object({
+        clanId: t.String(),
+      }),
+      detail: {
+        tags: ["Admin"],
+        summary: "Excluir clan (admin)",
+        description: "Exclui um clan. Apenas para administradores.",
+      },
+    }
   );

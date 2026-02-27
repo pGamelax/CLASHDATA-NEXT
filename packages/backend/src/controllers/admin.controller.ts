@@ -541,4 +541,240 @@ export class AdminController {
       return status(500, { message });
     }
   }
+
+  async deleteUser(context: ElysiaContext) {
+    const { params, request, status } = context;
+    try {
+      // Verifica autenticação
+      const session = await auth.api.getSession({
+        headers: request.headers,
+      });
+
+      if (!session || !session.user) {
+        return status(401, { message: "Não autenticado" });
+      }
+
+      // Verifica se é admin
+      if (session.user.role !== "admin") {
+        return status(403, { message: "Acesso negado. Apenas administradores." });
+      }
+
+      const { userId } = params as { userId: string };
+
+      // Não permite excluir a si mesmo
+      if (userId === session.user.id) {
+        return status(400, { message: "Você não pode excluir sua própria conta" });
+      }
+
+      // Busca o usuário
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        return status(404, { message: "Usuário não encontrado" });
+      }
+
+      // Deleta o usuário (cascade deleta accounts, sessions, members, invites)
+      await prisma.user.delete({
+        where: { id: userId },
+      });
+
+      return {
+        success: true,
+        message: "Usuário excluído com sucesso",
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Erro desconhecido";
+
+      console.error("Erro ao excluir usuário:", error);
+      return status(500, { message });
+    }
+  }
+
+  async updateUser(context: ElysiaContext) {
+    const { params, body, request, status } = context;
+    try {
+      // Verifica autenticação
+      const session = await auth.api.getSession({
+        headers: request.headers,
+      });
+
+      if (!session || !session.user) {
+        return status(401, { message: "Não autenticado" });
+      }
+
+      // Verifica se é admin
+      if (session.user.role !== "admin") {
+        return status(403, { message: "Acesso negado. Apenas administradores." });
+      }
+
+      const { userId } = params as { userId: string };
+      const updateData = body as {
+        name?: string;
+        email?: string;
+        role?: string;
+        banned?: boolean;
+      };
+
+      // Verifica se o usuário existe
+      const existingUser = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!existingUser) {
+        return status(404, { message: "Usuário não encontrado" });
+      }
+
+      // Valida role se fornecido
+      if (updateData.role && !["user", "admin"].includes(updateData.role)) {
+        return status(400, { message: "Role inválido. Deve ser 'user' ou 'admin'" });
+      }
+
+      // Verifica se email já existe (se estiver sendo alterado)
+      if (updateData.email && updateData.email !== existingUser.email) {
+        const emailExists = await prisma.user.findUnique({
+          where: { email: updateData.email },
+        });
+
+        if (emailExists) {
+          return status(409, { message: "Email já está em uso" });
+        }
+      }
+
+      // Atualiza o usuário
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: {
+          ...(updateData.name !== undefined && { name: updateData.name }),
+          ...(updateData.email !== undefined && { email: updateData.email }),
+          ...(updateData.role !== undefined && { role: updateData.role }),
+          ...(updateData.banned !== undefined && { banned: updateData.banned }),
+        },
+      });
+
+      return {
+        success: true,
+        user: updatedUser,
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Erro desconhecido";
+
+      console.error("Erro ao atualizar usuário:", error);
+      return status(500, { message });
+    }
+  }
+
+  async updateOrganization(context: ElysiaContext) {
+    const { params, body, request, status } = context;
+    try {
+      // Verifica autenticação
+      const session = await auth.api.getSession({
+        headers: request.headers,
+      });
+
+      if (!session || !session.user) {
+        return status(401, { message: "Não autenticado" });
+      }
+
+      // Verifica se é admin
+      if (session.user.role !== "admin") {
+        return status(403, { message: "Acesso negado. Apenas administradores." });
+      }
+
+      const { organizationId } = params as { organizationId: string };
+      const updateData = body as {
+        name?: string;
+        slug?: string;
+      };
+
+      // Verifica se a organização existe
+      const existingOrg = await prisma.organization.findUnique({
+        where: { id: organizationId },
+      });
+
+      if (!existingOrg) {
+        return status(404, { message: "Organização não encontrada" });
+      }
+
+      // Verifica se slug já existe (se estiver sendo alterado)
+      if (updateData.slug && updateData.slug !== existingOrg.slug) {
+        const slugExists = await prisma.organization.findUnique({
+          where: { slug: updateData.slug },
+        });
+
+        if (slugExists) {
+          return status(409, { message: "Slug já está em uso" });
+        }
+      }
+
+      // Atualiza a organização
+      const updatedOrg = await prisma.organization.update({
+        where: { id: organizationId },
+        data: {
+          ...(updateData.name !== undefined && { name: updateData.name }),
+          ...(updateData.slug !== undefined && { slug: updateData.slug }),
+        },
+      });
+
+      return {
+        success: true,
+        organization: updatedOrg,
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Erro desconhecido";
+
+      console.error("Erro ao atualizar organização:", error);
+      return status(500, { message });
+    }
+  }
+
+  async deleteClan(context: ElysiaContext) {
+    const { params, request, status } = context;
+    try {
+      // Verifica autenticação
+      const session = await auth.api.getSession({
+        headers: request.headers,
+      });
+
+      if (!session || !session.user) {
+        return status(401, { message: "Não autenticado" });
+      }
+
+      // Verifica se é admin
+      if (session.user.role !== "admin") {
+        return status(403, { message: "Acesso negado. Apenas administradores." });
+      }
+
+      const { clanId } = params as { clanId: string };
+
+      // Verifica se o clan existe
+      const clan = await prisma.clan.findUnique({
+        where: { id: clanId },
+      });
+
+      if (!clan) {
+        return status(404, { message: "Clan não encontrado" });
+      }
+
+      // Deleta o clan
+      await prisma.clan.delete({
+        where: { id: clanId },
+      });
+
+      return {
+        success: true,
+        message: "Clan excluído com sucesso",
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Erro desconhecido";
+
+      console.error("Erro ao excluir clan:", error);
+      return status(500, { message });
+    }
+  }
 }

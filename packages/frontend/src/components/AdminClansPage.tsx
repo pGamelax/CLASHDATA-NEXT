@@ -4,18 +4,50 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Loader2 } from "lucide-react";
+import { Shield, Loader2, Trash2, Search } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 export function AdminClansPage() {
+  const router = useRouter();
   const [clans, setClans] = useState<any[]>([]);
+  const [filteredClans, setFilteredClans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+  const [searchTerm, setSearchTerm] = useState("");
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     fetchClans();
   }, []);
+
+  useEffect(() => {
+    if (searchTerm) {
+      const filtered = clans.filter(
+        (clan) =>
+          clan.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          clan.tag?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          clan.organization?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredClans(filtered);
+    } else {
+      setFilteredClans(clans);
+    }
+  }, [searchTerm, clans]);
 
   const fetchClans = async () => {
     try {
@@ -27,11 +59,34 @@ export function AdminClansPage() {
       if (response.ok) {
         const data = await response.json();
         setClans(data.data || []);
+        setFilteredClans(data.data || []);
       }
     } catch (error) {
       console.error("Erro ao buscar clans:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteClan = async (clanId: string) => {
+    try {
+      setDeleting(clanId);
+      const response = await fetch(`${API_URL}/admin/clans/${clanId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        await fetchClans();
+        router.refresh();
+      } else {
+        const error = await response.json();
+        alert(error.message || "Erro ao excluir clan");
+      }
+    } catch (error) {
+      alert("Erro ao excluir clan");
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -52,11 +107,30 @@ export function AdminClansPage() {
         </p>
       </div>
 
+      <Card className="mb-4">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome, tag ou organização..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {filteredClans.length} de {clans.length} clans
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            Clans ({clans.length})
+            Clans ({filteredClans.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -69,17 +143,18 @@ export function AdminClansPage() {
                 <TableHead>Nível</TableHead>
                 <TableHead>Membros</TableHead>
                 <TableHead>Criado em</TableHead>
+                <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clans.length === 0 ? (
+              {filteredClans.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
                     Nenhum clan encontrado
                   </TableCell>
                 </TableRow>
               ) : (
-                clans.map((clan) => (
+                filteredClans.map((clan) => (
                   <TableRow key={clan.id}>
                     <TableCell className="font-medium">{clan.name}</TableCell>
                     <TableCell>
@@ -90,6 +165,40 @@ export function AdminClansPage() {
                     <TableCell>{clan.members || "N/A"}</TableCell>
                     <TableCell>
                       {new Date(clan.createdAt).toLocaleDateString("pt-BR")}
+                    </TableCell>
+                    <TableCell>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={deleting === clan.id}
+                          >
+                            {deleting === clan.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir Clan</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Tem certeza que deseja excluir o clan "{clan.name}"? Esta ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteClan(clan.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))

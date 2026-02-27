@@ -1,30 +1,37 @@
+# Dependências e Builds
 node_modules
+**/node_modules
+.next
+**/ .next
+out
+dist
+build
+bin
+obj
+
+# Ambientes e Segredos
+.env
+.env.*
+!.env.example
+
+# Git e IDEs
 .git
 .gitignore
-.env
-.env.local
-.env.*.local
-.DS_Store
-*.md
 .vscode
 .idea
+.DS_Store
+
+# Testes e Documentação
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+**/*.md
 coverage
-dist
-.next
-out
+.vercel
+
+# Logs
 *.log
-*.test.ts
-*.test.tsx
-*.spec.ts
-*.spec.tsx
-packages/*/node_modules
-packages/*/dist
-packages/*/.next
-packages/*/out
-# Não ignorar arquivos essenciais
-!package.json
-!bun.lock
-!packages/**/package.json
-!packages/**/*.config.*
-!packages/**/tsconfig.json
-!packages/**/components.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

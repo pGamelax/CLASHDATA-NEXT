@@ -1,53 +1,41 @@
-# Build stage
-FROM oven/bun:1 AS builder
-
+# 1. Base: Instala dependências e faz o cache inteligente
+FROM oven/bun:1 AS deps
 WORKDIR /app
-
-# Copy package files
 COPY package.json bun.lock ./
 COPY packages/frontend/package.json ./packages/frontend/
+# Usa cache do mount para não baixar tudo de novo se o lock mudar pouco
+RUN --mount=type=cache,id=buncache,target=/root/.bun/install/cache \
+    bun install --frozen-lockfile
 
-# Install dependencies (including devDependencies for build)
-RUN bun install --frozen-lockfile || bun install
+# 2. Builder: Compila o Next.js
+FROM oven/bun:1 AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/packages/frontend/node_modules ./packages/frontend/node_modules
+COPY . . 
 
-# Copy source code (all files including configs)
-COPY packages/frontend ./packages/frontend
-
-# Build the application
+ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app/packages/frontend
 RUN bun run build
 
-# Production stage
+# 3. Runner: Imagem final ultra-leve
 FROM oven/bun:1-slim AS runner
-
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-
-# Copy package files
-COPY package.json bun.lock ./
-COPY packages/frontend/package.json ./packages/frontend/
-
-# Install production dependencies only
-RUN bun install --frozen-lockfile || bun install
-
-# Copy built application
-# Next.js standalone already includes public files if they exist
-COPY --from=builder /app/packages/frontend/.next/standalone ./packages/frontend/
-COPY --from=builder /app/packages/frontend/.next/static ./packages/frontend/.next/static
-
-# Expose port
-EXPOSE 3001
-
 ENV PORT=3001
 ENV HOSTNAME="0.0.0.0"
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD bun run --silent -e "fetch('http://localhost:3001').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
+# O Next.js standalone copia os arquivos necessários para cá:
+# IMPORTANTE: No standalone, o server.js fica dentro de .next/standalone/packages/frontend/
+COPY --from=builder /app/packages/frontend/.next/standalone ./
+COPY --from=builder /app/packages/frontend/.next/static ./packages/frontend/.next/static
+COPY --from=builder /app/packages/frontend/public ./packages/frontend/public
 
+EXPOSE 3001
+
+# No modo standalone, o ponto de entrada é o server.js gerado
+# O caminho pode variar dependendo da sua estrutura de monorepo
 WORKDIR /app/packages/frontend
-
-# Use Bun to run Next.js standalone server
-CMD ["bun", "run", "server.js"]
+CMD ["bun", "server.js"]

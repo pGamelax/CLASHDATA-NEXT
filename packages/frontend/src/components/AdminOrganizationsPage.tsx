@@ -5,9 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building2, Loader2, Trash2, XCircle } from "lucide-react";
+import { Building2, Loader2, Trash2, XCircle, Edit, Search } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,13 +36,35 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 export function AdminOrganizationsPage() {
   const router = useRouter();
   const [organizations, setOrganizations] = useState<any[]>([]);
+  const [filteredOrganizations, setFilteredOrganizations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
   const [deleting, setDeleting] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState<string | null>(null);
+  const [editingOrg, setEditingOrg] = useState<any | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    slug: "",
+  });
 
   useEffect(() => {
     fetchOrganizations();
   }, []);
+
+  useEffect(() => {
+    if (searchTerm) {
+      const filtered = organizations.filter(
+        (org) =>
+          org.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          org.slug?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredOrganizations(filtered);
+    } else {
+      setFilteredOrganizations(organizations);
+    }
+  }, [searchTerm, organizations]);
 
   const fetchOrganizations = async () => {
     try {
@@ -43,11 +76,51 @@ export function AdminOrganizationsPage() {
       if (response.ok) {
         const data = await response.json();
         setOrganizations(data.data || []);
+        setFilteredOrganizations(data.data || []);
       }
     } catch (error) {
       console.error("Erro ao buscar organizações:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEditOrganization = (org: any) => {
+    setEditingOrg(org);
+    setEditForm({
+      name: org.name || "",
+      slug: org.slug || "",
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveOrganization = async () => {
+    if (!editingOrg) return;
+
+    try {
+      setSaving(true);
+      const response = await fetch(`${API_URL}/admin/organizations/${editingOrg.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(editForm),
+      });
+
+      if (response.ok) {
+        await fetchOrganizations();
+        setEditDialogOpen(false);
+        setEditingOrg(null);
+        router.refresh();
+      } else {
+        const error = await response.json();
+        alert(error.message || "Erro ao atualizar organização");
+      }
+    } catch (error) {
+      alert("Erro ao atualizar organização");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -139,11 +212,30 @@ export function AdminOrganizationsPage() {
         </p>
       </div>
 
+      <Card className="mb-4">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome ou slug..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {filteredOrganizations.length} de {organizations.length} organizações
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
-            Organizações ({organizations.length})
+            Organizações ({filteredOrganizations.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -162,14 +254,14 @@ export function AdminOrganizationsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {organizations.length === 0 ? (
+              {filteredOrganizations.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center text-muted-foreground">
                     Nenhuma organização encontrada
                   </TableCell>
                 </TableRow>
               ) : (
-                organizations.map((org) => {
+                filteredOrganizations.map((org) => {
                   const owner = org.members?.find((m: any) => m.role === "owner");
                   const memberCount = org._count?.members || 0;
                   const clanCount = org._count?.clans || 0;
@@ -205,6 +297,69 @@ export function AdminOrganizationsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
+                          <Dialog open={editDialogOpen && editingOrg?.id === org.id} onOpenChange={(open) => {
+                            if (!open) {
+                              setEditDialogOpen(false);
+                              setEditingOrg(null);
+                            }
+                          }}>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditOrganization(org)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Editar Organização</DialogTitle>
+                                <DialogDescription>
+                                  Atualize as informações da organização
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor="org-name">Nome</Label>
+                                  <Input
+                                    id="org-name"
+                                    value={editForm.name}
+                                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="org-slug">Slug</Label>
+                                  <Input
+                                    id="org-slug"
+                                    value={editForm.slug}
+                                    onChange={(e) => setEditForm({ ...editForm, slug: e.target.value })}
+                                  />
+                                </div>
+                              </div>
+                              <DialogFooter>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => {
+                                    setEditDialogOpen(false);
+                                    setEditingOrg(null);
+                                  }}
+                                >
+                                  Cancelar
+                                </Button>
+                                <Button onClick={handleSaveOrganization} disabled={saving}>
+                                  {saving ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Salvando...
+                                    </>
+                                  ) : (
+                                    "Salvar"
+                                  )}
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
                           {org.subscription && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
