@@ -113,6 +113,7 @@ export function PlayerPushContent({
   }, [playerPushLogs]);
 
   // Filtra os logs por dia selecionado
+  // e recalcula os totais (ataque, defesa e troféus finais do dia)
   const filteredPlayerPushLogs = useMemo(() => {
     if (!selectedDay) {
       return playerPushLogs;
@@ -129,13 +130,21 @@ export function PlayerPushContent({
         const attackLogs = filteredLogs.filter((log: any) => log.type === "attack");
         const defenseLogs = filteredLogs.filter((log: any) => log.type === "defense");
 
+        // Troféus totais do dia: usa o último log do dia como referência
+        const lastLogOfDay = [...filteredLogs].sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        )[filteredLogs.length - 1];
+
         return {
           ...player,
           logs: filteredLogs,
+          // Totais diários de ataque/defesa
           totalAttack: attackLogs.reduce((sum: number, log: any) => sum + log.trophiesChange, 0),
           totalDefense: defenseLogs.reduce((sum: number, log: any) => sum + log.trophiesChange, 0),
           attackCount: attackLogs.length,
           defenseCount: defenseLogs.length,
+          // Ranking por troféus passa a considerar o total de troféus daquele dia
+          currentTrophies: lastLogOfDay?.currentTrophies ?? player.currentTrophies,
         };
       })
       .filter((player): player is PlayerPushStats => player !== null);
