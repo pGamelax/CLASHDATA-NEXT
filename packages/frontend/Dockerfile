@@ -24,8 +24,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build apenas o frontend (monorepo) garantindo que o binário do Next exista
-# Usamos o bun dentro do diretório do frontend para evitar problemas de PATH.
-RUN cd packages/frontend && bun run build
+# Instala o CLI do Next globalmente para evitar problemas de PATH dentro do container
+RUN bun add -g next && cd packages/frontend && bun run build
 
 # 3. Runner: Final Image
 FROM oven/bun:1-slim AS runner
