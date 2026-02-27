@@ -23,9 +23,9 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build apenas o frontend (monorepo) garantindo que o binário do Next exista
-# Instala o CLI do Next globalmente para evitar problemas de PATH dentro do container
-RUN bun add -g next && cd packages/frontend && bun run build
+# Build apenas o frontend usando o Next local do projeto
+# Executa o binário do Next via Bun, apontando para o diretório do app
+RUN bun node_modules/next/dist/bin/next build packages/frontend
 
 # 3. Runner: Final Image
 FROM oven/bun:1-slim AS runner
