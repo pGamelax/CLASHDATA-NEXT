@@ -7,7 +7,8 @@ export default async function SubscriptionPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const { organization } = await getValidatedOrganization(slug);
+  // Permite acesso à página de billing mesmo com assinatura expirada
+  const { organization } = await getValidatedOrganization(slug, true);
 
   // O layout já renderiza o header e container, apenas retornamos o conteúdo
   return <SubscriptionContent organization={organization} />;

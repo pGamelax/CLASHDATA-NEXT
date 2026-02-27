@@ -362,4 +362,183 @@ export class AdminController {
       return status(500, { message });
     }
   }
+
+  async getClans(context: ElysiaContext) {
+    const { request, status } = context;
+    try {
+      // Verifica autenticação
+      const session = await auth.api.getSession({
+        headers: request.headers,
+      });
+
+      if (!session || !session.user) {
+        return status(401, { message: "Não autenticado" });
+      }
+
+      // Verifica se é admin
+      if (session.user.role !== "admin") {
+        return status(403, { message: "Acesso negado. Apenas administradores." });
+      }
+
+      const clans = await prisma.clan.findMany({
+        include: {
+          organization: {
+            include: {
+              subscription: true,
+              members: {
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      return {
+        success: true,
+        data: clans,
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Erro desconhecido";
+
+      console.error("Erro ao buscar clans:", error);
+      return status(500, { message });
+    }
+  }
+
+  async cancelOrganizationSubscription(context: ElysiaContext) {
+    const { params, request, status } = context;
+    try {
+      // Verifica autenticação
+      const session = await auth.api.getSession({
+        headers: request.headers,
+      });
+
+      if (!session || !session.user) {
+        return status(401, { message: "Não autenticado" });
+      }
+
+      // Verifica se é admin
+      if (session.user.role !== "admin") {
+        return status(403, { message: "Acesso negado. Apenas administradores." });
+      }
+
+      const { organizationId } = params as { organizationId: string };
+
+      // Busca a subscription
+      const subscription = await prisma.subscription.findUnique({
+        where: { organizationId },
+      });
+
+      if (!subscription) {
+        return status(404, { message: "Subscription não encontrada" });
+      }
+
+      // Cancela no Stripe se tiver paymentProviderId
+      if (subscription.paymentProviderId) {
+        try {
+          const { StripeService } = await import("../services/stripe.service");
+          const stripeService = new StripeService();
+          await stripeService.cancelSubscription(
+            subscription.paymentProviderId,
+            false // cancelAtPeriodEnd = false (cancela imediatamente)
+          );
+        } catch (error) {
+          console.error("Erro ao cancelar subscription no Stripe:", error);
+          // Continua mesmo se houver erro no Stripe
+        }
+      }
+
+      // Cancela a subscription no banco
+      const { SubscriptionRepository } = await import("../repositories/subscription.repository");
+      const subscriptionRepository = new SubscriptionRepository();
+      await subscriptionRepository.cancel(organizationId);
+
+      return {
+        success: true,
+        message: "Assinatura cancelada com sucesso",
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Erro desconhecido";
+
+      console.error("Erro ao cancelar assinatura:", error);
+      return status(500, { message });
+    }
+  }
+
+  async deleteOrganization(context: ElysiaContext) {
+    const { params, request, status } = context;
+    try {
+      // Verifica autenticação
+      const session = await auth.api.getSession({
+        headers: request.headers,
+      });
+
+      if (!session || !session.user) {
+        return status(401, { message: "Não autenticado" });
+      }
+
+      // Verifica se é admin
+      if (session.user.role !== "admin") {
+        return status(403, { message: "Acesso negado. Apenas administradores." });
+      }
+
+      const { organizationId } = params as { organizationId: string };
+
+      // Busca a organização
+      const organization = await prisma.organization.findUnique({
+        where: { id: organizationId },
+        include: {
+          subscription: true,
+        },
+      });
+
+      if (!organization) {
+        return status(404, { message: "Organização não encontrada" });
+      }
+
+      // Cancela subscription no Stripe se existir
+      if (organization.subscription?.paymentProviderId) {
+        try {
+          const { StripeService } = await import("../services/stripe.service");
+          const stripeService = new StripeService();
+          await stripeService.cancelSubscription(
+            organization.subscription.paymentProviderId,
+            false
+          );
+        } catch (error) {
+          console.error("Erro ao cancelar subscription no Stripe:", error);
+          // Continua mesmo se houver erro no Stripe
+        }
+      }
+
+      // Deleta a organização (cascade deleta subscription, members, clans, invites)
+      await prisma.organization.delete({
+        where: { id: organizationId },
+      });
+
+      return {
+        success: true,
+        message: "Organização excluída com sucesso",
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Erro desconhecido";
+
+      console.error("Erro ao excluir organização:", error);
+      return status(500, { message });
+    }
+  }
 }

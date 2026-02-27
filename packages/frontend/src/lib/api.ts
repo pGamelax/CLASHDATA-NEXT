@@ -826,3 +826,42 @@ export async function removeClan(clanId: string) {
 
   return response.json();
 }
+
+export async function getSubscription(organizationId: string, cookieHeader?: string) {
+  const response = await fetch(`${API_URL}/subscriptions/organization/${organizationId}`, {
+    headers: cookieHeader
+      ? {
+          Cookie: cookieHeader,
+          "Content-Type": "application/json",
+        }
+      : {
+          "Content-Type": "application/json",
+        },
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  return response.json();
+}
+
+export async function renewSubscription(organizationId: string) {
+  const response = await fetch(`${API_URL}/stripe/renew-subscription`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({ organizationId }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Erro ao renovar assinatura" }));
+    throw new Error(error.message || "Erro ao renovar assinatura");
+  }
+
+  return response.json();
+}

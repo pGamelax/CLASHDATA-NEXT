@@ -64,6 +64,8 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openingPortal, setOpeningPortal] = useState(false);
+  const [renewing, setRenewing] = useState(false);
+  const [changingPlan, setChangingPlan] = useState(false);
 
   useEffect(() => {
     loadSubscription();
@@ -121,6 +123,40 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
       setOpeningPortal(false);
     }
   }
+
+  async function handleRenewSubscription() {
+    if (!subscription) return;
+
+    try {
+      setRenewing(true);
+      setError(null);
+      
+      // Redireciona para a página de pricing para renovar
+      window.location.href = `/pricing?org=${organization.slug}&renew=true`;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao renovar assinatura");
+      setRenewing(false);
+    }
+  }
+
+  async function handleChangePlan() {
+    if (!subscription) return;
+
+    try {
+      setChangingPlan(true);
+      setError(null);
+      
+      // Abre o portal do Stripe para trocar de plano
+      await handleManageSubscription();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao trocar plano");
+      setChangingPlan(false);
+    }
+  }
+
+  const isExpired = subscription?.status === "EXPIRED" || 
+    (subscription?.status === "ACTIVE" && subscription?.currentPeriodEnd && new Date(subscription.currentPeriodEnd) < new Date()) ||
+    (subscription?.status === "TRIAL" && subscription?.trialEndsAt && new Date(subscription.trialEndsAt) < new Date());
 
   function formatDate(dateString?: string) {
     if (!dateString) return "N/A";
@@ -222,22 +258,43 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
         </CardHeader>
         <CardContent className="space-y-4">
           {subscription.status === "TRIAL" && subscription.trialEndsAt && (
-            <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
-              <Calendar className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-blue-900 dark:text-blue-100">
-                <strong>Período de Trial Ativo</strong> - Termina em: <strong>{formatDate(subscription.trialEndsAt)}</strong>
+            <Alert className={isExpired ? "border-red-200 bg-red-50 dark:bg-red-950/20" : "border-blue-200 bg-blue-50 dark:bg-blue-950/20"}>
+              <Calendar className={`h-4 w-4 ${isExpired ? "text-red-600" : "text-blue-600"}`} />
+              <AlertDescription className={isExpired ? "text-red-900 dark:text-red-100" : "text-blue-900 dark:text-blue-100"}>
+                {isExpired ? (
+                  <>
+                    <strong>Trial Expirado</strong> - Expirou em: <strong>{formatDate(subscription.trialEndsAt)}</strong>
+                  </>
+                ) : (
+                  <>
+                    <strong>Período de Trial Ativo</strong> - Termina em: <strong>{formatDate(subscription.trialEndsAt)}</strong>
+                  </>
+                )}
               </AlertDescription>
             </Alert>
           )}
 
           {subscription.status === "ACTIVE" && subscription.currentPeriodEnd && (
-            <div className="flex items-center gap-2.5 p-3 rounded-lg bg-muted/50">
-              <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <div className={`flex items-center gap-2.5 p-3 rounded-lg ${isExpired ? "bg-red-50 dark:bg-red-950/20 border border-red-200" : "bg-muted/50"}`}>
+              <Calendar className={`h-4 w-4 flex-shrink-0 ${isExpired ? "text-red-600" : "text-muted-foreground"}`} />
               <div className="flex-1">
-                <p className="text-sm font-medium">Próxima cobrança</p>
-                <p className="text-sm text-muted-foreground">{formatDate(subscription.currentPeriodEnd)}</p>
+                <p className={`text-sm font-medium ${isExpired ? "text-red-900 dark:text-red-100" : ""}`}>
+                  {isExpired ? "Assinatura Expirada" : "Próxima cobrança"}
+                </p>
+                <p className={`text-sm ${isExpired ? "text-red-700 dark:text-red-200" : "text-muted-foreground"}`}>
+                  {formatDate(subscription.currentPeriodEnd)}
+                </p>
               </div>
             </div>
+          )}
+
+          {isExpired && (
+            <Alert variant="destructive" className="border-red-200">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Sua assinatura expirou.</strong> Renove ou troque de plano para continuar usando a plataforma.
+              </AlertDescription>
+            </Alert>
           )}
 
           {subscription.cancelAtPeriodEnd && (
@@ -252,45 +309,91 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
           <Separator />
 
           <div className="flex flex-col gap-3">
-            <Button
-              onClick={handleManageSubscription}
-              disabled={openingPortal}
-              className="w-full"
-              size="lg"
-              variant="default"
-            >
-              {openingPortal ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Abrindo portal...
-                </>
-              ) : (
-                <>
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Gerenciar Assinatura no Stripe
-                </>
-              )}
-            </Button>
-            
-            <Button
-              onClick={handleManageSubscription}
-              disabled={openingPortal}
-              className="w-full"
-              size="lg"
-              variant="outline"
-            >
-              {openingPortal ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Abrindo portal...
-                </>
-              ) : (
-                <>
-                  <Zap className="mr-2 h-4 w-4" />
-                  Trocar de Assinatura
-                </>
-              )}
-            </Button>
+            {isExpired ? (
+              <>
+                <Button
+                  onClick={handleRenewSubscription}
+                  disabled={renewing}
+                  className="w-full"
+                  size="lg"
+                  variant="default"
+                >
+                  {renewing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Redirecionando...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Renovar Assinatura
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  onClick={handleChangePlan}
+                  disabled={changingPlan || openingPortal}
+                  className="w-full"
+                  size="lg"
+                  variant="outline"
+                >
+                  {changingPlan || openingPortal ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Abrindo portal...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="mr-2 h-4 w-4" />
+                      Trocar de Assinatura
+                    </>
+                  )}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  onClick={handleManageSubscription}
+                  disabled={openingPortal}
+                  className="w-full"
+                  size="lg"
+                  variant="default"
+                >
+                  {openingPortal ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Abrindo portal...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Gerenciar Assinatura no Stripe
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  onClick={handleChangePlan}
+                  disabled={changingPlan || openingPortal}
+                  className="w-full"
+                  size="lg"
+                  variant="outline"
+                >
+                  {changingPlan || openingPortal ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Abrindo portal...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="mr-2 h-4 w-4" />
+                      Trocar de Assinatura
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>

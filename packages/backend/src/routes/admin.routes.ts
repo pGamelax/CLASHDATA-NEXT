@@ -48,6 +48,17 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
       },
     }
   )
+  .get(
+    "/clans",
+    async (context) => await adminController.getClans(context),
+    {
+      detail: {
+        tags: ["Admin"],
+        summary: "Listar todos os clans",
+        description: "Lista todos os clans cadastrados com informações das organizações.",
+      },
+    }
+  )
   .post(
     "/organizations/create",
     async (context) => await adminController.createOrganization(context),
@@ -60,6 +71,34 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         tags: ["Admin"],
         summary: "Criar organização (admin)",
         description: "Cria uma organização sem subscription. Apenas para administradores.",
+      },
+    }
+  )
+  .post(
+    "/organizations/:organizationId/cancel-subscription",
+    async (context) => await adminController.cancelOrganizationSubscription(context),
+    {
+      params: t.Object({
+        organizationId: t.String(),
+      }),
+      detail: {
+        tags: ["Admin"],
+        summary: "Cancelar assinatura de organização (admin)",
+        description: "Cancela a assinatura de uma organização. Apenas para administradores.",
+      },
+    }
+  )
+  .delete(
+    "/organizations/:organizationId",
+    async (context) => await adminController.deleteOrganization(context),
+    {
+      params: t.Object({
+        organizationId: t.String(),
+      }),
+      detail: {
+        tags: ["Admin"],
+        summary: "Excluir organização (admin)",
+        description: "Exclui uma organização e todos os seus dados. Apenas para administradores.",
       },
     }
   );

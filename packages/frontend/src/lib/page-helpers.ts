@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { getOrganizations, getClansByOrganization } from "@/lib/api";
+import { getOrganizations, getClansByOrganization, getSubscription } from "@/lib/api";
 import { redirect } from "next/navigation";
 
 /**
@@ -16,8 +16,9 @@ export function getCookieHeader(): string {
 /**
  * Busca e valida organização baseado no slug
  * Faz redirect se não encontrar
+ * Verifica se a assinatura está expirada e redireciona para billing se necessário
  */
-export async function getValidatedOrganization(slug: string) {
+export async function getValidatedOrganization(slug: string, allowBillingPage: boolean = false) {
   const cookieHeader = getCookieHeader();
   const organizations = await getOrganizations(cookieHeader);
   const orgsList = organizations?.data || organizations || [];
@@ -30,6 +31,22 @@ export async function getValidatedOrganization(slug: string) {
 
   if (!organization) {
     redirect("/organizations");
+  }
+
+  // Verifica se a assinatura está expirada (exceto na página de billing)
+  if (!allowBillingPage && organization.subscription) {
+    const subscriptionData = await getSubscription(organization.id, cookieHeader);
+    
+    if (subscriptionData?.subscription) {
+      const sub = subscriptionData.subscription;
+      const isExpired = sub.status === "EXPIRED" || 
+        (sub.status === "ACTIVE" && sub.currentPeriodEnd && new Date(sub.currentPeriodEnd) < new Date()) ||
+        (sub.status === "TRIAL" && sub.trialEndsAt && new Date(sub.trialEndsAt) < new Date());
+      
+      if (isExpired) {
+        redirect(`/org/${slug}/subscription`);
+      }
+    }
   }
 
   return { organization, organizations: orgsList, cookieHeader };
