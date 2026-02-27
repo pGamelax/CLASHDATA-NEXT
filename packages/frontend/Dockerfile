@@ -8,7 +8,7 @@ COPY package.json bun.lock ./
 COPY packages/frontend/package.json ./packages/frontend/
 
 RUN --mount=type=cache,id=buncache,target=/root/.bun/install/cache \
-    bun install --frozen-lockfile
+    bun install 
 
 # 2. Builder: Compile Next.js
 FROM oven/bun:1 AS builder
