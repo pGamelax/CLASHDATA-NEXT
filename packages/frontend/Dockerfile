@@ -1,39 +1,33 @@
-# 1. Base: Instala dependências
+# 1. Base: Install dependencies
 FROM oven/bun:1 AS deps
 WORKDIR /app
 
-# Copia arquivos de definição de pacotes do monorepo
+# In a monorepo, it's safer to copy all package.json files 
+# so Bun can resolve the workspace tree correctly.
 COPY package.json bun.lock ./
 COPY packages/frontend/package.json ./packages/frontend/
 
-# Instala as dependências na raiz (isso cria a node_modules com os binários)
 RUN --mount=type=cache,id=buncache,target=/root/.bun/install/cache \
-    bun install
+    bun install --frozen-lockfile
 
-# 2. Builder: Compila o Next.js
+# 2. Builder: Compile Next.js
 FROM oven/bun:1 AS builder
 WORKDIR /app
 
-# Variáveis de Ambiente
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Copia TUDO (incluindo as node_modules instaladas no estágio anterior)
+# Copy dependencies and source
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# --- O PULO DO GATO ---
-# Adicionamos os binários da raiz ao PATH para que o comando 'next' funcione em qualquer subpasta
-ENV PATH="/app/node_modules/.bin:${PATH}"
+# Use bun filter to run build from the root, 
+# or call the binary directly via its relative path.
+RUN bun run --filter ./packages/frontend build
 
-WORKDIR /app/packages/frontend
-
-# Agora o 'next build' será encontrado
-RUN bun run build
-
-# 3. Runner: Imagem final
+# 3. Runner: Final Image
 FROM oven/bun:1-slim AS runner
 WORKDIR /app
 
@@ -42,7 +36,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3001
 ENV HOSTNAME="0.0.0.0"
 
-# Copia os arquivos necessários do standalone
+# Copy necessary files
 COPY --from=builder /app/packages/frontend/public ./packages/frontend/public
 COPY --from=builder /app/packages/frontend/.next/standalone ./
 COPY --from=builder /app/packages/frontend/.next/static ./packages/frontend/.next/static
