@@ -52,7 +52,7 @@ export function AdminClansPage() {
   const fetchClans = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${apiUrl}/admin/clans`, {
+      const response = await fetch(`${API_URL}/admin/clans`, {
         credentials: "include",
       });
 
