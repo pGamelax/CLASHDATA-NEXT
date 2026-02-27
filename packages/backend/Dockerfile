@@ -14,19 +14,18 @@ COPY packages/backend ./packages/backend
 WORKDIR /app/packages/backend
 RUN bunx prisma generate --schema=./prisma/schema.prisma
 
-# Stage 3: Production (A imagem que vai rodar)
+# Stage 3: Production
 FROM oven/bun:1-slim
 WORKDIR /app
 
-# Em vez de instalar de novo, COPIAMOS os node_modules prontos
+# Copia as dependências do root e do backend
 COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/packages/backend/node_modules ./packages/backend/node_modules
-COPY --from=builder /app/packages/backend/src ./packages/backend/src
-COPY --from=builder /app/packages/backend/prisma ./packages/backend/prisma
 
-# Copie apenas os arquivos essenciais de configuração
+# Copia TODO o diretório do backend já processado (incluindo o prisma gerado em src)
+COPY --from=builder /app/packages/backend ./packages/backend
+
 COPY package.json ./
-COPY packages/backend/package.json ./packages/backend/
 
 ENV NODE_ENV=production
 WORKDIR /app/packages/backend
