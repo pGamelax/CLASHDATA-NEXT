@@ -214,20 +214,10 @@ export class SubscriptionsController {
       // Cancela a subscription no banco
       const subscription = await subscriptionRepository.cancel(organizationId);
 
-      // Deleta a organização quando o plano for cancelado
-      try {
-        // skipStripeCancel = true porque já cancelamos no Stripe acima
-        await this.organizationService.deleteOrganization(organizationId, session.user.id, true);
-        console.log(`Organização ${organizationId} deletada após cancelamento de subscription`);
-      } catch (error) {
-        // Log do erro mas não bloqueia o cancelamento
-        console.error("Erro ao deletar organização após cancelamento:", error);
-      }
-
       return {
         success: true,
         subscription,
-        message: "Subscription cancelada e organização removida",
+        message: "Assinatura cancelada. A organização e os clans foram mantidos vinculados.",
       };
     } catch (error) {
       const message =

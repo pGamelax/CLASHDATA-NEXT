@@ -147,7 +147,9 @@ export function PlayerPushContent({
           currentTrophies: lastLogOfDay?.currentTrophies ?? player.currentTrophies,
         };
       })
-      .filter((player): player is PlayerPushStats => player !== null);
+      .filter((player): player is PlayerPushStats => player !== null)
+      // Ordena pelo total de troféus do dia (descendente)
+      .sort((a, b) => (b.currentTrophies || 0) - (a.currentTrophies || 0));
   }, [playerPushLogs, selectedDay]);
 
   // Verifica se há um clan válido

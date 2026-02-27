@@ -218,6 +218,16 @@ export class OrganizationsController {
 
       const { id } = params as { id: string };
 
+      // Apenas admins podem deletar organizações diretamente pela rota pública
+      const isAdmin = session.user.role === "admin";
+      if (!isAdmin) {
+        return status(403, {
+          message:
+            "Não é permitido deletar organização. Cancele a assinatura e mantenha os clans vinculados.",
+        });
+      }
+
+      // Admin pode deletar (usa o service para manter a lógica de Stripe, etc.)
       await this.organizationService.deleteOrganization(id, session.user.id);
 
       return {

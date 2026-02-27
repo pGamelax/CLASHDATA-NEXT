@@ -92,9 +92,10 @@ export function SettingsContent({ organization: initialOrganization }: { organiz
     loadData();
   }, [organization.id]);
 
+  const isAdmin = currentUser?.role === "admin";
   const isOwner = (organization.members || []).some(
     (m: any) => m.userId === currentUser?.id && m.role === "owner"
-  ) || currentUser?.role === "admin";
+  ) || isAdmin;
 
   // Se não for owner, redireciona
   useEffect(() => {
@@ -303,62 +304,64 @@ export function SettingsContent({ organization: initialOrganization }: { organiz
 
         <Separator />
 
-        {/* Zona de Perigo */}
-        <Card className="border-2 border-destructive/50 shadow-sm">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-destructive/10">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
+        {/* Zona de Perigo - apenas para admin (deleção de organização) */}
+        {isAdmin && (
+          <Card className="border-2 border-destructive/50 shadow-sm">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-destructive/10">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                </div>
+                <div>
+                  <CardTitle className="text-destructive">Zona de Perigo</CardTitle>
+                  <CardDescription>
+                    Ações irreversíveis. Use com cuidado.
+                  </CardDescription>
+                </div>
               </div>
-              <div>
-                <CardTitle className="text-destructive">Zona de Perigo</CardTitle>
-                <CardDescription>
-                  Ações irreversíveis. Use com cuidado.
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ConfirmationDialog
-              trigger={
-                <Button
-                  variant="destructive"
-                  disabled={deleting}
-                  className="w-full sm:w-auto shrink-0"
-                >
-                  {deleting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Deletando...
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Deletar Organização
-                    </>
-                  )}
-                </Button>
-              }
-              title="Deletar Organização"
-              description={
-                <>
-                  Esta ação não pode ser desfeita. Isso deletará permanentemente a organização "{organization.name}" e todos os dados associados, incluindo:
-                  <ul className="list-disc list-inside mt-2 space-y-1">
-                    <li>Todos os membros</li>
-                    <li>Todos os clans</li>
-                    <li>Todos os convites</li>
-                    <li>A assinatura</li>
-                  </ul>
-                </>
-              }
-              confirmationText={organization.name}
-              onConfirm={handleDelete}
-              confirmButtonText="Deletar Organização"
-              confirmButtonVariant="destructive"
-              disabled={deleting}
-            />
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              <ConfirmationDialog
+                trigger={
+                  <Button
+                    variant="destructive"
+                    disabled={deleting}
+                    className="w-full sm:w-auto shrink-0"
+                  >
+                    {deleting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Deletando...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Deletar Organização
+                      </>
+                    )}
+                  </Button>
+                }
+                title="Deletar Organização"
+                description={
+                  <>
+                    Esta ação não pode ser desfeita. Isso deletará permanentemente a organização "{organization.name}" e todos os dados associados, incluindo:
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>Todos os membros</li>
+                      <li>Todos os clans</li>
+                      <li>Todos os convites</li>
+                      <li>A assinatura</li>
+                    </ul>
+                  </>
+                }
+                confirmationText={organization.name}
+                onConfirm={handleDelete}
+                confirmButtonText="Deletar Organização"
+                confirmButtonVariant="destructive"
+                disabled={deleting}
+              />
+            </CardContent>
+          </Card>
+        )}
       </div>
   );
 }
