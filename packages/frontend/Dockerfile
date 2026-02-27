@@ -8,7 +8,7 @@ COPY packages/frontend/package.json ./packages/frontend/
 
 # Instala as dependências com cache agressivo
 RUN --mount=type=cache,id=buncache,target=/root/.bun/install/cache \
-    bun install --frozen-lockfile
+    bun install 
 
 # 2. Builder: Compila o Next.js
 FROM oven/bun:1 AS builder
