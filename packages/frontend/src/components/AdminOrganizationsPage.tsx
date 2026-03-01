@@ -5,11 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building2, Loader2, Trash2, XCircle, Edit, Search } from "lucide-react";
+import { Building2, Loader2, Trash2, XCircle, Edit, Search, Plus, RotateCcw } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { createOrganizationWithManualSubscription, reactivateSubscription } from "@/lib/api";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +50,21 @@ export function AdminOrganizationsPage() {
     name: "",
     slug: "",
   });
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [reactivating, setReactivating] = useState<string | null>(null);
+  const [createForm, setCreateForm] = useState({
+    name: "",
+    slug: "",
+    ownerEmail: "",
+    plan: "MESTRE",
+    daysUntilExpiry: 30,
+  });
+  const [reactivateForm, setReactivateForm] = useState({
+    daysUntilExpiry: 30,
+  });
+  const [reactivateDialogOpen, setReactivateDialogOpen] = useState(false);
+  const [reactivatingOrg, setReactivatingOrg] = useState<any | null>(null);
 
   useEffect(() => {
     fetchOrganizations();
@@ -168,6 +185,50 @@ export function AdminOrganizationsPage() {
     }
   };
 
+  const handleCreateOrganization = async () => {
+    try {
+      setCreating(true);
+      await createOrganizationWithManualSubscription(createForm);
+      await fetchOrganizations();
+      setCreateDialogOpen(false);
+      setCreateForm({
+        name: "",
+        slug: "",
+        ownerEmail: "",
+        plan: "MESTRE",
+        daysUntilExpiry: 30,
+      });
+      router.refresh();
+    } catch (error: any) {
+      alert(error.message || "Erro ao criar organização");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleReactivateSubscription = async (org: any) => {
+    setReactivatingOrg(org);
+    setReactivateForm({ daysUntilExpiry: 30 });
+    setReactivateDialogOpen(true);
+  };
+
+  const handleConfirmReactivate = async () => {
+    if (!reactivatingOrg) return;
+
+    try {
+      setReactivating(reactivatingOrg.id);
+      await reactivateSubscription(reactivatingOrg.id, reactivateForm.daysUntilExpiry);
+      await fetchOrganizations();
+      setReactivateDialogOpen(false);
+      setReactivatingOrg(null);
+      router.refresh();
+    } catch (error: any) {
+      alert(error.message || "Erro ao reativar assinatura");
+    } finally {
+      setReactivating(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
       ACTIVE: "bg-green-500/10 text-green-500",
@@ -227,6 +288,94 @@ export function AdminOrganizationsPage() {
             <div className="text-sm text-muted-foreground">
               {filteredOrganizations.length} de {organizations.length} organizações
             </div>
+            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Criar Organização
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Criar Organização com Assinatura Manual</DialogTitle>
+                  <DialogDescription>
+                    Crie uma organização com assinatura manual (valor 0,00) para um usuário específico
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="create-name">Nome da Organização</Label>
+                    <Input
+                      id="create-name"
+                      value={createForm.name}
+                      onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                      placeholder="Ex: Meu Clã"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="create-slug">Slug</Label>
+                    <Input
+                      id="create-slug"
+                      value={createForm.slug}
+                      onChange={(e) => setCreateForm({ ...createForm, slug: e.target.value })}
+                      placeholder="Ex: meu-cla"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="create-email">Email do Dono</Label>
+                    <Input
+                      id="create-email"
+                      type="email"
+                      value={createForm.ownerEmail}
+                      onChange={(e) => setCreateForm({ ...createForm, ownerEmail: e.target.value })}
+                      placeholder="usuario@exemplo.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="create-plan">Plano</Label>
+                    <Select
+                      value={createForm.plan}
+                      onValueChange={(value) => setCreateForm({ ...createForm, plan: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MESTRE">Mestre</SelectItem>
+                        <SelectItem value="CAMPEAO">Campeão</SelectItem>
+                        <SelectItem value="TITA">Titã</SelectItem>
+                        <SelectItem value="LEGEND">Legend</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="create-days">Dias até Expiração</Label>
+                    <Input
+                      id="create-days"
+                      type="number"
+                      min="1"
+                      value={createForm.daysUntilExpiry}
+                      onChange={(e) => setCreateForm({ ...createForm, daysUntilExpiry: parseInt(e.target.value) || 30 })}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleCreateOrganization} disabled={creating}>
+                    {creating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Criando...
+                      </>
+                    ) : (
+                      "Criar"
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardContent>
       </Card>
@@ -249,6 +398,7 @@ export function AdminOrganizationsPage() {
                 <TableHead>Dono</TableHead>
                 <TableHead>Membros</TableHead>
                 <TableHead>Clans</TableHead>
+                <TableHead>Expira em</TableHead>
                 <TableHead>Criado em</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
@@ -256,7 +406,7 @@ export function AdminOrganizationsPage() {
             <TableBody>
               {filteredOrganizations.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground">
+                  <TableCell colSpan={10} className="text-center text-muted-foreground">
                     Nenhuma organização encontrada
                   </TableCell>
                 </TableRow>
@@ -292,6 +442,23 @@ export function AdminOrganizationsPage() {
                       </TableCell>
                       <TableCell>{memberCount}</TableCell>
                       <TableCell>{clanCount}</TableCell>
+                      <TableCell>
+                        {org.subscription?.currentPeriodEnd ? (
+                          <div>
+                            <div>{new Date(org.subscription.currentPeriodEnd).toLocaleDateString("pt-BR")}</div>
+                            {org.subscription.paymentProvider === "manual" && (
+                              <div className="text-xs text-muted-foreground">Manual</div>
+                            )}
+                          </div>
+                        ) : org.subscription?.trialEndsAt ? (
+                          <div>
+                            <div>{new Date(org.subscription.trialEndsAt).toLocaleDateString("pt-BR")}</div>
+                            <div className="text-xs text-muted-foreground">Trial</div>
+                          </div>
+                        ) : (
+                          "N/A"
+                        )}
+                      </TableCell>
                       <TableCell>
                         {new Date(org.createdAt).toLocaleDateString("pt-BR")}
                       </TableCell>
@@ -361,37 +528,96 @@ export function AdminOrganizationsPage() {
                             </DialogContent>
                           </Dialog>
                           {org.subscription && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  disabled={cancelling === org.id}
-                                >
-                                  {cancelling === org.id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <XCircle className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Cancelar Assinatura</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Tem certeza que deseja cancelar a assinatura da organização "{org.name}"?
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleCancelSubscription(org.id)}
+                            <>
+                              {(org.subscription.status === "EXPIRED" || org.subscription.status === "CANCELLED") && 
+                               org.subscription.paymentProvider === "manual" && (
+                                <Dialog open={reactivateDialogOpen && reactivatingOrg?.id === org.id} onOpenChange={(open) => {
+                                  if (!open) {
+                                    setReactivateDialogOpen(false);
+                                    setReactivatingOrg(null);
+                                  }
+                                }}>
+                                  <DialogTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleReactivateSubscription(org)}
+                                    >
+                                      <RotateCcw className="h-4 w-4" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>Reativar Assinatura</DialogTitle>
+                                      <DialogDescription>
+                                        Reative a assinatura manual da organização "{org.name}" após pagamento
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-4">
+                                      <div className="space-y-2">
+                                        <Label htmlFor="reactivate-days">Dias até Expiração</Label>
+                                        <Input
+                                          id="reactivate-days"
+                                          type="number"
+                                          min="1"
+                                          value={reactivateForm.daysUntilExpiry}
+                                          onChange={(e) => setReactivateForm({ daysUntilExpiry: parseInt(e.target.value) || 30 })}
+                                        />
+                                      </div>
+                                    </div>
+                                    <DialogFooter>
+                                      <Button variant="outline" onClick={() => {
+                                        setReactivateDialogOpen(false);
+                                        setReactivatingOrg(null);
+                                      }}>
+                                        Cancelar
+                                      </Button>
+                                      <Button onClick={handleConfirmReactivate} disabled={reactivating === org.id}>
+                                        {reactivating === org.id ? (
+                                          <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Reativando...
+                                          </>
+                                        ) : (
+                                          "Reativar"
+                                        )}
+                                      </Button>
+                                    </DialogFooter>
+                                  </DialogContent>
+                                </Dialog>
+                              )}
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={cancelling === org.id}
                                   >
-                                    Confirmar
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                                    {cancelling === org.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <XCircle className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Cancelar Assinatura</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Tem certeza que deseja cancelar a assinatura da organização "{org.name}"?
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleCancelSubscription(org.id)}
+                                    >
+                                      Confirmar
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </>
                           )}
                           <AlertDialog>
                             <AlertDialogTrigger asChild>

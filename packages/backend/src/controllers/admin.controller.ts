@@ -777,4 +777,206 @@ export class AdminController {
       return status(500, { message });
     }
   }
+
+  async createOrganizationWithManualSubscription(context: ElysiaContext) {
+    const { body, request, status } = context;
+    try {
+      // Verifica autenticação
+      const session = await auth.api.getSession({
+        headers: request.headers,
+      });
+
+      if (!session || !session.user) {
+        return status(401, { message: "Não autenticado" });
+      }
+
+      // Verifica se é admin
+      if (session.user.role !== "admin") {
+        return status(403, { message: "Acesso negado. Apenas administradores." });
+      }
+
+      const { name, slug, ownerEmail, plan, daysUntilExpiry } = body as {
+        name: string;
+        slug: string;
+        ownerEmail: string;
+        plan: string;
+        daysUntilExpiry: number;
+      };
+
+      if (!name || !slug || !ownerEmail || !plan || !daysUntilExpiry) {
+        return status(400, {
+          message: "Todos os campos são obrigatórios",
+        });
+      }
+
+      // Valida o plano
+      if (!["MESTRE", "CAMPEAO", "TITA", "LEGEND"].includes(plan)) {
+        return status(400, {
+          message: "Plano inválido. Deve ser MESTRE, CAMPEAO, TITA ou LEGEND",
+        });
+      }
+
+      // Valida dias até expiração
+      if (daysUntilExpiry <= 0) {
+        return status(400, {
+          message: "Dias até expiração deve ser maior que zero",
+        });
+      }
+
+      // Busca o usuário pelo email
+      const owner = await prisma.user.findUnique({
+        where: { email: ownerEmail },
+      });
+
+      if (!owner) {
+        return status(404, {
+          message: "Usuário com esse email não encontrado",
+        });
+      }
+
+      // Verifica se já existe organização com esse slug
+      const existingOrg = await prisma.organization.findUnique({
+        where: { slug },
+      });
+
+      if (existingOrg) {
+        return status(409, {
+          message: "Já existe uma organização com esse slug",
+        });
+      }
+
+      // Cria a organização
+      const organization = await prisma.organization.create({
+        data: {
+          name,
+          slug,
+          metadata: {},
+        },
+      });
+
+      // Adiciona o usuário como owner
+      await prisma.member.create({
+        data: {
+          organizationId: organization.id,
+          userId: owner.id,
+          role: "owner",
+        },
+      });
+
+      // Calcula a data de expiração
+      const currentPeriodEnd = new Date();
+      currentPeriodEnd.setDate(currentPeriodEnd.getDate() + daysUntilExpiry);
+
+      // Cria a subscription manual (sem Stripe)
+      const subscription = await prisma.subscription.create({
+        data: {
+          organizationId: organization.id,
+          plan: plan as any,
+          status: SubscriptionStatus.ACTIVE,
+          currentPeriodEnd,
+          paymentProvider: "manual",
+          paymentProviderId: null,
+          stripeCustomerId: null,
+        },
+        include: {
+          organization: true,
+        },
+      });
+
+      // Agenda verificação de expiração
+      const { scheduleSubscriptionExpiryCheck } = await import(
+        "../jobs/subscription-expiry.job"
+      );
+      await scheduleSubscriptionExpiryCheck(organization.id, currentPeriodEnd);
+
+      return {
+        success: true,
+        organization,
+        subscription,
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Erro desconhecido";
+
+      console.error("Erro ao criar organização com assinatura manual:", error);
+
+      if (message.includes("já existe") || message.includes("já está em uso")) {
+        return status(409, { message });
+      }
+
+      return status(500, { message });
+    }
+  }
+
+  async reactivateSubscription(context: ElysiaContext) {
+    const { params, body, request, status } = context;
+    try {
+      // Verifica autenticação
+      const session = await auth.api.getSession({
+        headers: request.headers,
+      });
+
+      if (!session || !session.user) {
+        return status(401, { message: "Não autenticado" });
+      }
+
+      // Verifica se é admin
+      if (session.user.role !== "admin") {
+        return status(403, { message: "Acesso negado. Apenas administradores." });
+      }
+
+      const { organizationId } = params as { organizationId: string };
+      const { daysUntilExpiry } = body as { daysUntilExpiry: number };
+
+      if (!daysUntilExpiry || daysUntilExpiry <= 0) {
+        return status(400, {
+          message: "Dias até expiração deve ser maior que zero",
+        });
+      }
+
+      // Busca a subscription
+      const subscription = await prisma.subscription.findUnique({
+        where: { organizationId },
+      });
+
+      if (!subscription) {
+        return status(404, { message: "Subscription não encontrada" });
+      }
+
+      // Calcula a nova data de expiração
+      const currentPeriodEnd = new Date();
+      currentPeriodEnd.setDate(currentPeriodEnd.getDate() + daysUntilExpiry);
+
+      // Atualiza a subscription
+      const updatedSubscription = await prisma.subscription.update({
+        where: { organizationId },
+        data: {
+          status: SubscriptionStatus.ACTIVE,
+          currentPeriodEnd,
+          cancelAtPeriodEnd: false,
+        },
+        include: {
+          organization: true,
+        },
+      });
+
+      // Agenda verificação de expiração
+      const { scheduleSubscriptionExpiryCheck } = await import(
+        "../jobs/subscription-expiry.job"
+      );
+      await scheduleSubscriptionExpiryCheck(organizationId, currentPeriodEnd);
+
+      return {
+        success: true,
+        subscription: updatedSubscription,
+        message: "Assinatura reativada com sucesso",
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Erro desconhecido";
+
+      console.error("Erro ao reativar assinatura:", error);
+      return status(500, { message });
+    }
+  }
 }

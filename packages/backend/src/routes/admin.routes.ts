@@ -167,4 +167,39 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         description: "Exclui um clan. Apenas para administradores.",
       },
     }
+  )
+  .post(
+    "/organizations/create-with-subscription",
+    async (context) => await adminController.createOrganizationWithManualSubscription(context),
+    {
+      body: t.Object({
+        name: t.String(),
+        slug: t.String(),
+        ownerEmail: t.String(),
+        plan: t.String(),
+        daysUntilExpiry: t.Number(),
+      }),
+      detail: {
+        tags: ["Admin"],
+        summary: "Criar organização com assinatura manual (admin)",
+        description: "Cria uma organização com assinatura manual (valor 0,00) para um usuário específico. Apenas para administradores.",
+      },
+    }
+  )
+  .post(
+    "/organizations/:organizationId/reactivate-subscription",
+    async (context) => await adminController.reactivateSubscription(context),
+    {
+      params: t.Object({
+        organizationId: t.String(),
+      }),
+      body: t.Object({
+        daysUntilExpiry: t.Number(),
+      }),
+      detail: {
+        tags: ["Admin"],
+        summary: "Reativar assinatura manual (admin)",
+        description: "Reativa uma assinatura manual após pagamento. Apenas para administradores.",
+      },
+    }
   );

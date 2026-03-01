@@ -848,6 +848,48 @@ export async function getSubscription(organizationId: string, cookieHeader?: str
   return response.json();
 }
 
+export async function createOrganizationWithManualSubscription(data: {
+  name: string;
+  slug: string;
+  ownerEmail: string;
+  plan: string;
+  daysUntilExpiry: number;
+}) {
+  const response = await fetch(`${API_URL}/admin/organizations/create-with-subscription`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Erro ao criar organização" }));
+    throw new Error(error.message || "Erro ao criar organização");
+  }
+
+  return response.json();
+}
+
+export async function reactivateSubscription(organizationId: string, daysUntilExpiry: number) {
+  const response = await fetch(`${API_URL}/admin/organizations/${organizationId}/reactivate-subscription`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({ daysUntilExpiry }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Erro ao reativar assinatura" }));
+    throw new Error(error.message || "Erro ao reativar assinatura");
+  }
+
+  return response.json();
+}
+
 export async function renewSubscription(organizationId: string) {
   const response = await fetch(`${API_URL}/stripe/renew-subscription`, {
     method: "POST",
