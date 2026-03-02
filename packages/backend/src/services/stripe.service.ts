@@ -256,4 +256,146 @@ export class StripeService {
   ): Promise<Stripe.Checkout.Session> {
     return await stripe.checkout.sessions.retrieve(sessionId);
   }
+
+  /**
+   * Cria uma sessão de checkout para upgrade/change plan
+   * Calcula o prorata e retorna informações para o usuário decidir
+   */
+  async createUpgradeCheckoutSession(
+    organizationId: string,
+    currentSubscriptionId: string,
+    newPlan: SubscriptionPlan,
+    newPeriod: PaymentPeriod,
+    returnUrl: string,
+  ): Promise<{ url: string; amount: number }> {
+    // Busca a subscription atual no Stripe
+    const currentSubscription = await stripe.subscriptions.retrieve(currentSubscriptionId);
+    
+    // Busca o item atual
+    const currentItemId = currentSubscription.items.data[0]?.id;
+    if (!currentItemId) {
+      throw new Error("Não foi possível encontrar o item atual da assinatura");
+    }
+
+    // Busca o novo preço
+    const newPlanConfig = STRIPE_PLANS[newPlan];
+    const newPriceConfig = newPlanConfig.prices[newPeriod];
+    const newPriceId = newPriceConfig.priceId;
+
+    // Calcula o prorata antes de fazer o upgrade
+    // Cria uma preview da invoice para ver o valor
+    const invoicePreview = await stripe.invoices.retrieveUpcoming({
+      customer: currentSubscription.customer as string,
+      subscription: currentSubscriptionId,
+      subscription_items: [
+        {
+          id: currentItemId,
+          price: newPriceId,
+        },
+      ],
+    });
+
+    // Calcula a diferença (valor da próxima invoice)
+    const prorataAmount = invoicePreview.amount_due || 0;
+
+    // Se há valor a pagar, atualiza a subscription e cria invoice
+    if (prorataAmount > 0) {
+      // Atualiza a subscription (Stripe cria invoice automaticamente)
+      await stripe.subscriptions.update(currentSubscriptionId, {
+        items: [
+          {
+            id: currentItemId,
+            price: newPriceId,
+          },
+        ],
+        proration_behavior: "always_invoice",
+        metadata: {
+          ...currentSubscription.metadata,
+          plan: newPlan,
+          period: newPeriod,
+          organizationId,
+        },
+      });
+
+      // Busca a invoice criada
+      const invoices = await stripe.invoices.list({
+        customer: currentSubscription.customer as string,
+        subscription: currentSubscriptionId,
+        limit: 1,
+        status: "open",
+      });
+
+      if (invoices.data.length > 0) {
+        const invoice = invoices.data[0];
+        // Finaliza a invoice para criar o link de pagamento
+        const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
+        return {
+          url: finalizedInvoice.hosted_invoice_url || finalizedInvoice.invoice_pdf || returnUrl,
+          amount: prorataAmount,
+        };
+      }
+    } else {
+      // Se não há valor a pagar (downgrade com crédito), atualiza direto
+      await stripe.subscriptions.update(currentSubscriptionId, {
+        items: [
+          {
+            id: currentItemId,
+            price: newPriceId,
+          },
+        ],
+        proration_behavior: "always_invoice",
+        metadata: {
+          ...currentSubscription.metadata,
+          plan: newPlan,
+          period: newPeriod,
+          organizationId,
+        },
+      });
+    }
+
+    return {
+      url: returnUrl,
+      amount: prorataAmount,
+    };
+  }
+
+  /**
+   * Faz upgrade/downgrade direto na subscription (sem checkout)
+   * Usa proratação automática do Stripe
+   */
+  async changeSubscriptionPlan(
+    subscriptionId: string,
+    newPlan: SubscriptionPlan,
+    newPeriod: PaymentPeriod,
+  ): Promise<Stripe.Subscription> {
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const currentItemId = subscription.items.data[0]?.id;
+    
+    if (!currentItemId) {
+      throw new Error("Não foi possível encontrar o item atual da assinatura");
+    }
+
+    const newPlanConfig = STRIPE_PLANS[newPlan];
+    const newPriceConfig = newPlanConfig.prices[newPeriod];
+    const newPriceId = newPriceConfig.priceId;
+
+    // Atualiza a subscription com o novo preço
+    // O Stripe calcula automaticamente o prorata
+    const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
+      items: [
+        {
+          id: currentItemId,
+          price: newPriceId,
+        },
+      ],
+      proration_behavior: "always_invoice", // Sempre cria invoice com prorata
+      metadata: {
+        ...subscription.metadata,
+        plan: newPlan,
+        period: newPeriod,
+      },
+    });
+
+    return updatedSubscription;
+  }
 }

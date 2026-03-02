@@ -65,6 +65,40 @@ export class OrganizationService {
       throw new Error("Organização com esse slug já existe");
     }
 
+    // Verifica se o usuário já utilizou um trial em alguma organização
+    const { prisma } = await import("../lib/prisma");
+    const existingTrial = await prisma.subscription.findFirst({
+      where: {
+        organization: {
+          members: {
+            some: {
+              userId,
+              role: "owner",
+            },
+          },
+        },
+        // Verifica se já teve uma subscription que começou como trial
+        // Considera qualquer subscription que já existiu (mesmo que cancelada/expirada)
+        // Isso previne que o usuário crie múltiplas contas para ganhar vários trials
+      },
+      include: {
+        organization: {
+          include: {
+            members: {
+              where: {
+                userId,
+                role: "owner",
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (existingTrial) {
+      throw new Error("Você já utilizou um período de trial em uma organização. Não é possível criar múltiplos trials.");
+    }
+
     // Cria a organização
     const organization = await this.organizationRepository.create({
       name: data.name,
@@ -133,6 +167,32 @@ export class OrganizationService {
     role?: string;
     reason?: string;
   }> {
+    // Primeiro verifica se o usuário é admin - admins podem acessar qualquer organização
+    const { prisma } = await import("../lib/prisma");
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (user?.role === "admin") {
+      const organization = await this.organizationRepository.findById(
+        organizationId
+      );
+
+      if (!organization) {
+        return {
+          canAccess: false,
+          reason: "Organização não encontrada",
+        };
+      }
+
+      // Admin pode acessar qualquer organização
+      return {
+        canAccess: true,
+        role: "admin",
+      };
+    }
+
     const organization = await this.organizationRepository.findById(
       organizationId
     );
@@ -151,20 +211,6 @@ export class OrganizationService {
       return {
         canAccess: false,
         reason: "Você não é membro desta organização",
-      };
-    }
-
-    // Verifica se o usuário é admin - admins podem acessar qualquer organização
-    const { prisma } = await import("../lib/prisma");
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true },
-    });
-
-    if (user?.role === "admin") {
-      return {
-        canAccess: true,
-        role: member.role || "admin",
       };
     }
 

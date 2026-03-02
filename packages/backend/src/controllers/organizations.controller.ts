@@ -140,11 +140,31 @@ export class OrganizationsController {
         return status(401, { message: "Não autenticado" });
       }
 
-      // Busca organizações do usuário com subscriptions
       const { OrganizationRepository } = await import(
         "../repositories/organization.repository"
       );
       const organizationRepository = new OrganizationRepository();
+
+      // Se for admin, retorna todas as organizações
+      if (session.user.role === "admin") {
+        const { prisma } = await import("../lib/prisma");
+        const allOrganizations = await prisma.organization.findMany({
+          include: {
+            members: {
+              include: {
+                user: true,
+              },
+            },
+            subscription: true,
+          },
+        });
+        return {
+          success: true,
+          data: allOrganizations,
+        };
+      }
+
+      // Usuários normais veem apenas suas organizações
       const organizations = await organizationRepository.findByUserId(session.user.id);
 
       return {

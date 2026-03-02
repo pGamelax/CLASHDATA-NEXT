@@ -153,4 +153,56 @@ export const stripeRoutes = new Elysia({ prefix: "/stripe" })
         description: "Verifica o status de uma sessão de checkout do Stripe.",
       },
     }
+  )
+  .post(
+    "/create-upgrade-checkout-session",
+    async (context) => await stripeController.createUpgradeCheckoutSession(context),
+    {
+      body: t.Object({
+        organizationId: t.String(),
+        newPlan: t.Union([
+          t.Literal("MESTRE"),
+          t.Literal("CAMPEAO"),
+          t.Literal("TITA"),
+          t.Literal("LEGEND"),
+        ]),
+        newPeriod: t.Union([
+          t.Literal("monthly"),
+          t.Literal("quarterly"),
+          t.Literal("yearly"),
+        ]),
+      }),
+      detail: {
+        tags: ["Stripe"],
+        summary: "Criar sessão de checkout para upgrade",
+        description:
+          "Cria uma sessão de checkout do Stripe para upgrade/downgrade de plano. Calcula automaticamente o prorata.",
+      },
+    }
+  )
+  .post(
+    "/change-subscription-plan",
+    async (context) => await stripeController.changeSubscriptionPlan(context),
+    {
+      body: t.Object({
+        organizationId: t.String(),
+        newPlan: t.Union([
+          t.Literal("MESTRE"),
+          t.Literal("CAMPEAO"),
+          t.Literal("TITA"),
+          t.Literal("LEGEND"),
+        ]),
+        newPeriod: t.Union([
+          t.Literal("monthly"),
+          t.Literal("quarterly"),
+          t.Literal("yearly"),
+        ]),
+      }),
+      detail: {
+        tags: ["Stripe"],
+        summary: "Trocar plano da assinatura",
+        description:
+          "Faz upgrade/downgrade direto na subscription do Stripe com proratação automática.",
+      },
+    }
   );

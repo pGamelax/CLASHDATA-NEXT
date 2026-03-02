@@ -162,6 +162,158 @@ export class StripeController {
   }
 
   /**
+   * Cria uma sessão de checkout para upgrade/change plan
+   */
+  async createUpgradeCheckoutSession(context: ElysiaContext) {
+    const { body, request, status } = context;
+    try {
+      // Verifica autenticação
+      const session = await auth.api.getSession({
+        headers: request.headers,
+      });
+
+      if (!session || !session.user) {
+        return status(401, { message: "Não autenticado" });
+      }
+
+      const { organizationId, newPlan, newPeriod } = body as {
+        organizationId: string;
+        newPlan: string;
+        newPeriod: "monthly" | "quarterly" | "yearly";
+      };
+
+      // Verifica se o usuário é owner da organização
+      const access = await this.organizationService.canUserAccessOrganization(
+        session.user.id,
+        organizationId
+      );
+
+      if (!access.canAccess || access.role !== "owner") {
+        return status(403, {
+          message: "Apenas o dono da organização pode fazer upgrade",
+        });
+      }
+
+      // Busca a subscription
+      const subscription = await this.subscriptionRepository.findByOrganizationId(
+        organizationId
+      );
+
+      if (!subscription || !subscription.paymentProviderId) {
+        return status(404, {
+          message: "Subscription não encontrada ou sem subscription do Stripe",
+        });
+      }
+
+      // Busca a organização para o returnUrl
+      const { OrganizationRepository } = await import(
+        "../repositories/organization.repository"
+      );
+      const organizationRepository = new OrganizationRepository();
+      const organization = await organizationRepository.findById(organizationId);
+
+      if (!organization) {
+        return status(404, { message: "Organização não encontrada" });
+      }
+
+      const returnUrl = `${process.env.BETTER_AUTH_TRUSTED_ORIGIN || "http://localhost:3001"}/org/${organization.slug}/subscription`;
+
+      // Cria a sessão de checkout para upgrade
+      const checkoutSession = await this.stripeService.createUpgradeCheckoutSession(
+        organizationId,
+        subscription.paymentProviderId,
+        newPlan as any,
+        newPeriod,
+        returnUrl
+      );
+
+      return {
+        success: true,
+        sessionId: checkoutSession.id,
+        url: checkoutSession.url,
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Erro desconhecido";
+
+      console.error("Erro ao criar upgrade checkout session:", error);
+      return status(500, { message });
+    }
+  }
+
+  /**
+   * Faz upgrade/downgrade direto na subscription
+   */
+  async changeSubscriptionPlan(context: ElysiaContext) {
+    const { body, request, status } = context;
+    try {
+      // Verifica autenticação
+      const session = await auth.api.getSession({
+        headers: request.headers,
+      });
+
+      if (!session || !session.user) {
+        return status(401, { message: "Não autenticado" });
+      }
+
+      const { organizationId, newPlan, newPeriod } = body as {
+        organizationId: string;
+        newPlan: string;
+        newPeriod: "monthly" | "quarterly" | "yearly";
+      };
+
+      // Verifica se o usuário é owner da organização
+      const access = await this.organizationService.canUserAccessOrganization(
+        session.user.id,
+        organizationId
+      );
+
+      if (!access.canAccess || access.role !== "owner") {
+        return status(403, {
+          message: "Apenas o dono da organização pode trocar de plano",
+        });
+      }
+
+      // Busca a subscription
+      const subscription = await this.subscriptionRepository.findByOrganizationId(
+        organizationId
+      );
+
+      if (!subscription || !subscription.paymentProviderId) {
+        return status(404, {
+          message: "Subscription não encontrada ou sem subscription do Stripe",
+        });
+      }
+
+      // Faz o upgrade/downgrade direto
+      const updatedSubscription = await this.stripeService.changeSubscriptionPlan(
+        subscription.paymentProviderId,
+        newPlan as any,
+        newPeriod
+      );
+
+      // Atualiza a subscription local
+      await this.subscriptionRepository.update(organizationId, {
+        plan: newPlan as any,
+      });
+
+      return {
+        success: true,
+        subscription: {
+          id: updatedSubscription.id,
+          status: updatedSubscription.status,
+        },
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Erro desconhecido";
+
+      console.error("Erro ao trocar plano:", error);
+      return status(500, { message });
+    }
+  }
+
+  /**
    * Processa webhook do Stripe
    */
   async handleWebhook(context: ElysiaContext) {

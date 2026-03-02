@@ -33,17 +33,28 @@ export async function getValidatedOrganization(slug: string, allowBillingPage: b
     redirect("/organizations");
   }
 
-  // Verifica se a assinatura está expirada (exceto na página de billing)
+  // Verifica se a assinatura está expirada ou cancelada (exceto na página de billing)
   if (!allowBillingPage && organization.subscription) {
     const subscriptionData = await getSubscription(organization.id, cookieHeader);
     
     if (subscriptionData?.subscription) {
       const sub = subscriptionData.subscription;
-      const isExpired = sub.status === "EXPIRED" || 
-        (sub.status === "ACTIVE" && sub.currentPeriodEnd && new Date(sub.currentPeriodEnd) < new Date()) ||
-        (sub.status === "TRIAL" && sub.trialEndsAt && new Date(sub.trialEndsAt) < new Date());
+      const now = new Date();
       
-      if (isExpired) {
+      // Se status é CANCELLED ou EXPIRED, verifica se o período ainda está válido
+      if (sub.status === "EXPIRED" || sub.status === "CANCELLED") {
+        // Se tem currentPeriodEnd e ainda está no futuro, permite acesso
+        if (sub.currentPeriodEnd && new Date(sub.currentPeriodEnd) > now) {
+          // Ainda está no período válido, permite acesso
+        } else {
+          // Período já passou, bloqueia acesso
+          redirect(`/org/${slug}/subscription`);
+        }
+      } else if (sub.status === "ACTIVE" && sub.currentPeriodEnd && new Date(sub.currentPeriodEnd) < now) {
+        // Status ACTIVE mas período já passou
+        redirect(`/org/${slug}/subscription`);
+      } else if (sub.status === "TRIAL" && sub.trialEndsAt && new Date(sub.trialEndsAt) < now) {
+        // Trial expirado
         redirect(`/org/${slug}/subscription`);
       }
     }

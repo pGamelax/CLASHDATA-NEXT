@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, CreditCard, Calendar, AlertCircle, CheckCircle2, XCircle, TrendingUp, Users, Shield, Sparkles, Zap, Crown, Star } from "lucide-react";
+import { PlanUpgradeDialog } from "@/components/PlanUpgradeDialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,7 @@ interface Subscription {
   currentPeriodEnd?: string;
   cancelAtPeriodEnd: boolean;
   isActive: boolean;
+  stripeCustomerId?: string | null;
   limits: {
     maxClans: number;
     maxInvites: number;
@@ -66,6 +68,7 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
   const [openingPortal, setOpeningPortal] = useState(false);
   const [renewing, setRenewing] = useState(false);
   const [changingPlan, setChangingPlan] = useState(false);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
 
   useEffect(() => {
     loadSubscription();
@@ -142,21 +145,22 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
   async function handleChangePlan() {
     if (!subscription) return;
 
-    try {
-      setChangingPlan(true);
-      setError(null);
-      
-      // Abre o portal do Stripe para trocar de plano
-      await handleManageSubscription();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao trocar plano");
-      setChangingPlan(false);
+    // Se não tem stripeCustomerId, não pode trocar de plano (é manual)
+    if (!subscription.stripeCustomerId) {
+      setError("Assinaturas manuais não podem ser alteradas pelo portal. Entre em contato com o administrador.");
+      return;
     }
+
+    // Abre o diálogo de upgrade
+    setShowUpgradeDialog(true);
   }
 
   const isExpired = subscription?.status === "EXPIRED" || 
+    subscription?.status === "CANCELLED" ||
     (subscription?.status === "ACTIVE" && subscription?.currentPeriodEnd && new Date(subscription.currentPeriodEnd) < new Date()) ||
     (subscription?.status === "TRIAL" && subscription?.trialEndsAt && new Date(subscription.trialEndsAt) < new Date());
+  
+  const isCancelled = subscription?.status === "CANCELLED";
 
   function formatDate(dateString?: string) {
     if (!dateString) return "N/A";
@@ -288,11 +292,11 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
             </div>
           )}
 
-          {isExpired && (
+          {(isExpired || isCancelled) && (
             <Alert variant="destructive" className="border-red-200">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                <strong>Sua assinatura expirou.</strong> Renove ou troque de plano para continuar usando a plataforma.
+                <strong>Sua assinatura {isCancelled ? "foi cancelada" : "expirou"}.</strong> Renove ou troque de plano para continuar usando a plataforma.
               </AlertDescription>
             </Alert>
           )}
@@ -309,89 +313,128 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
           <Separator />
 
           <div className="flex flex-col gap-3">
-            {isExpired ? (
+            {(isExpired || isCancelled) ? (
               <>
-                <Button
-                  onClick={handleRenewSubscription}
-                  disabled={renewing}
-                  className="w-full"
-                  size="lg"
-                  variant="default"
-                >
-                  {renewing ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Redirecionando...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      Renovar Assinatura
-                    </>
-                  )}
-                </Button>
-                
-                <Button
-                  onClick={handleChangePlan}
-                  disabled={changingPlan || openingPortal}
-                  className="w-full"
-                  size="lg"
-                  variant="outline"
-                >
-                  {changingPlan || openingPortal ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Abrindo portal...
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="mr-2 h-4 w-4" />
-                      Trocar de Assinatura
-                    </>
-                  )}
-                </Button>
+                {/* Se tem stripeCustomerId, mostra botão para abrir portal Stripe */}
+                {subscription.stripeCustomerId ? (
+                  <>
+                    <Button
+                      onClick={handleManageSubscription}
+                      disabled={openingPortal}
+                      className="w-full"
+                      size="lg"
+                      variant="default"
+                    >
+                      {openingPortal ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Abrindo portal...
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="mr-2 h-4 w-4" />
+                          Abrir Portal Stripe para Pagar
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button
+                      onClick={handleChangePlan}
+                      disabled={changingPlan || openingPortal}
+                      className="w-full"
+                      size="lg"
+                      variant="outline"
+                    >
+                      {changingPlan || openingPortal ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Abrindo portal...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="mr-2 h-4 w-4" />
+                          Trocar de Assinatura
+                        </>
+                      )}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      onClick={handleRenewSubscription}
+                      disabled={renewing}
+                      className="w-full"
+                      size="lg"
+                      variant="default"
+                    >
+                      {renewing ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Redirecionando...
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="mr-2 h-4 w-4" />
+                          Renovar Assinatura
+                        </>
+                      )}
+                    </Button>
+                  </>
+                )}
               </>
             ) : (
               <>
-                <Button
-                  onClick={handleManageSubscription}
-                  disabled={openingPortal}
-                  className="w-full"
-                  size="lg"
-                  variant="default"
-                >
-                  {openingPortal ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Abrindo portal...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      Gerenciar Assinatura no Stripe
-                    </>
-                  )}
-                </Button>
-                
-                <Button
-                  onClick={handleChangePlan}
-                  disabled={changingPlan || openingPortal}
-                  className="w-full"
-                  size="lg"
-                  variant="outline"
-                >
-                  {changingPlan || openingPortal ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Abrindo portal...
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="mr-2 h-4 w-4" />
-                      Trocar de Assinatura
-                    </>
-                  )}
-                </Button>
+                {/* Só mostra botões do Stripe se tiver stripeCustomerId (não é manual) */}
+                {subscription.stripeCustomerId ? (
+                  <>
+                    <Button
+                      onClick={handleManageSubscription}
+                      disabled={openingPortal}
+                      className="w-full"
+                      size="lg"
+                      variant="default"
+                    >
+                      {openingPortal ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Abrindo portal...
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="mr-2 h-4 w-4" />
+                          Gerenciar Assinatura no Stripe
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button
+                      onClick={handleChangePlan}
+                      disabled={changingPlan || openingPortal}
+                      className="w-full"
+                      size="lg"
+                      variant="outline"
+                    >
+                      {changingPlan || openingPortal ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Abrindo portal...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="mr-2 h-4 w-4" />
+                          Trocar de Assinatura
+                        </>
+                      )}
+                    </Button>
+                  </>
+                ) : (
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Esta é uma assinatura manual. Entre em contato com o administrador para alterações.
+                    </AlertDescription>
+                  </Alert>
+                )}
               </>
             )}
           </div>
@@ -554,6 +597,21 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialog de Upgrade */}
+      {subscription && subscription.stripeCustomerId && (
+        <PlanUpgradeDialog
+          open={showUpgradeDialog}
+          onOpenChange={setShowUpgradeDialog}
+          currentPlan={subscription.plan}
+          currentPeriod="monthly" // Por padrão, assumimos monthly. O Stripe pode ter período diferente, mas isso será tratado no backend
+          organizationId={organization.id}
+          onSuccess={() => {
+            loadSubscription();
+            setShowUpgradeDialog(false);
+          }}
+        />
+      )}
     </div>
   );
 }

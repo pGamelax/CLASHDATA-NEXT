@@ -37,6 +37,34 @@ export default async function ClanLayoutPage({
     redirect("/");
   }
 
+  // Verifica se a assinatura está expirada ou cancelada e redireciona para billing
+  if (organization.subscription) {
+    const { getSubscription } = await import("@/lib/api");
+    const subscriptionData = await getSubscription(organization.id, cookieHeader);
+    
+    if (subscriptionData?.subscription) {
+      const sub = subscriptionData.subscription;
+      const now = new Date();
+      
+      // Se status é CANCELLED ou EXPIRED, verifica se o período ainda está válido
+      if (sub.status === "EXPIRED" || sub.status === "CANCELLED") {
+        // Se tem currentPeriodEnd e ainda está no futuro, permite acesso
+        if (sub.currentPeriodEnd && new Date(sub.currentPeriodEnd) > now) {
+          // Ainda está no período válido, permite acesso
+        } else {
+          // Período já passou, bloqueia acesso
+          redirect(`/org/${slug}/subscription`);
+        }
+      } else if (sub.status === "ACTIVE" && sub.currentPeriodEnd && new Date(sub.currentPeriodEnd) < now) {
+        // Status ACTIVE mas período já passou
+        redirect(`/org/${slug}/subscription`);
+      } else if (sub.status === "TRIAL" && sub.trialEndsAt && new Date(sub.trialEndsAt) < now) {
+        // Trial expirado
+        redirect(`/org/${slug}/subscription`);
+      }
+    }
+  }
+
   // Busca os clans da organização
   const clansResponse = await getClansByOrganization(organization.id, cookieHeader);
   const clans = clansResponse?.data || clansResponse || [];

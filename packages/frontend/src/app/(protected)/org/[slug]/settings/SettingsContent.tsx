@@ -11,17 +11,11 @@ import { Separator } from "@/components/ui/separator";
 import { 
   Settings, 
   Save, 
-  Trash2, 
-  AlertTriangle, 
   Loader2,
-  Shield,
-  X
+  Shield
 } from "lucide-react";
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { 
   updateOrganization, 
-  deleteOrganization, 
-  removeClan,
   getSession 
 } from "@/lib/api";
 
@@ -49,8 +43,6 @@ export function SettingsContent({ organization: initialOrganization }: { organiz
   const [name, setName] = useState(organization.name);
   const [slug, setSlug] = useState(organization.slug);
   const [loading, setLoading] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [removingClan, setRemovingClan] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
@@ -128,37 +120,6 @@ export function SettingsContent({ organization: initialOrganization }: { organiz
     }
   };
 
-  const handleDelete = async () => {
-    setDeleting(true);
-    setMessage(null);
-
-    try {
-      await deleteOrganization(organization.id);
-      router.push("/organizations");
-    } catch (error: any) {
-      setMessage({ type: "error", text: error.message || "Erro ao deletar organização" });
-      setDeleting(false);
-    }
-  };
-
-  const handleRemoveClan = async (clanId: string) => {
-    setRemovingClan(clanId);
-    setMessage(null);
-
-    try {
-      await removeClan(clanId);
-      setMessage({ type: "success", text: "Clan removido com sucesso" });
-      // Atualiza a lista de clans
-      setOrganization({
-        ...organization,
-        clans: organization.clans?.filter((c) => c.id !== clanId) || [],
-      });
-    } catch (error: any) {
-      setMessage({ type: "error", text: error.message || "Erro ao remover clan" });
-    } finally {
-      setRemovingClan(null);
-    }
-  };
 
   if (!isOwner) {
     return null;
@@ -272,29 +233,6 @@ export function SettingsContent({ organization: initialOrganization }: { organiz
                         #{clan.tag || clan.clanTag}
                       </p>
                     </div>
-                    <ConfirmationDialog
-                      trigger={
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          disabled={removingClan === clan.id}
-                        >
-                          {removingClan === clan.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <X className="h-4 w-4" />
-                          )}
-                        </Button>
-                      }
-                      title="Remover Clan"
-                      description={`Tem certeza que deseja remover o clan "${clan.name}"? Esta ação não pode ser desfeita.`}
-                      confirmationText={clan.name}
-                      onConfirm={() => handleRemoveClan(clan.id)}
-                      confirmButtonText="Remover Clan"
-                      confirmButtonVariant="destructive"
-                      disabled={removingClan === clan.id}
-                    />
                   </div>
                 ))
               )}
@@ -302,66 +240,6 @@ export function SettingsContent({ organization: initialOrganization }: { organiz
           </CardContent>
         </Card>
 
-        <Separator />
-
-        {/* Zona de Perigo - apenas para admin (deleção de organização) */}
-        {isAdmin && (
-          <Card className="border-2 border-destructive/50 shadow-sm">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-destructive/10">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                </div>
-                <div>
-                  <CardTitle className="text-destructive">Zona de Perigo</CardTitle>
-                  <CardDescription>
-                    Ações irreversíveis. Use com cuidado.
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <ConfirmationDialog
-                trigger={
-                  <Button
-                    variant="destructive"
-                    disabled={deleting}
-                    className="w-full sm:w-auto shrink-0"
-                  >
-                    {deleting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Deletando...
-                      </>
-                    ) : (
-                      <>
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Deletar Organização
-                      </>
-                    )}
-                  </Button>
-                }
-                title="Deletar Organização"
-                description={
-                  <>
-                    Esta ação não pode ser desfeita. Isso deletará permanentemente a organização "{organization.name}" e todos os dados associados, incluindo:
-                    <ul className="list-disc list-inside mt-2 space-y-1">
-                      <li>Todos os membros</li>
-                      <li>Todos os clans</li>
-                      <li>Todos os convites</li>
-                      <li>A assinatura</li>
-                    </ul>
-                  </>
-                }
-                confirmationText={organization.name}
-                onConfirm={handleDelete}
-                confirmButtonText="Deletar Organização"
-                confirmButtonVariant="destructive"
-                disabled={deleting}
-              />
-            </CardContent>
-          </Card>
-        )}
       </div>
   );
 }
