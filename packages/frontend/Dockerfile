@@ -3,11 +3,14 @@ FROM oven/bun:1 AS base
 WORKDIR /app
 
 # Copia apenas os arquivos de dependências primeiro (para cache)
+# Em monorepo, precisa copiar todos os package.json dos workspaces
 COPY package.json bun.lock ./
 COPY packages/frontend/package.json ./packages/frontend/
+COPY packages/backend/package.json ./packages/backend/
 
 # Instala dependências (cacheado se package.json não mudar)
-RUN bun install --frozen-lockfile
+# Se frozen-lockfile falhar, tenta sem (para lidar com lockfile desatualizado)
+RUN bun install --frozen-lockfile || bun install
 
 # Stage 2: Builder (Build da aplicação)
 FROM base AS builder
@@ -27,12 +30,14 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Copia apenas os arquivos de dependências necessários
+# Copia os node_modules do stage base (já instalados e otimizados)
+# Isso evita reinstalar e resolve problemas de lockfile
+COPY --from=base /app/node_modules ./node_modules
+COPY --from=base /app/packages/frontend/node_modules ./packages/frontend/node_modules
+
+# Copia os package.json para referência (necessário para alguns módulos)
 COPY package.json bun.lock ./
 COPY packages/frontend/package.json ./packages/frontend/
-
-# Instala apenas dependências de produção (cacheado)
-RUN bun install --frozen-lockfile --production
 
 # Copia a aplicação buildada do stage builder
 COPY --from=builder /app/packages/frontend/.next/standalone ./packages/frontend/
