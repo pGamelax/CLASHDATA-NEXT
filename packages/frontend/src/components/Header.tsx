@@ -392,28 +392,8 @@ export function Header({
   }, [refetch]);
 
   // Verifica periodicamente se há uma nova organização no localStorage que não está selecionada
-  useEffect(() => {
-    const checkForNewOrganization = () => {
-      const saved = localStorage.getItem("selectedOrganization");
-      if (saved && saved !== selectedOrganization) {
-        // Se há uma organização salva diferente da selecionada, verifica se está na lista
-        const currentList = organizations?.data || organizations || [];
-        if (
-          Array.isArray(currentList) &&
-          currentList.some((org: any) => org.id === saved)
-        ) {
-          setSelectedOrganization(saved);
-        } else {
-          // Se não está na lista, força um refetch
-          refetch();
-        }
-      }
-    };
-
-    // Verifica a cada 500ms
-    const interval = setInterval(checkForNewOrganization, 500);
-    return () => clearInterval(interval);
-  }, [selectedOrganization, organizations, refetch]);
+  // Remove polling - mudanças de organização são gerenciadas apenas via eventos
+  // O evento "organizationChanged" já é disparado quando necessário
 
   const handleOrganizationChange = async (orgId: string) => {
     setSelectedOrganization(orgId);

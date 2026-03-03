@@ -28,18 +28,18 @@ export function CWLContent({
   const [selectedOrg, setSelectedOrg] = useState(organization);
   const [selectedClan, setSelectedClan] = useState(clan);
 
-  // Atualiza selectedOrg e selectedClan quando props mudarem
+  // Atualiza selectedOrg e selectedClan quando props mudarem (apenas uma vez)
   useEffect(() => {
     if (organization && organization.id !== selectedOrg?.id) {
       setSelectedOrg(organization);
     }
-    if (clan) {
+    if (clan && clan.clanTag !== selectedClan?.clanTag) {
       setSelectedClan(clan);
     } else if (!clan && selectedClan) {
       // Se o clan foi removido, limpa o estado
       setSelectedClan(null);
     }
-  }, [organization, selectedOrg?.id, clan]);
+  }, [organization?.id, clan?.clanTag]); // Usa apenas IDs para evitar loops
 
   // Gera lista de meses disponíveis (últimos 12 meses)
   const getAvailableMonths = () => {
@@ -107,15 +107,16 @@ export function CWLContent({
     if (selectedMonths.length > 0 && selectedClan?.clanTag) {
       loadRanking();
     }
-  }, [selectedMonths, selectedClan, loadRanking]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMonths.length, selectedClan?.clanTag]); // Remove loadRanking da dependência para evitar loop
 
-  // Escuta mudanças de organização
+  // Escuta mudanças de organização apenas via eventos (sem polling)
   useEffect(() => {
     const handleOrganizationChange = (event: Event) => {
       const customEvent = event as CustomEvent<{ organizationId: string }>;
       const { organizationId } = customEvent.detail;
       
-      if (organizationId) {
+      if (organizationId && organizationId !== selectedOrg?.id) {
         const org = organizations.find((o: any) => o.id === organizationId);
         if (org) {
           setSelectedOrg(org);
@@ -126,25 +127,11 @@ export function CWLContent({
       }
     };
 
-    // Verifica periodicamente se a organização mudou
-    const checkInterval = setInterval(() => {
-      const savedOrgId = localStorage.getItem("selectedOrganization");
-      if (savedOrgId && selectedOrg?.id !== savedOrgId) {
-        const org = organizations.find((o: any) => o.id === savedOrgId);
-        if (org) {
-          setSelectedOrg(org);
-          const now = new Date();
-          setSelectedMonths([{ year: now.getFullYear(), month: now.getMonth() + 1 }]);
-        }
-      }
-    }, 500);
-
     window.addEventListener("organizationChanged", handleOrganizationChange);
     return () => {
       window.removeEventListener("organizationChanged", handleOrganizationChange);
-      clearInterval(checkInterval);
     };
-  }, [organizations, selectedOrg]);
+  }, [organizations, selectedOrg?.id]);
 
   const handleMonthsChange = (months: Array<{ year: number; month: number }>) => {
     setSelectedMonths(months);

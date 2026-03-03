@@ -1,39 +1,40 @@
-# Build stage
-FROM oven/bun:1 AS builder
-
+# Stage 1: Base (Instalação de dependências com cache)
+FROM oven/bun:1 AS base
 WORKDIR /app
 
-# Copy package files
+# Copia apenas os arquivos de dependências primeiro (para cache)
 COPY package.json bun.lock ./
 COPY packages/frontend/package.json ./packages/frontend/
 
-# Install dependencies (including devDependencies for build)
-RUN bun install --frozen-lockfile || bun install
+# Instala dependências (cacheado se package.json não mudar)
+RUN bun install --frozen-lockfile
 
-# Copy source code (all files including configs)
+# Stage 2: Builder (Build da aplicação)
+FROM base AS builder
+WORKDIR /app
+
+# Copia o código fonte do frontend
 COPY packages/frontend ./packages/frontend
 
-# Build the application
+# Build da aplicação Next.js
 WORKDIR /app/packages/frontend
 RUN bun run build
 
-# Production stage
+# Stage 3: Production (Runtime otimizado)
 FROM oven/bun:1-slim AS runner
-
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Copy package files
+# Copia apenas os arquivos de dependências necessários
 COPY package.json bun.lock ./
 COPY packages/frontend/package.json ./packages/frontend/
 
-# Install production dependencies only
-RUN bun install --frozen-lockfile || bun install
+# Instala apenas dependências de produção (cacheado)
+RUN bun install --frozen-lockfile --production
 
-# Copy built application
-# Next.js standalone already includes public files if they exist
+# Copia a aplicação buildada do stage builder
 COPY --from=builder /app/packages/frontend/.next/standalone ./packages/frontend/
 COPY --from=builder /app/packages/frontend/.next/static ./packages/frontend/.next/static
 

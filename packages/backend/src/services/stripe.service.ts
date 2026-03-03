@@ -283,20 +283,55 @@ export class StripeService {
     const newPriceId = newPriceConfig.priceId;
 
     // Calcula o prorata antes de fazer o upgrade
-    // Cria uma preview da invoice para ver o valor
-    const invoicePreview = await stripe.invoices.retrieveUpcoming({
-      customer: currentSubscription.customer as string,
-      subscription: currentSubscriptionId,
-      subscription_items: [
-        {
-          id: currentItemId,
-          price: newPriceId,
-        },
-      ],
-    });
-
-    // Calcula a diferença (valor da próxima invoice)
-    const prorataAmount = invoicePreview.amount_due || 0;
+    // Usa cálculo manual baseado no tempo restante (mais confiável)
+    let prorataAmount = 0;
+    
+    try {
+      // Tenta usar retrieveUpcoming se disponível (método preferido do Stripe)
+      if (typeof stripe.invoices.retrieveUpcoming === 'function') {
+        const invoicePreview = await stripe.invoices.retrieveUpcoming({
+          customer: currentSubscription.customer as string,
+          subscription: currentSubscriptionId,
+          subscription_items: [
+            {
+              id: currentItemId,
+              price: newPriceId,
+            },
+          ],
+        });
+        prorataAmount = invoicePreview.amount_due || 0;
+      } else {
+        throw new Error("retrieveUpcoming não disponível");
+      }
+    } catch (error) {
+      // Se retrieveUpcoming não estiver disponível, calcula manualmente
+      console.warn("Calculando prorata manualmente:", error instanceof Error ? error.message : "método não disponível");
+      
+      // Calcula prorata manualmente baseado no tempo restante
+      const now = Math.floor(Date.now() / 1000);
+      const periodStart = currentSubscription.current_period_start;
+      const periodEnd = currentSubscription.current_period_end;
+      const periodDuration = periodEnd - periodStart;
+      const timeRemaining = Math.max(0, periodEnd - now);
+      
+      // Busca preços atuais e novos
+      const currentPrice = currentSubscription.items.data[0]?.price;
+      const newPrice = await stripe.prices.retrieve(newPriceId);
+      
+      if (currentPrice && newPrice && periodDuration > 0) {
+        const currentAmount = currentPrice.unit_amount || 0; // em centavos
+        const newAmount = newPrice.unit_amount || 0; // em centavos
+        
+        // Calcula crédito do período atual não usado (proporcional)
+        const creditForUnusedPeriod = Math.floor((currentAmount * timeRemaining) / periodDuration);
+        
+        // Calcula custo proporcional do novo período
+        const costForNewPeriod = Math.floor((newAmount * timeRemaining) / periodDuration);
+        
+        // Prorata = diferença entre o que seria pago no novo plano vs crédito do plano atual
+        prorataAmount = Math.max(0, costForNewPeriod - creditForUnusedPeriod);
+      }
+    }
 
     // Se há valor a pagar, atualiza a subscription e cria invoice
     if (prorataAmount > 0) {
