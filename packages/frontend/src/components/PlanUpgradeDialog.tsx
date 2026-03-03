@@ -65,7 +65,6 @@ export function PlanUpgradeDialog({
   const [selectedPeriod, setSelectedPeriod] = useState<Period>(currentPeriod);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [upgradeAmount, setUpgradeAmount] = useState<number | null>(null);
 
   const isUpgrade = getPlanLevel(selectedPlan) > getPlanLevel(currentPlan);
   const isDowngrade = getPlanLevel(selectedPlan) < getPlanLevel(currentPlan);

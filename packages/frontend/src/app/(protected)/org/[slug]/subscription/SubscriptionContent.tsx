@@ -15,7 +15,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 interface Subscription {
   id: string;
-  plan: "MESTRE" | "CAMPEAO" | "TITA";
+  plan: "MESTRE" | "CAMPEAO" | "TITA" | "LEGEND";
   status: "TRIAL" | "ACTIVE" | "CANCELLED" | "EXPIRED";
   trialEndsAt?: string;
   currentPeriodEnd?: string;
@@ -52,12 +52,14 @@ const planNames = {
   MESTRE: "Mestre",
   CAMPEAO: "Campeão",
   TITA: "Titã",
+  LEGEND: "Legend",
 };
 
 const planPrices = {
   MESTRE: "R$ 29,90",
   CAMPEAO: "R$ 45,90",
   TITA: "R$ 74,90",
+  LEGEND: "R$ 119,90",
 };
 
 export function SubscriptionContent({ organization }: SubscriptionContentProps) {
@@ -206,6 +208,8 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
         return <Crown className="h-6 w-6 text-yellow-500" />;
       case "TITA":
         return <Star className="h-6 w-6 text-purple-500" />;
+      case "LEGEND":
+        return <Zap className="h-6 w-6 text-blue-500" />;
       default:
         return <Shield className="h-6 w-6" />;
     }
