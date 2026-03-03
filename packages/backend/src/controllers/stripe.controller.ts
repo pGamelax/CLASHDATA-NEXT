@@ -119,15 +119,33 @@ export class StripeController {
         organizationId: string;
       };
 
-      // Verifica se o usuário é owner da organização
+      // Verifica se o usuário é owner da organização ou admin
       const access = await this.organizationService.canUserAccessOrganization(
         session.user.id,
         organizationId
       );
 
-      if (!access.canAccess || access.role !== "owner") {
+      console.log("Portal access check:", {
+        userId: session.user.id,
+        organizationId,
+        canAccess: access.canAccess,
+        role: access.role,
+        userRole: session.user.role,
+      });
+
+      if (!access.canAccess) {
         return status(403, {
-          message: "Apenas o dono da organização pode acessar o portal",
+          message: access.reason || "Acesso negado à organização",
+        });
+      }
+
+      // Verifica se é owner ou admin
+      const isOwner = access.role === "owner";
+      const isAdmin = access.role === "admin" || session.user.role === "admin";
+      
+      if (!isOwner && !isAdmin) {
+        return status(403, {
+          message: "Apenas o dono da organização ou admin pode acessar o portal",
         });
       }
 
@@ -136,9 +154,15 @@ export class StripeController {
         organizationId
       );
 
-      if (!subscription || !subscription.stripeCustomerId) {
+      if (!subscription) {
         return status(404, {
-          message: "Subscription não encontrada ou sem customer do Stripe",
+          message: "Subscription não encontrada",
+        });
+      }
+
+      if (!subscription.stripeCustomerId) {
+        return status(400, {
+          message: "Esta assinatura não possui customer do Stripe. É uma assinatura manual.",
         });
       }
 
@@ -182,15 +206,33 @@ export class StripeController {
         newPeriod: "monthly" | "quarterly" | "yearly";
       };
 
-      // Verifica se o usuário é owner da organização
+      // Verifica se o usuário é owner da organização ou admin
       const access = await this.organizationService.canUserAccessOrganization(
         session.user.id,
         organizationId
       );
 
-      if (!access.canAccess || access.role !== "owner") {
+      console.log("Upgrade access check:", {
+        userId: session.user.id,
+        organizationId,
+        canAccess: access.canAccess,
+        role: access.role,
+        userRole: session.user.role,
+      });
+
+      if (!access.canAccess) {
         return status(403, {
-          message: "Apenas o dono da organização pode fazer upgrade",
+          message: access.reason || "Acesso negado à organização",
+        });
+      }
+
+      // Verifica se é owner ou admin
+      const isOwner = access.role === "owner";
+      const isAdmin = access.role === "admin" || session.user.role === "admin";
+      
+      if (!isOwner && !isAdmin) {
+        return status(403, {
+          message: "Apenas o dono da organização ou admin pode fazer upgrade",
         });
       }
 
@@ -262,15 +304,33 @@ export class StripeController {
         newPeriod: "monthly" | "quarterly" | "yearly";
       };
 
-      // Verifica se o usuário é owner da organização
+      // Verifica se o usuário é owner da organização ou admin
       const access = await this.organizationService.canUserAccessOrganization(
         session.user.id,
         organizationId
       );
 
-      if (!access.canAccess || access.role !== "owner") {
+      console.log("Change plan access check:", {
+        userId: session.user.id,
+        organizationId,
+        canAccess: access.canAccess,
+        role: access.role,
+        userRole: session.user.role,
+      });
+
+      if (!access.canAccess) {
         return status(403, {
-          message: "Apenas o dono da organização pode trocar de plano",
+          message: access.reason || "Acesso negado à organização",
+        });
+      }
+
+      // Verifica se é owner ou admin
+      const isOwner = access.role === "owner";
+      const isAdmin = access.role === "admin" || session.user.role === "admin";
+      
+      if (!isOwner && !isAdmin) {
+        return status(403, {
+          message: "Apenas o dono da organização ou admin pode trocar de plano",
         });
       }
 
