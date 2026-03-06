@@ -76,22 +76,25 @@ export default async function Home() {
             </p>
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
               {session?.user ? (
-                <Link href="/organizations">
-                  <Button size="lg" className="text-lg px-8 h-12 shadow-lg hover:shadow-xl transition-all">
-                    Minhas Organizações
-                  </Button>
+                <Link 
+                  href="/organizations"
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-lg font-medium transition-all h-10 px-6 shadow-lg hover:shadow-xl bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  Minhas Organizações
                 </Link>
               ) : (
                 <>
-                  <Link href="/sign-up">
-                    <Button size="lg" className="text-lg px-8 h-12 shadow-lg hover:shadow-xl transition-all">
-                      Começar Agora
-                    </Button>
+                  <Link 
+                    href="/sign-up"
+                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-lg font-medium transition-all h-12 px-8 shadow-lg hover:shadow-xl bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    Começar Agora
                   </Link>
-                  <Link href="/sign-in">
-                    <Button size="lg" variant="outline" className="text-lg px-8 h-12 border-2 hover:bg-primary/5 transition-all">
-                      Entrar
-                    </Button>
+                  <Link 
+                    href="/sign-in"
+                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-lg font-medium transition-all h-12 px-8 border-2 border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground"
+                  >
+                    Entrar
                   </Link>
                 </>
               )}
@@ -168,16 +171,18 @@ export default async function Home() {
           </CardHeader>
           <CardContent className="flex justify-center relative z-10">
             {session?.user ? (
-              <Link href="/organizations">
-                <Button size="lg" className="text-lg px-8 h-12 shadow-lg hover:shadow-xl hover:scale-105 transition-all">
-                  Minhas Organizações
-                </Button>
+              <Link 
+                href="/organizations"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-lg font-medium transition-all h-12 px-8 shadow-lg hover:shadow-xl hover:scale-105 bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                Minhas Organizações
               </Link>
             ) : (
-              <Link href="/sign-up">
-                <Button size="lg" className="text-lg px-8 h-12 shadow-lg hover:shadow-xl hover:scale-105 transition-all">
-                  Criar Conta Grátis
-                </Button>
+              <Link 
+                href="/sign-up"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-lg font-medium transition-all h-12 px-8 shadow-lg hover:shadow-xl hover:scale-105 bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                Criar Conta Grátis
               </Link>
             )}
           </CardContent>
