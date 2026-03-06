@@ -29,8 +29,6 @@ export const stripeWebhookRoute = new Elysia({ prefix: "/stripe" })
     if ((code === "VALIDATION" || code === "PARSE") && 
         request.method === "POST" && 
         new URL(request.url).pathname === "/stripe/webhook") {
-      console.log(`⚠️  Erro de validação/parse ignorado para webhook - retornando resultado processado`);
-      // Retorna o resultado do webhook já processado no onRequest global
       set.status = 200;
       const webhookResult = (set as any).webhookResult;
       if (webhookResult) {
@@ -53,7 +51,6 @@ export const stripeWebhookRoute = new Elysia({ prefix: "/stripe" })
         const rawBody = (context.set as any).rawBody as string | undefined;
         
         if (!rawBody) {
-          console.warn("⚠️  Webhook recebido sem body");
           return { received: true, error: "Empty body" };
         }
 

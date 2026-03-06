@@ -28,7 +28,6 @@ export function getCachedClanData(tag: string): any | null {
     localStorage.removeItem(cacheKey);
     return null;
   } catch (error) {
-    console.error("Erro ao ler cache do clan:", error);
     return null;
   }
 }
@@ -44,7 +43,7 @@ export function setCachedClanData(tag: string, data: any): void {
     };
     localStorage.setItem(cacheKey, JSON.stringify(cached));
   } catch (error) {
-    console.error("Erro ao salvar cache do clan:", error);
+    // Erro silencioso ao salvar cache
   }
 }
 
@@ -65,7 +64,7 @@ export function clearClanCache(tag?: string): void {
       });
     }
   } catch (error) {
-    console.error("Erro ao limpar cache do clan:", error);
+    // Erro silencioso ao limpar cache
   }
 }
 

@@ -27,6 +27,7 @@ interface ClanSelectorProps {
   currentClan: Clan | null;
   organizationSlug: string;
   onSelect: (clanSlug: string) => void;
+  showFullName?: boolean;
 }
 
 export function ClanSelector({
@@ -34,6 +35,7 @@ export function ClanSelector({
   currentClan,
   organizationSlug,
   onSelect,
+  showFullName = false,
 }: ClanSelectorProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -42,26 +44,29 @@ export function ClanSelector({
     return clan.clanTag.replace("#", "").toLowerCase();
   };
 
-  if (!currentClan || clans.length === 0) {
+  if (clans.length === 0) {
     return null;
   }
+  
+  // Se não há clan selecionado, usa o primeiro da lista
+  const displayClan = currentClan || clans[0];
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "flex items-center gap-1.5 sm:gap-2.5 p-1 rounded-md sm:rounded-lg bg-muted/80 hover:bg-muted transition-colors text-xs sm:text-sm font-medium",
-            "sm:min-w-[140px] sm:max-w-[200px]",
+            "flex items-center gap-1.5 sm:gap-2.5 p-1.5 sm:p-2 rounded-md sm:rounded-lg bg-muted/80 hover:bg-muted transition-colors text-xs sm:text-sm font-medium",
+            showFullName ? "justify-between w-full sm:w-auto" : "w-full",
             "focus:outline-none"
           )}
         >
           {/* Badge do clan */}
           <div className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-md shrink-0">
-            {currentClan.badgeUrls?.small ? (
+            {displayClan.badgeUrls?.small ? (
               <img
-                src={currentClan.badgeUrls.small}
-                alt={currentClan.name}
+                src={displayClan.badgeUrls.small}
+                alt={displayClan.name}
                 className="w-full h-full object-contain"
               />
             ) : (
@@ -69,9 +74,12 @@ export function ClanSelector({
             )}
           </div>
           
-          {/* Nome do clan - escondido no mobile */}
-          <span className="hidden sm:block truncate flex-1 text-left text-foreground">
-            {currentClan.name}
+          {/* Nome do clan - visível quando showFullName ou em desktop */}
+          <span className={cn(
+            "truncate flex-1 text-left text-foreground font-medium text-xs sm:text-sm",
+            showFullName ? "flex min-w-0" : "hidden sm:flex"
+          )}>
+            {displayClan.name}
           </span>
           
           {/* Ícone de setas */}
@@ -80,7 +88,7 @@ export function ClanSelector({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" sideOffset={4} className="w-[240px] z-50">
         {clans.map((clan) => {
-          const isSelected = currentClan.id === clan.id;
+          const isSelected = currentClan?.id === clan.id;
           const slug = getClanSlug(clan);
           return (
             <DropdownMenuItem
@@ -91,7 +99,7 @@ export function ClanSelector({
                 router.push(`/org/${organizationSlug}/${slug}`);
               }}
               className={cn(
-                "flex items-center gap-2 p-1 cursor-pointer",
+                "flex items-center gap-2 p-2 cursor-pointer",
                 isSelected && "bg-accent"
               )}
             >
@@ -106,9 +114,14 @@ export function ClanSelector({
                   <Shield className="h-4 w-4 text-primary" />
                 )}
               </div>
-              <span className="flex-1 truncate">
-                {clan.name} ({clan.clanTag})
-              </span>
+              <div className="flex-1 min-w-0 flex flex-col">
+                <span className="truncate font-medium">
+                  {clan.name}
+                </span>
+                <span className="text-xs text-muted-foreground truncate">
+                  {clan.clanTag}
+                </span>
+              </div>
               {isSelected && (
                 <Check className="h-4 w-4 text-primary shrink-0" />
               )}

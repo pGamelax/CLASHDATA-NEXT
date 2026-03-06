@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { getSession, getOrganizations, getClansByOrganization } from "@/lib/api";
 import { redirect } from "next/navigation";
-import { Header } from "@/components/Header";
 import { ClanLayout } from "@/components/ClanLayout";
 
 export default async function ClanLayoutPage({
@@ -95,12 +94,6 @@ export default async function ClanLayoutPage({
 
   return (
     <>
-      <Header 
-        user={session.user} 
-        organization={organization}
-        clan={selectedClan}
-        clans={clans}
-      />
       <ClanLayout
         organization={organization}
         clan={selectedClan}

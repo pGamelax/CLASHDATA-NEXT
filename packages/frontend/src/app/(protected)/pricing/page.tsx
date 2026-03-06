@@ -18,7 +18,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ClientHeader } from "@/components/ClientHeader";
 import { useSession } from "@/auth";
 
 type PaymentPeriod = "monthly" | "quarterly" | "yearly";
@@ -153,8 +152,6 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-primary/5 to-background">
-      <ClientHeader initialUser={session?.user} />
-
       <div className="container mx-auto px-4 py-12 sm:py-16 lg:py-20">
         {/* Header */}
         <div className="text-center mb-12 sm:mb-16">

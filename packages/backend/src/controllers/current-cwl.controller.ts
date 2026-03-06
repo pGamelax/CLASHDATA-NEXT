@@ -55,17 +55,13 @@ export class CurrentCWLController {
 
      
       if (!war.clan || !war.opponent) {
-        console.log(`Guerra ${warTag} sem clan/opponent completo. Estado: ${war.state}`);
         return war;
       }
 
-      // Se tem clan e opponent, calcula performanceScore para ambos os lados da guerra
       try {
         const warWithScores = this.calculateWarMemberScoresForBothSides(war);
         return warWithScores;
       } catch (error) {
-        // Se houver erro ao calcular scores, retorna a guerra sem scores
-        console.warn(`Erro ao calcular scores da guerra ${warTag}:`, error);
         return war;
       }
     } catch (error) {
@@ -73,6 +69,24 @@ export class CurrentCWLController {
         error instanceof Error ? error.message : "Erro desconhecido";
       console.error("Erro ao buscar guerra CWL:", error);
       
+      return status(500, { message });
+    }
+  }
+
+  async getClansTownHalls(context: ElysiaContext) {
+    const { params, status } = context;
+    try {
+      const tag = params?.tag;
+      if (!tag) {
+        return status(400, { message: "Tag do clan é obrigatória" });
+      }
+
+      const data = await this.currentCWLService.getClansTownHalls(tag);
+      return data;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Erro desconhecido";
+      console.error("Erro ao buscar Town Halls dos clãs:", error);
       return status(500, { message });
     }
   }

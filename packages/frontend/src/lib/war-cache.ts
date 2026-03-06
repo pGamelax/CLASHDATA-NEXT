@@ -28,7 +28,6 @@ export function getCachedWarData(key: string): any | null {
     localStorage.removeItem(cacheKey);
     return null;
   } catch (error) {
-    console.error("Erro ao ler cache de guerra:", error);
     return null;
   }
 }
@@ -44,7 +43,7 @@ export function setCachedWarData(key: string, data: any): void {
     };
     localStorage.setItem(cacheKey, JSON.stringify(cached));
   } catch (error) {
-    console.error("Erro ao salvar cache de guerra:", error);
+    // Erro silencioso ao salvar cache
   }
 }
 
@@ -65,7 +64,7 @@ export function clearWarCache(key?: string): void {
       });
     }
   } catch (error) {
-    console.error("Erro ao limpar cache de guerra:", error);
+    // Erro silencioso ao limpar cache
   }
 }
 

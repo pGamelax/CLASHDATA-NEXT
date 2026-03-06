@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { getOrganizations, getClansByOrganization } from "@/lib/api";
 import { redirect } from "next/navigation";
-import { ClientHeader } from "@/components/ClientHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +33,6 @@ export default async function OrganizationsPage() {
   if (!Array.isArray(orgsList)) {
     return (
       <div className="min-h-screen bg-background">
-        <ClientHeader initialUser={session.user} />
         <div className="container mx-auto px-4 py-8 max-w-7xl">
           <Card>
             <CardContent className="pt-6">
@@ -59,8 +57,6 @@ export default async function OrganizationsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <ClientHeader initialUser={session.user} />
-      
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
         <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

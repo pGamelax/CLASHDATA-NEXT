@@ -4,11 +4,22 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Search } from "lucide-react";
+import { Shield, Search, Trash2, Loader2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
@@ -18,6 +29,7 @@ export function AdminClansPage() {
   const [filteredClans, setFilteredClans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     fetchClans();
@@ -53,6 +65,28 @@ export function AdminClansPage() {
       console.error("Erro ao buscar clans:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteClan = async (clanId: string) => {
+    try {
+      setDeleting(clanId);
+      const response = await fetch(`${API_URL}/admin/clans/${clanId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        await fetchClans();
+        router.refresh();
+      } else {
+        const error = await response.json();
+        alert(error.message || "Erro ao excluir clan");
+      }
+    } catch (error) {
+      alert("Erro ao excluir clan");
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -134,7 +168,38 @@ export function AdminClansPage() {
                       {new Date(clan.createdAt).toLocaleDateString("pt-BR")}
                     </TableCell>
                     <TableCell>
-                      {/* Botão de deletar removido para evitar criação de múltiplas contas para ganhar trials */}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={deleting === clan.id}
+                          >
+                            {deleting === clan.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir Clan</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Tem certeza que deseja excluir o clan "{clan.name}" ({clan.tag})? Esta ação não pode ser desfeita e excluirá todos os dados relacionados.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteClan(clan.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))

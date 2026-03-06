@@ -29,8 +29,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <>
       {/* Secondary Navigation Bar */}
-      <div className="sticky top-16 px-4 z-40 w-full border-b border-border/60 bg-background/95 backdrop-blur-xl supports-backdrop-filter:bg-background/90 shadow-sm">
-        <div className="flex h-12 items-center gap-1 overflow-x-auto px-2 sm:px-4 scrollbar-hide">
+      <div className="sticky top-16 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto">
+          <div className="flex h-12 items-center gap-1 overflow-x-auto px-2 sm:px-4 scrollbar-hide">
           {adminNavItems.map((item) => {
             const isActive =
               item.href === "/admin"
@@ -53,6 +54,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               </Link>
             );
           })}
+          </div>
         </div>
       </div>
 

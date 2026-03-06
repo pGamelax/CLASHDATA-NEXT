@@ -19,11 +19,18 @@ export const subscriptionExpiryQueue = new Queue("subscription-expiry", {
 export const subscriptionExpiryWorker = new Worker(
   "subscription-expiry",
   async (job) => {
+    // Ignora jobs de verificação geral (check-all-expired)
+    if (job.name === "check-all-expired") {
+      return;
+    }
+
     const { organizationId } = job.data;
 
-    console.log(
-      `[${new Date().toISOString()}] 🔄 Processando expiração de subscription para organização ${organizationId}`
-    );
+    // Valida se organizationId existe
+    if (!organizationId) {
+      console.error("Job de expiração sem organizationId:", job.id);
+      return;
+    }
 
     const subscriptionRepository = new SubscriptionRepository();
     const subscription = await subscriptionRepository.findByOrganizationId(
@@ -31,9 +38,6 @@ export const subscriptionExpiryWorker = new Worker(
     );
 
     if (!subscription) {
-      console.log(
-        `[${new Date().toISOString()}] ⚠️  Subscription não encontrada para organização ${organizationId}`
-      );
       return;
     }
 
@@ -82,18 +86,11 @@ export const subscriptionExpiryWorker = new Worker(
             return;
           }
         } catch (error) {
-          console.error(
-            `[${new Date().toISOString()}] ❌ Erro ao verificar subscription no Stripe:`,
-            error
-          );
+          // Erro ao verificar no Stripe - continua com expiração local
         }
       }
 
-      // Expira a subscription
       await subscriptionRepository.expire(organizationId);
-      console.log(
-        `[${new Date().toISOString()}] ✅ Subscription expirada para organização ${organizationId}`
-      );
     }
   },
   {
@@ -159,10 +156,6 @@ export async function setupSubscriptionExpiryJob() {
     "subscription-expiry",
     async (job) => {
       if (job.name === "check-all-expired") {
-        console.log(
-          `[${new Date().toISOString()}] 🔍 Verificando todas as subscriptions expiradas...`
-        );
-
         const subscriptionRepository = new SubscriptionRepository();
         const { prisma } = await import("../lib/prisma");
 
@@ -199,10 +192,6 @@ export async function setupSubscriptionExpiryJob() {
             );
           }
         }
-
-        console.log(
-          `[${new Date().toISOString()}] ✅ Verificação de subscriptions concluída`
-        );
       }
     },
     {

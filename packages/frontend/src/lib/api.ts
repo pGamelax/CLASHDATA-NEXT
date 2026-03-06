@@ -519,6 +519,20 @@ export interface CurrentCWLAnalysis {
   seasonPerformance?: CWLPlayerPerformance[];
 }
 
+export interface ClanTownHalls {
+  clan: {
+    tag: string;
+    name: string;
+    clanLevel: number;
+    badgeUrls: {
+      small: string;
+      medium: string;
+      large: string;
+    };
+  };
+  townHalls: Record<string, number>;
+}
+
 export async function getCurrentCWL(clanTag: string): Promise<CurrentCWLAnalysis> {
   const cleanTag = clanTag.startsWith("#") ? clanTag.replace("#", "") : clanTag;
   
@@ -546,6 +560,22 @@ export async function getCWLWar(warTag: string): Promise<CurrentCWLAnalysis["cur
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: "Erro ao buscar guerra CWL" }));
     throw new Error(error.message || "Erro ao buscar guerra CWL");
+  }
+
+  return response.json();
+}
+
+export async function getClansTownHalls(clanTag: string): Promise<ClanTownHalls[]> {
+  const cleanTag = clanTag.startsWith("#") ? clanTag.replace("#", "") : clanTag;
+  
+  const response = await fetch(`${API_URL}/current-cwl/${encodeURIComponent(cleanTag)}/townhalls`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Erro ao buscar Town Halls dos clãs" }));
+    throw new Error(error.message || "Erro ao buscar Town Halls dos clãs");
   }
 
   return response.json();
@@ -906,4 +936,99 @@ export async function renewSubscription(organizationId: string) {
   }
 
   return response.json();
+}
+
+export interface PlayerWarHistory {
+  warEndTime: string;
+  warType: "war" | "cwl" | "friendly";
+  clanTag: string;
+  clanName: string;
+  opponentTag: string;
+  opponentName: string;
+  stars: number;
+  destructionPercentage: number;
+  attacks: Array<{
+    defenderTag: string;
+    defenderName: string;
+    stars: number;
+    destructionPercentage: number;
+    order: number;
+    duration: number;
+  }>;
+  result: "win" | "loss" | "tie";
+}
+
+export interface PlayerStats {
+  player: any;
+  warHistory: PlayerWarHistory[];
+  cwlHistory: PlayerWarHistory[];
+  friendlyHistory: PlayerWarHistory[];
+  totalStats: {
+    wars: {
+      total: number;
+      wins: number;
+      losses: number;
+      ties: number;
+      totalStars: number;
+      totalDestruction: number;
+      averageStars: number;
+      averageDestruction: number;
+    };
+    cwl: {
+      total: number;
+      wins: number;
+      losses: number;
+      ties: number;
+      totalStars: number;
+      totalDestruction: number;
+      averageStars: number;
+      averageDestruction: number;
+    };
+    friendly: {
+      total: number;
+      wins: number;
+      losses: number;
+      ties: number;
+      totalStars: number;
+      totalDestruction: number;
+      averageStars: number;
+      averageDestruction: number;
+    };
+  };
+}
+
+export async function getPlayer(playerTag: string, cookies?: string): Promise<PlayerStats> {
+  const cleanTag = playerTag.startsWith("#") ? playerTag.replace("#", "") : playerTag;
+  const response = await fetch(`${API_URL}/player/${encodeURIComponent(cleanTag)}`, {
+    headers: cookies ? { Cookie: cookies } : undefined,
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Erro ao buscar jogador" }));
+    throw new Error(error.message || "Erro ao buscar jogador");
+  }
+
+  const responseData = await response.json();
+  // O backend retorna { success: true, data: {...} }
+  const data = responseData.data || responseData;
+  
+  return data;
+}
+
+export async function getPlayerBasic(playerTag: string): Promise<any> {
+  const cleanTag = playerTag.startsWith("#") ? playerTag.replace("#", "") : playerTag;
+  const response = await fetch(`${API_URL}/player/${encodeURIComponent(cleanTag)}/basic`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Erro ao buscar jogador" }));
+    throw new Error(error.message || "Erro ao buscar jogador");
+  }
+
+  const data = await response.json();
+  return data.data;
 }

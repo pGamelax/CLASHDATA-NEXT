@@ -125,14 +125,6 @@ export class StripeController {
         organizationId
       );
 
-      console.log("Portal access check:", {
-        userId: session.user.id,
-        organizationId,
-        canAccess: access.canAccess,
-        role: access.role,
-        userRole: session.user.role,
-      });
-
       if (!access.canAccess) {
         return status(403, {
           message: access.reason || "Acesso negado à organização",
@@ -206,19 +198,10 @@ export class StripeController {
         newPeriod: "monthly" | "quarterly" | "yearly";
       };
 
-      // Verifica se o usuário é owner da organização ou admin
       const access = await this.organizationService.canUserAccessOrganization(
         session.user.id,
         organizationId
       );
-
-      console.log("Upgrade access check:", {
-        userId: session.user.id,
-        organizationId,
-        canAccess: access.canAccess,
-        role: access.role,
-        userRole: session.user.role,
-      });
 
       if (!access.canAccess) {
         return status(403, {
@@ -309,14 +292,6 @@ export class StripeController {
         session.user.id,
         organizationId
       );
-
-      console.log("Change plan access check:", {
-        userId: session.user.id,
-        organizationId,
-        canAccess: access.canAccess,
-        role: access.role,
-        userRole: session.user.role,
-      });
 
       if (!access.canAccess) {
         return status(403, {
@@ -415,12 +390,8 @@ export class StripeController {
       ];
 
       if (!supportedEvents.includes(event.type)) {
-        // Evento não suportado - retorna 200 para evitar retry do Stripe
-        console.log(`⚠️  Evento não suportado ignorado: ${event.type} [${event.id}]`);
         return { received: true, ignored: true, eventType: event.type };
       }
-
-      console.log(`🔄 Processando evento: ${event.type} [${event.id}]`);
 
       try {
         switch (event.type) {
@@ -456,7 +427,6 @@ export class StripeController {
           }
         }
 
-        console.log(`✅ Webhook processado com sucesso: ${event.type} [${event.id}]`);
         return { received: true, eventType: event.type };
       } catch (handlerError) {
       // Erro ao processar handler específico
@@ -521,11 +491,8 @@ export class StripeController {
       let organizationId: string;
       
       if (existingOrg) {
-        // Se já existe, usa a existente
         organizationId = existingOrg.id;
-        console.log(`Organização já existe: ${organizationId}`);
       } else {
-        // Cria a organização com trial
         const result = await this.organizationService.createOrganizationWithTrial(
           userId,
           {
@@ -535,7 +502,6 @@ export class StripeController {
           }
         );
         organizationId = result.organization.id;
-        console.log(`Organização criada: ${organizationId}`);
       }
 
       // Busca a subscription do Stripe
@@ -557,9 +523,6 @@ export class StripeController {
             : undefined,
         });
 
-        console.log(`Subscription atualizada para organização ${organizationId}`);
-      } else {
-        console.warn("Checkout session sem subscription:", session.id);
       }
     } catch (error) {
       console.error("Erro ao processar checkout completed:", error);
@@ -693,14 +656,12 @@ export class StripeController {
           const ownerId = org.members[0].userId;
           // skipStripeCancel = true porque a subscription já foi deletada no Stripe
           await this.organizationService.deleteOrganization(organizationId, ownerId, true);
-          console.log(`Organização ${organizationId} deletada após subscription deletada no Stripe`);
         }
       } catch (error) {
         // Log do erro mas não bloqueia a expiração
         console.error("Erro ao deletar organização após subscription deletada:", error);
       }
       
-      console.log(`Subscription expirada para organização ${organizationId}`);
     } catch (error) {
       console.error("Erro ao processar subscription deleted:", error);
       throw error;
@@ -758,7 +719,6 @@ export class StripeController {
         await this.subscriptionRepository.update(organizationId, {
           status: SubscriptionStatus.EXPIRED,
         });
-        console.log(`Subscription marcada como expirada para organização ${organizationId}`);
       }
     } catch (error) {
       console.error("Erro ao processar payment failed:", error);

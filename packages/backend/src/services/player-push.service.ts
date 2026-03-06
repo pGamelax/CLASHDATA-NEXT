@@ -13,17 +13,13 @@ export class PlayerPushService {
 
   async processAllClans() {
     const startTime = Date.now();
-    console.log(`[${new Date().toISOString()}] 🏁 Iniciando processamento de todos os clans`);
     
     // Buscar todos os clans cadastrados
     const allClans = await this.clanRepository.findAll();
     
     if (allClans.length === 0) {
-      console.log(`[${new Date().toISOString()}] ⚠️  Nenhum clan cadastrado para processar`);
       return { clansProcessed: 0, playersProcessed: 0, logsCreated: 0 };
     }
-
-    console.log(`[${new Date().toISOString()}] 📋 Total de clans para processar: ${allClans.length}`);
 
     const allPlayersInClans = new Set<string>();
     const processedPlayers = new Map<string, { tag: string; trophies: number; clanTag: string }>();
@@ -33,17 +29,12 @@ export class PlayerPushService {
     // Processar cada clan
     for (const clan of allClans) {
       try {
-        console.log(`[${new Date().toISOString()}] 🔄 Processando clan: ${clan.tag} - ${clan.name}`);
         const clanStartTime = Date.now();
         const membersData = await this.clashOfClansService.getClanMembers(clan.tag);
         
         if (membersData.items && Array.isArray(membersData.items)) {
           const legendLeaguePlayers = membersData.items.filter(
             (m: any) => m.leagueTier?.name === "Legend League"
-          );
-          
-          console.log(
-            `[${new Date().toISOString()}] 👥 Clan ${clan.tag}: ${membersData.items.length} membros total, ${legendLeaguePlayers.length} na Legend League`
           );
 
           for (const member of legendLeaguePlayers) {
@@ -67,11 +58,6 @@ export class PlayerPushService {
               clanTag: clan.tag,
             });
           }
-
-          const clanDuration = Date.now() - clanStartTime;
-          console.log(
-            `[${new Date().toISOString()}] ✅ Clan ${clan.tag} processado em ${clanDuration}ms`
-          );
         }
       } catch (error) {
         console.error(
@@ -82,25 +68,11 @@ export class PlayerPushService {
     }
 
     // Verificar jogadores que não estão mais em nenhum clan
-    console.log(
-      `[${new Date().toISOString()}] 🔍 Verificando jogadores que não estão mais em nenhum clan...`
-    );
     const logsFromMissingPlayers = await this.processPlayersNotInClans(
       allPlayersInClans,
       Array.from(processedPlayers.values())
     );
     totalLogsCreated += logsFromMissingPlayers;
-
-    const totalDuration = Date.now() - startTime;
-    console.log(
-      `[${new Date().toISOString()}] 🎉 Processamento concluído em ${totalDuration}ms`
-    );
-    console.log(
-      `[${new Date().toISOString()}] 📊 Estatísticas:`
-    );
-    console.log(`  - Clans processados: ${allClans.length}`);
-    console.log(`  - Jogadores processados: ${totalPlayersProcessed}`);
-    console.log(`  - Logs criados: ${totalLogsCreated}`);
 
     return {
       clansProcessed: allClans.length,
@@ -124,9 +96,6 @@ export class PlayerPushService {
         // Verificar se o nome mudou
         if (existingPlayer.name !== data.name) {
           await this.playerRepository.update(data.tag, { name: data.name });
-          console.log(
-            `[${new Date().toISOString()}] ✏️  Nome atualizado para player ${data.tag}: "${existingPlayer.name}" -> "${data.name}"`
-          );
         }
 
         // Verificar mudança de troféus
@@ -148,9 +117,6 @@ export class PlayerPushService {
           // Atualizar troféus do player
           await this.playerRepository.update(data.tag, { trophies: data.trophies });
 
-          console.log(
-            `[${new Date().toISOString()}] 📝 Log criado para player ${data.tag}: ${type} ${trophiesChange > 0 ? "+" : "-"}${absoluteChange} troféus (${existingPlayer.trophies} -> ${data.trophies})`
-          );
           logCreated = true;
         }
       } else {
@@ -160,9 +126,6 @@ export class PlayerPushService {
           name: data.name,
           trophies: data.trophies,
         });
-        console.log(
-          `[${new Date().toISOString()}] ✨ Novo player criado: ${data.tag} - ${data.name} (${data.trophies} troféus)`
-        );
       }
 
       return logCreated;
@@ -185,10 +148,6 @@ export class PlayerPushService {
     // Filtrar players que não estão em nenhum clan
     const playersNotInClans = allSavedPlayers.filter(
       (player) => !playersInClans.has(player.tag)
-    );
-
-    console.log(
-      `[${new Date().toISOString()}] 🔍 ${playersNotInClans.length} jogadores não encontrados em nenhum clan. Verificando individualmente...`
     );
 
     let logsCreated = 0;
@@ -226,17 +185,11 @@ export class PlayerPushService {
               trophies: currentTrophies,
             });
 
-            console.log(
-              `[${new Date().toISOString()}] 📝 Log criado para player ${player.tag} (fora do clan): ${type} ${trophiesChange > 0 ? "+" : "-"}${absoluteChange} troféus (${player.trophies} -> ${currentTrophies})`
-            );
             logsCreated++;
           } else {
             // Apenas atualizar o nome se mudou
             if (player.name !== playerData.name) {
               await this.playerRepository.update(player.tag, { name: playerData.name });
-              console.log(
-                `[${new Date().toISOString()}] ✏️  Nome atualizado para player ${player.tag} (fora do clan): "${player.name}" -> "${playerData.name}"`
-              );
             }
           }
         }
@@ -247,10 +200,6 @@ export class PlayerPushService {
         );
       }
     }
-
-    console.log(
-      `[${new Date().toISOString()}] ✅ Processamento de jogadores fora dos clans concluído. ${logsCreated} logs criados.`
-    );
 
     return logsCreated;
   }

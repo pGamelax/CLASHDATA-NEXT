@@ -24,6 +24,7 @@ export default async function ProtectedLayout({
 
   return (
     <div className="min-h-screen bg-background">
+      <ClientHeader user={session.user} />
       <main>{children}</main>
     </div>
   );

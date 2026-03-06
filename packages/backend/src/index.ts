@@ -22,6 +22,7 @@ import { cwlRoutes } from "./routes/cwl.routes";
 import { currentWarRoutes } from "./routes/current-war.routes";
 import { currentCWLRoutes } from "./routes/current-cwl.routes";
 import { playerPushLogsRoutes } from "./routes/player-push-logs.routes";
+import { playerRoutes } from "./routes/player.routes";
 import { setupPlayerPushJob, playerPushWorker } from "./jobs/player-push.job";
 import { setupSubscriptionExpiryJob, subscriptionExpiryWorker } from "./jobs/subscription-expiry.job";
 
@@ -56,14 +57,10 @@ const app = new Elysia()
       try {
         // Captura o body raw ANTES de qualquer processamento do Elysia
         const rawBody = await request.text();
-        // Armazena no set para uso posterior
         (set as any).rawBody = rawBody;
-        console.log(`📥 Webhook body capturado globalmente - Length: ${rawBody?.length || 0}`);
         
-        // Processa o webhook diretamente aqui para evitar problemas de parse
         if (rawBody) {
           const signature = request.headers.get("stripe-signature");
-          console.log(`📝 Webhook signature: ${signature ? "present" : "missing"}`);
           
           try {
             const result = await stripeController.handleWebhook({
@@ -72,19 +69,15 @@ const app = new Elysia()
               status: (code: number, data?: any) => ({ status: code, data }),
             } as any);
             
-            console.log(`✅ Webhook processado com sucesso`);
-            // Marca que o webhook foi processado para evitar processamento duplicado
             (set as any).webhookProcessed = true;
             (set as any).webhookResult = result || { received: true };
           } catch (error) {
             const message = error instanceof Error ? error.message : "Erro desconhecido";
-            console.error("❌ Erro ao processar webhook:", message);
             (set as any).webhookProcessed = true;
             (set as any).webhookResult = { received: true, error: message };
           }
         }
       } catch (error) {
-        console.error("❌ Erro ao capturar body raw no onRequest global:", error);
         (set as any).rawBody = "";
         (set as any).webhookProcessed = true;
         (set as any).webhookResult = { received: true, error: "Failed to read body" };
@@ -121,6 +114,7 @@ const app = new Elysia()
   .use(currentWarRoutes)
   .use(currentCWLRoutes)
   .use(playerPushLogsRoutes)
+  .use(playerRoutes)
   .get("/health", () => ({
     status: "healthy",
     timestamp: new Date().toISOString(),
@@ -141,41 +135,16 @@ setupSubscriptionExpiryJob().catch((error) => {
   console.error("Erro ao configurar job de expiração de subscriptions:", error);
 });
 
-// Configurar handlers de eventos do worker
-playerPushWorker.on("completed", (job) => {
-  console.log(`[${new Date().toISOString()}] ✅ Job ${job.id} concluído com sucesso`);
-  console.log(`[${new Date().toISOString()}] 📊 Resultado:`, JSON.stringify(job.returnvalue));
-});
-
 playerPushWorker.on("failed", (job, err) => {
-  console.error(`[${new Date().toISOString()}] ❌ Job ${job?.id} falhou:`);
-  console.error(`[${new Date().toISOString()}] 📝 Erro:`, err.message);
-  console.error(`[${new Date().toISOString()}] 📚 Stack:`, err.stack);
-});
-
-playerPushWorker.on("active", (job) => {
-  console.log(`[${new Date().toISOString()}] 🔄 Job ${job.id} está ativo`);
-});
-
-playerPushWorker.on("stalled", (jobId) => {
-  console.warn(`[${new Date().toISOString()}] ⚠️  Job ${jobId} está travado`);
-});
-
-playerPushWorker.on("progress", (job, progress) => {
-  console.log(`[${new Date().toISOString()}] 📈 Job ${job.id} progresso: ${progress}%`);
+  console.error(`Job ${job?.id} falhou:`, err.message);
 });
 
 playerPushWorker.on("error", (error) => {
-  console.error(`[${new Date().toISOString()}] 🚨 Erro no worker:`, error);
-});
-
-// Configurar handlers de eventos do worker de expiração
-subscriptionExpiryWorker.on("completed", (job) => {
-  console.log(`[${new Date().toISOString()}] ✅ Job de expiração ${job.id} concluído`);
+  console.error("Erro no worker:", error);
 });
 
 subscriptionExpiryWorker.on("failed", (job, err) => {
-  console.error(`[${new Date().toISOString()}] ❌ Job de expiração ${job?.id} falhou:`, err.message);
+  console.error(`Job de expiração ${job?.id} falhou:`, err.message);
 });
 
 export type App = typeof app;

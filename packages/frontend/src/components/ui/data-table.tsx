@@ -97,7 +97,7 @@ export function DataTable<TData, TValue>({
         const renderedHeader = header({ column });
         if (renderedHeader?.props?.title) return renderedHeader.props.title;
       } catch (e) {
-        console.error("Erro ao ler header title", e);
+        // Erro ao ler header - usa fallback
       }
     }
     return column.id.replace(/([A-Z])/g, " $1").toUpperCase();
@@ -127,7 +127,7 @@ export function DataTable<TData, TValue>({
         setTimeout(() => setIsCopied(false), 2000);
       }
     } catch (err) {
-      console.error("Erro na cópia:", err);
+      // Erro silencioso ao copiar
     }
   };
 
@@ -194,46 +194,54 @@ export function DataTable<TData, TValue>({
             </Button>
           </div>
           <div className="space-y-2">
-            {table.getRowModel().rows?.map((row) => {
-              const rowData = row.original as any;
-              const actualRank = table.getState().pagination.pageIndex * table.getState().pagination.pageSize + (row.index + 1);
-              const isExpanded = row.getIsExpanded();
+            {table.getRowModel().rows?.length === 0 ? (
+              <Card className="border-2">
+                <CardContent className="p-8 text-center text-muted-foreground">
+                  Nenhum resultado encontrado
+                </CardContent>
+              </Card>
+            ) : (
+              table.getRowModel().rows?.map((row) => {
+                const rowData = row.original as any;
+                const actualRank = table.getState().pagination.pageIndex * table.getState().pagination.pageSize + (row.index + 1);
+                const isExpanded = row.getIsExpanded();
 
-              return (
-                <Card key={row.id} className="border-2">
-                  <CardContent className="p-2.5">
-                    <div className="cursor-pointer" onClick={() => row.toggleExpanded()}>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-1.5">
-                          <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
-                            {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                          </Button>
-                          <span className="text-[10px] text-muted-foreground font-semibold">#{actualRank}</span>
-                          <span className="font-medium text-sm">{rowData.name}</span>
+                return (
+                  <Card key={row.id} className="border-2">
+                    <CardContent className="p-2.5">
+                      <div className="cursor-pointer" onClick={() => row.toggleExpanded()}>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-1.5">
+                            <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
+                              {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                            </Button>
+                            <span className="text-[10px] text-muted-foreground font-semibold">#{actualRank}</span>
+                            <span className="font-medium text-sm">{rowData.name}</span>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {row.getVisibleCells().filter(c => !["rank", "name"].includes(c.column.id)).map(cell => (
+                            <div key={cell.id} className="flex flex-col">
+                              <span className="text-[9px] text-muted-foreground uppercase truncate">
+                                {getHeaderTitle(cell.column)}
+                              </span>
+                              <span className="text-xs font-bold">
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                              </span>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {row.getVisibleCells().filter(c => !["rank", "name"].includes(c.column.id)).map(cell => (
-                          <div key={cell.id} className="flex flex-col">
-                            <span className="text-[9px] text-muted-foreground uppercase truncate">
-                              {getHeaderTitle(cell.column)}
-                            </span>
-                            <span className="text-xs font-bold">
-                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    {isExpanded && rowData.renderExpandedContent && (
-                      <div className="mt-2 pt-2 border-t">
-                        {rowData.renderExpandedContent(rowData)}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+                      {isExpanded && rowData.renderExpandedContent && (
+                        <div className="mt-2 pt-2 border-t">
+                          {rowData.renderExpandedContent(rowData)}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
           </div>
           <PaginationControls />
         </div>
@@ -251,7 +259,7 @@ export function DataTable<TData, TValue>({
             {isCopied ? "Copiado!" : "Copiar Tabela"}
           </Button>
         </div>
-        <div className="rounded-md border">
+        <div className="rounded-md border min-h-[400px]">
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((group) => (
@@ -265,22 +273,30 @@ export function DataTable<TData, TValue>({
               ))}
             </TableHeader>
             <TableBody>
-              {table.getRowModel().rows.map((row) => (
-                <React.Fragment key={row.id}>
-                  <TableRow onClick={() => row.toggleExpanded()} className="cursor-pointer hover:bg-muted/50">
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
-                    ))}
-                  </TableRow>
-                  {row.getIsExpanded() && (
-                    <TableRow>
-                      <TableCell colSpan={columns.length} className="bg-muted/20">
-                        {(row.original as any).renderExpandedContent?.(row.original)}
-                      </TableCell>
+              {table.getRowModel().rows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-[400px] text-center text-muted-foreground">
+                    Nenhum resultado encontrado
+                  </TableCell>
+                </TableRow>
+              ) : (
+                table.getRowModel().rows.map((row) => (
+                  <React.Fragment key={row.id}>
+                    <TableRow onClick={() => row.toggleExpanded()} className="cursor-pointer hover:bg-muted/50">
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                      ))}
                     </TableRow>
-                  )}
-                </React.Fragment>
-              ))}
+                    {row.getIsExpanded() && (
+                      <TableRow>
+                        <TableCell colSpan={columns.length} className="bg-muted/20">
+                          {(row.original as any).renderExpandedContent?.(row.original)}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>

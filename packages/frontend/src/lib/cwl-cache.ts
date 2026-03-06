@@ -45,7 +45,6 @@ export function getCachedCWLData(key: string): any | null {
     // Normaliza os dados antes de retornar
     return normalizeCWLData(parsed.data);
   } catch (error) {
-    console.error("[CWL Cache] Erro ao ler cache:", error);
     return null;
   }
 }
@@ -63,11 +62,8 @@ export function setCachedCWLData(key: string, data: any): void {
     };
     localStorage.setItem(`${CACHE_PREFIX}${key}`, JSON.stringify(cached));
   } catch (error) {
-    console.error("[CWL Cache] Erro ao salvar cache:", error);
-    // Se o localStorage estiver cheio, tenta limpar caches antigos
     if (error instanceof DOMException && error.code === 22) {
       clearOldCaches();
-      // Tenta novamente
       try {
         const normalizedData = normalizeCWLData(data);
         const cached: CachedCWLData = {
@@ -76,7 +72,7 @@ export function setCachedCWLData(key: string, data: any): void {
         };
         localStorage.setItem(`${CACHE_PREFIX}${key}`, JSON.stringify(cached));
       } catch (retryError) {
-        console.error("[CWL Cache] Erro ao salvar cache após limpeza:", retryError);
+        // Falha ao salvar após limpeza
       }
     }
   }
@@ -93,7 +89,7 @@ export function clearCWLCache(): void {
       }
     });
   } catch (error) {
-    console.error("[CWL Cache] Erro ao limpar cache:", error);
+    // Erro silencioso ao limpar cache
   }
 }
 
@@ -123,12 +119,8 @@ function clearOldCaches(): void {
         }
       }
     });
-
-    if (cleared > 0) {
-      console.log(`[CWL Cache] Limpou ${cleared} entradas expiradas`);
-    }
   } catch (error) {
-    console.error("[CWL Cache] Erro ao limpar caches antigos:", error);
+    // Erro silencioso ao limpar caches antigos
   }
 }
 

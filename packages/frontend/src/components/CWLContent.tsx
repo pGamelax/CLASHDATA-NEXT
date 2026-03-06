@@ -87,7 +87,6 @@ export function CWLContent({
       });
       setRanking(normalizedData);
     } catch (error) {
-      console.error("[CWLContent] Erro ao buscar ranking:", error);
       setRanking([]);
     } finally {
       setIsLoading(false);

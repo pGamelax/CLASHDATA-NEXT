@@ -38,4 +38,19 @@ export const currentCWLRoutes = new Elysia({ prefix: "/current-cwl" })
       },
     }
   )
+  .get(
+    "/:tag/townhalls",
+    async (context) => await currentCWLController.getClansTownHalls(context),
+    {
+      params: t.Object({
+        tag: t.String(),
+      }),
+      detail: {
+        tags: ["Current CWL"],
+        summary: "Buscar Town Halls dos clãs do CWL",
+        description:
+          "Retorna a contagem de membros por Town Hall level para cada clã do grupo CWL",
+      },
+    }
+  )
   

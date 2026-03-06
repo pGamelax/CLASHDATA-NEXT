@@ -24,7 +24,6 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useOrganizations, useSession } from "@/auth";
-import { ClientHeader } from "@/components/ClientHeader";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -145,8 +144,6 @@ export default function NewOrganizationPage() {
     <>
       <TitleUpdater title="Criar Organização | CLASHDATA" />
       <div className="min-h-screen bg-linear-to-b from-background via-primary/5 to-background">
-        <ClientHeader initialUser={session?.user} />
-
         <div className="container mx-auto px-4 py-8 max-w-3xl">
           <div className="mb-8 text-center">
             <div className="flex items-center justify-center gap-4">

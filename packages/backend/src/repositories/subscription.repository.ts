@@ -3,6 +3,10 @@ import { SubscriptionPlan, SubscriptionStatus } from "../generated/prisma";
 
 export class SubscriptionRepository {
   async findByOrganizationId(organizationId: string) {
+    if (!organizationId) {
+      return null;
+    }
+    
     return await prisma.subscription.findUnique({
       where: { organizationId },
       include: {

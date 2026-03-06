@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ClientHeader } from "@/components/ClientHeader";
 import { useSession } from "@/auth";
 import Link from "next/link";
 
@@ -59,7 +58,6 @@ export default function StripeCallbackPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <ClientHeader initialUser={session?.user} />
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <Card className="max-w-md mx-auto">
           <CardHeader>

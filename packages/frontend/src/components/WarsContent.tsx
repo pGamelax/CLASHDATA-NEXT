@@ -70,13 +70,11 @@ export function WarsContent({
     }
 
     setIsLoading(true);
-    console.log("[WarsContent] Carregando ranking para clanTag:", clanTag, "e meses:", selectedMonths);
     try {
       const cleanTag = clanTag.replace("#", "");
       const data = await getWarRanking(cleanTag, selectedMonths, true);
       setRanking(data);
     } catch (error) {
-      console.error("[WarsContent] Erro ao buscar ranking:", error);
       setRanking([]);
     } finally {
       setIsLoading(false);

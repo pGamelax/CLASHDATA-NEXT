@@ -21,17 +21,10 @@ export const playerPushWorker = new Worker(
   "player-push",
   async (job) => {
     const startTime = Date.now();
-    const jobId = job.id;
-    
-    console.log(`[${new Date().toISOString()}] 🚀 Iniciando job de player push: ${jobId}`);
-    console.log(`[${new Date().toISOString()}] 📊 Job data:`, JSON.stringify(job.data));
     
     try {
-      // Atualizar progresso
       await job.updateProgress(10);
       
-      // Inicializar dependências
-      console.log(`[${new Date().toISOString()}] ⚙️  Inicializando dependências...`);
       const clashOfClansService = new ClashOfClansService();
       const playerRepository = new PlayerRepository();
       const legendLeagueLogRepository = new LegendLeagueLogRepository();
@@ -48,14 +41,11 @@ export const playerPushWorker = new Worker(
 
       await job.updateProgress(30);
       
-      // Processar todos os clans
-      console.log(`[${new Date().toISOString()}] 🔄 Processando todos os clans...`);
       await playerPushService.processAllClans();
       
       await job.updateProgress(100);
       
       const duration = Date.now() - startTime;
-      console.log(`[${new Date().toISOString()}] ✅ Job de player push concluído: ${jobId} (${duration}ms)`);
       
       return {
         success: true,
@@ -63,10 +53,6 @@ export const playerPushWorker = new Worker(
         completedAt: new Date().toISOString(),
       };
     } catch (error) {
-      const duration = Date.now() - startTime;
-      console.error(`[${new Date().toISOString()}] ❌ Erro ao processar job ${jobId}:`, error);
-      console.error(`[${new Date().toISOString()}] 📝 Stack trace:`, error instanceof Error ? error.stack : 'N/A');
-      
       throw error;
     }
   },
@@ -117,19 +103,6 @@ export async function setupPlayerPushJob() {
       }
     );
 
-    console.log(`[${new Date().toISOString()}] ✅ Job de player push configurado para executar a cada 2 minutos`);
-    
-    // Log de informações da queue
-    const waiting = await playerPushQueue.getWaitingCount();
-    const active = await playerPushQueue.getActiveCount();
-    const completed = await playerPushQueue.getCompletedCount();
-    const failed = await playerPushQueue.getFailedCount();
-    
-    console.log(`[${new Date().toISOString()}] 📊 Status da queue:`);
-    console.log(`  - Waiting: ${waiting}`);
-    console.log(`  - Active: ${active}`);
-    console.log(`  - Completed: ${completed}`);
-    console.log(`  - Failed: ${failed}`);
   } catch (error) {
     console.error(`[${new Date().toISOString()}] ❌ Erro ao configurar job de player push:`, error);
     throw error;

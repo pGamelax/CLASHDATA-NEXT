@@ -234,7 +234,6 @@ export class StripeService {
     }
 
     try {
-      // Usa constructEventAsync para suportar contextos assíncronos (Bun/Node.js)
       return await stripe.webhooks.constructEventAsync(
         payload,
         signature,
@@ -268,26 +267,20 @@ export class StripeService {
     newPeriod: PaymentPeriod,
     returnUrl: string,
   ): Promise<{ url: string; amount: number }> {
-    // Busca a subscription atual no Stripe
     const currentSubscription = await stripe.subscriptions.retrieve(currentSubscriptionId);
     
-    // Busca o item atual
     const currentItemId = currentSubscription.items.data[0]?.id;
     if (!currentItemId) {
       throw new Error("Não foi possível encontrar o item atual da assinatura");
     }
 
-    // Busca o novo preço
     const newPlanConfig = STRIPE_PLANS[newPlan];
     const newPriceConfig = newPlanConfig.prices[newPeriod];
     const newPriceId = newPriceConfig.priceId;
 
-    // Calcula o prorata antes de fazer o upgrade
-    // Usa cálculo manual baseado no tempo restante (mais confiável)
     let prorataAmount = 0;
     
     try {
-      // Tenta usar retrieveUpcoming se disponível (método preferido do Stripe)
       if (typeof stripe.invoices.retrieveUpcoming === 'function') {
         const invoicePreview = await stripe.invoices.retrieveUpcoming({
           customer: currentSubscription.customer as string,
@@ -300,42 +293,29 @@ export class StripeService {
           ],
         });
         prorataAmount = invoicePreview.amount_due || 0;
-      } else {
-        throw new Error("retrieveUpcoming não disponível");
       }
     } catch (error) {
-      // Se retrieveUpcoming não estiver disponível, calcula manualmente
-      console.warn("Calculando prorata manualmente:", error instanceof Error ? error.message : "método não disponível");
-      
-      // Calcula prorata manualmente baseado no tempo restante
       const now = Math.floor(Date.now() / 1000);
       const periodStart = currentSubscription.current_period_start;
       const periodEnd = currentSubscription.current_period_end;
       const periodDuration = periodEnd - periodStart;
       const timeRemaining = Math.max(0, periodEnd - now);
       
-      // Busca preços atuais e novos
       const currentPrice = currentSubscription.items.data[0]?.price;
       const newPrice = await stripe.prices.retrieve(newPriceId);
       
       if (currentPrice && newPrice && periodDuration > 0) {
-        const currentAmount = currentPrice.unit_amount || 0; // em centavos
-        const newAmount = newPrice.unit_amount || 0; // em centavos
+        const currentAmount = currentPrice.unit_amount || 0;
+        const newAmount = newPrice.unit_amount || 0;
         
-        // Calcula crédito do período atual não usado (proporcional)
         const creditForUnusedPeriod = Math.floor((currentAmount * timeRemaining) / periodDuration);
-        
-        // Calcula custo proporcional do novo período
         const costForNewPeriod = Math.floor((newAmount * timeRemaining) / periodDuration);
         
-        // Prorata = diferença entre o que seria pago no novo plano vs crédito do plano atual
         prorataAmount = Math.max(0, costForNewPeriod - creditForUnusedPeriod);
       }
     }
 
-    // Se há valor a pagar, atualiza a subscription e cria invoice
     if (prorataAmount > 0) {
-      // Atualiza a subscription (Stripe cria invoice automaticamente)
       await stripe.subscriptions.update(currentSubscriptionId, {
         items: [
           {
@@ -352,7 +332,6 @@ export class StripeService {
         },
       });
 
-      // Busca a invoice criada
       const invoices = await stripe.invoices.list({
         customer: currentSubscription.customer as string,
         subscription: currentSubscriptionId,
@@ -362,7 +341,6 @@ export class StripeService {
 
       if (invoices.data.length > 0) {
         const invoice = invoices.data[0];
-        // Finaliza a invoice para criar o link de pagamento
         const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
         return {
           url: finalizedInvoice.hosted_invoice_url || finalizedInvoice.invoice_pdf || returnUrl,
@@ -370,7 +348,6 @@ export class StripeService {
         };
       }
     } else {
-      // Se não há valor a pagar (downgrade com crédito), atualiza direto
       await stripe.subscriptions.update(currentSubscriptionId, {
         items: [
           {
@@ -414,8 +391,6 @@ export class StripeService {
     const newPriceConfig = newPlanConfig.prices[newPeriod];
     const newPriceId = newPriceConfig.priceId;
 
-    // Atualiza a subscription com o novo preço
-    // O Stripe calcula automaticamente o prorata
     const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
       items: [
         {
@@ -423,7 +398,7 @@ export class StripeService {
           price: newPriceId,
         },
       ],
-      proration_behavior: "always_invoice", // Sempre cria invoice com prorata
+      proration_behavior: "always_invoice",
       metadata: {
         ...subscription.metadata,
         plan: newPlan,

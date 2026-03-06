@@ -33,6 +33,7 @@ interface OrganizationSelectorProps {
     name?: string | null;
     email?: string | null;
   } | null;
+  showFullName?: boolean;
 }
 
 export function OrganizationSelector({
@@ -41,6 +42,7 @@ export function OrganizationSelector({
   onSelect,
   isLoading = false,
   user,
+  showFullName = false,
 }: OrganizationSelectorProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -84,8 +86,8 @@ export function OrganizationSelector({
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "flex items-center gap-1.5 sm:gap-2.5 p-1 rounded-md sm:rounded-lg bg-muted/80 hover:bg-muted transition-colors text-xs sm:text-sm font-medium",
-            "sm:min-w-40 sm:max-w-55",
+            "flex items-center gap-1.5 sm:gap-2.5 p-1.5 sm:p-2 rounded-md sm:rounded-lg bg-muted/80 hover:bg-muted transition-colors text-xs sm:text-sm font-medium",
+            showFullName ? "justify-between w-full sm:w-auto" : "w-full",
             "focus:outline-none"
           )}
           disabled={isLoading}
@@ -103,13 +105,20 @@ export function OrganizationSelector({
             )}
           </div>
           
-          {/* Nome da organização - escondido no mobile */}
-          <span className="hidden sm:flex truncate flex-1 text-left text-foreground gap-2 ">
+          {/* Nome da organização - visível quando showFullName ou em desktop */}
+          <span className={cn(
+            "truncate flex-1 text-left text-foreground",
+            showFullName ? "flex min-w-0" : "hidden sm:flex"
+          )}>
             {currentOrganization?.name || "Selecione uma organização"}
-          {currentOrganization && getSubscriptionBadge(currentOrganization)}
           </span>
           
-          {/* Badge de status */}
+          {/* Badge de status - visível quando showFullName */}
+          {showFullName && currentOrganization && (
+            <div className="shrink-0 hidden xs:block">
+              {getSubscriptionBadge(currentOrganization)}
+            </div>
+          )}
           
           {/* Ícone de setas */}
           <ChevronsUpDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
@@ -128,7 +137,7 @@ export function OrganizationSelector({
                     setOpen(false);
                   }}
                   className={cn(
-                    "flex items-center gap-2 p-1 cursor-pointer",
+                    "flex items-center gap-2 p-2 cursor-pointer",
                     isSelected && "bg-accent"
                   )}
                 >
@@ -143,8 +152,12 @@ export function OrganizationSelector({
                       <Building2 className="h-4 w-4 text-primary" />
                     )}
                   </div>
-                  <span className="flex-1 truncate">{org.name}</span>
-                  {getSubscriptionBadge(org)}
+                  <div className="flex-1 min-w-0 flex flex-col">
+                    <span className="truncate font-medium">{org.name}</span>
+                    <div className="mt-0.5">
+                      {getSubscriptionBadge(org)}
+                    </div>
+                  </div>
                   {isSelected && (
                     <Check className="h-4 w-4 text-primary shrink-0" />
                   )}

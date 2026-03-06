@@ -42,6 +42,8 @@ COPY packages/frontend/package.json ./packages/frontend/
 # Copia a aplicação buildada do stage builder
 COPY --from=builder /app/packages/frontend/.next/standalone ./packages/frontend/
 COPY --from=builder /app/packages/frontend/.next/static ./packages/frontend/.next/static
+# Copia a pasta public (incluindo imagens do townhall)
+COPY --from=builder /app/packages/frontend/public ./packages/frontend/public
 
 # Expose port
 EXPOSE 3001

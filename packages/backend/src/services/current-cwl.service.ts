@@ -256,24 +256,12 @@ export class CurrentCWLService {
           currentWar = war;
         }
       } catch (error) {
-        // Se não conseguir buscar a guerra, continua sem ela
-        console.warn("Erro ao buscar guerra atual:", error);
+        // Continua sem a guerra atual
       }
     }
 
-    // Calcula standings básico (seria melhor com dados de todas as guerras, mas por enquanto só mostra o grupo)
-    const standings = group.clans.map((clan) => ({
-      clan: {
-        tag: clan.tag,
-        name: clan.name,
-        clanLevel: clan.clanLevel,
-        badgeUrls: clan.badgeUrls,
-      },
-      wins: 0, // Seria necessário buscar todas as guerras para calcular
-      losses: 0,
-      stars: 0,
-      destructionPercentage: 0,
-    }));
+    // Calcula standings buscando todas as guerras de todas as rodadas
+    const standings = await this.calculateStandings(group);
 
     // Calcula performance da temporada inteira
     const seasonPerformance = await this.calculateSeasonPerformance(group, clanTag);
@@ -286,6 +274,139 @@ export class CurrentCWLService {
       standings,
       seasonPerformance,
     };
+  }
+
+  /**
+   * Calcula os standings do grupo CWL baseado em todas as guerras já finalizadas
+   */
+  private async calculateStandings(
+    group: CurrentCWLGroupData
+  ): Promise<Array<{
+    clan: {
+      tag: string;
+      name: string;
+      clanLevel: number;
+      badgeUrls: {
+        small: string;
+        medium: string;
+        large: string;
+      };
+    };
+    wins: number;
+    losses: number;
+    stars: number;
+    destructionPercentage: number;
+  }>> {
+    // Inicializa standings para todos os clãs
+    const standingsMap = new Map<string, {
+      clan: {
+        tag: string;
+        name: string;
+        clanLevel: number;
+        badgeUrls: {
+          small: string;
+          medium: string;
+          large: string;
+        };
+      };
+      wins: number;
+      losses: number;
+      stars: number;
+      totalDestruction: number;
+      warsCount: number;
+    }>();
+
+    // Inicializa todos os clãs
+    for (const clan of group.clans) {
+      standingsMap.set(clan.tag, {
+        clan: {
+          tag: clan.tag,
+          name: clan.name,
+          clanLevel: clan.clanLevel,
+          badgeUrls: clan.badgeUrls,
+        },
+        wins: 0,
+        losses: 0,
+        stars: 0,
+        totalDestruction: 0,
+        warsCount: 0,
+      });
+    }
+
+    // Itera sobre todas as rodadas
+    for (const round of group.rounds) {
+      const activeWars = round.warTags.filter((tag) => tag && tag !== "#0");
+
+      // Para cada guerra ativa, busca os dados
+      for (const warTag of activeWars) {
+        try {
+          const war = await this.repository.getCWLWar(warTag);
+          
+          // Processa guerras que têm dados de clan e opponent (inclui inWar, warEnded, ended)
+          // Não processa apenas "preparation" que não tem dados ainda
+          if (!war.clan || !war.opponent) {
+            continue;
+          }
+
+          // Ignora apenas se estiver em preparação sem dados
+          if (war.state === "preparation" && (!war.clan.stars && !war.opponent.stars)) {
+            continue;
+          }
+
+          const clanStanding = standingsMap.get(war.clan.tag);
+          const opponentStanding = standingsMap.get(war.opponent.tag);
+
+          if (clanStanding && opponentStanding) {
+            // Adiciona estrelas e destruição (mesmo que a guerra ainda esteja em andamento)
+            clanStanding.stars += war.clan.stars || 0;
+            clanStanding.totalDestruction += war.clan.destructionPercentage || 0;
+            clanStanding.warsCount += 1;
+
+            opponentStanding.stars += war.opponent.stars || 0;
+            opponentStanding.totalDestruction += war.opponent.destructionPercentage || 0;
+            opponentStanding.warsCount += 1;
+
+            // Determina vencedor apenas se a guerra estiver finalizada
+            // Para guerras em andamento, não conta vitória/derrota ainda
+            if (war.state === "ended" || war.state === "warEnded") {
+              const clanStars = war.clan.stars || 0;
+              const opponentStars = war.opponent.stars || 0;
+              const clanDestruction = war.clan.destructionPercentage || 0;
+              const opponentDestruction = war.opponent.destructionPercentage || 0;
+
+              if (clanStars > opponentStars) {
+                clanStanding.wins += 1;
+                opponentStanding.losses += 1;
+              } else if (opponentStars > clanStars) {
+                opponentStanding.wins += 1;
+                clanStanding.losses += 1;
+              } else if (clanDestruction > opponentDestruction) {
+                clanStanding.wins += 1;
+                opponentStanding.losses += 1;
+              } else if (opponentDestruction > clanDestruction) {
+                opponentStanding.wins += 1;
+                clanStanding.losses += 1;
+              }
+              // Se empate em estrelas e destruição, não conta como vitória nem derrota
+            }
+          }
+        } catch (error) {
+          // Continua para a próxima guerra em caso de erro
+          continue;
+        }
+      }
+    }
+
+    // Converte para array e calcula destruição média
+    return Array.from(standingsMap.values()).map((standing) => ({
+      clan: standing.clan,
+      wins: standing.wins,
+      losses: standing.losses,
+      stars: standing.stars,
+      destructionPercentage: standing.warsCount > 0 
+        ? standing.totalDestruction / standing.warsCount 
+        : 0,
+    }));
   }
 
   /**
@@ -307,9 +428,7 @@ export class CurrentCWLService {
         try {
           const war = await this.repository.getCWLWar(warTag);
           
-          // Valida se os dados do clan e opponent existem
           if (!war.clan || !war.opponent) {
-            console.warn(`Guerra ${warTag} com dados incompletos: clan ou opponent não encontrado`);
             continue;
           }
 
@@ -322,9 +441,7 @@ export class CurrentCWLService {
           // Processa membros do nosso clan
           const ourClan = isOurClan ? war.clan : war.opponent;
           
-          // Valida se os membros existem
           if (!ourClan.members || !Array.isArray(ourClan.members)) {
-            console.warn(`Guerra ${warTag} com dados incompletos: membros não encontrados`);
             continue;
           }
           
@@ -363,8 +480,6 @@ export class CurrentCWLService {
             }
           }
         } catch (error) {
-          // Continua para próxima guerra se houver erro
-          console.warn(`Erro ao processar guerra ${warTag}:`, error);
           continue;
         }
       }
@@ -375,5 +490,51 @@ export class CurrentCWLService {
     performanceArray.sort((a, b) => b.performanceScore - a.performanceScore);
 
     return performanceArray;
+  }
+
+  /**
+   * Retorna a contagem de membros por Town Hall level para cada clã do grupo CWL
+   * Usa apenas os membros cadastrados na CWL (não todos os membros do clã)
+   */
+  async getClansTownHalls(clanTag: string): Promise<Array<{
+    clan: {
+      tag: string;
+      name: string;
+      clanLevel: number;
+      badgeUrls: {
+        small: string;
+        medium: string;
+        large: string;
+      };
+    };
+    townHalls: Record<string, number>;
+  }>> {
+    const group = await this.repository.getCurrentCWLGroup(clanTag);
+    
+    // Usa os membros que já vêm no grupo CWL (membros cadastrados)
+    const clansData = group.clans.map((clan) => {
+      // Conta membros cadastrados na CWL por Town Hall level
+      const townHalls: Record<string, number> = {};
+      
+      if (clan.members && Array.isArray(clan.members)) {
+        clan.members.forEach((member) => {
+          const thLevel = member.townHallLevel;
+          const key = `th${thLevel}`;
+          townHalls[key] = (townHalls[key] || 0) + 1;
+        });
+      }
+
+      return {
+        clan: {
+          tag: clan.tag,
+          name: clan.name,
+          clanLevel: clan.clanLevel,
+          badgeUrls: clan.badgeUrls,
+        },
+        townHalls,
+      };
+    });
+
+    return clansData;
   }
 }

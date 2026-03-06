@@ -159,4 +159,42 @@ export class CurrentCWLRepository {
     }
     return await response.json() as CWLWarData;
   }
+
+  async getClanMembers(clanTag: string): Promise<Array<{
+    tag: string;
+    name: string;
+    townHallLevel: number;
+  }>> {
+    const cleanTag = clanTag.startsWith("#") ? clanTag : `#${clanTag}`;
+    const encodedTag = encodeURIComponent(cleanTag);
+
+    const response = await fetch(
+      `${this.baseUrl}/clans/${encodedTag}`,
+      {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return [];
+      }
+      const errorText = await response.text();
+      throw new Error(
+        `Erro ao buscar membros do clã: ${response.status} - ${errorText}`
+      );
+    }
+
+    const clanData = await response.json() as {
+      memberList?: Array<{
+        tag: string;
+        name: string;
+        townHallLevel: number;
+      }>;
+    };
+
+    return clanData.memberList || [];
+  }
 }

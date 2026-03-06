@@ -34,33 +34,16 @@ export class ClanService {
 
     // Verifica se o usuário é owner da organização
     if (userId) {
-      // Garante que members está carregado
       if (!organization.members || organization.members.length === 0) {
-        console.error("Organização sem members:", {
-          organizationId: organization.id,
-          userId,
-        });
         throw new Error("Organização não possui membros cadastrados");
       }
 
       const member = organization.members.find((m: any) => m.userId === userId);
       if (!member) {
-        console.error("Usuário não é membro da organização:", {
-          organizationId: organization.id,
-          userId,
-          members: organization.members.map((m: any) => ({ userId: m.userId, role: m.role })),
-        });
         throw new Error("Você não é membro desta organização");
       }
       
-      // Apenas o owner pode criar clans
       if (member.role !== "owner") {
-        console.error("Usuário não é owner:", {
-          organizationId: organization.id,
-          userId,
-          memberRole: member.role,
-          expectedRole: "owner",
-        });
         throw new Error("Apenas o dono da organização pode adicionar clans");
       }
     }
