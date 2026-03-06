@@ -26,8 +26,7 @@ export default function StripeCallbackPage() {
       return;
     }
 
-    if (sessionId) {
-      // Verifica o status da sessão
+    if (sessionId) {
       fetch(`${API_URL}/stripe/checkout-session?session_id=${sessionId}`, {
         credentials: "include",
       })
@@ -35,8 +34,7 @@ export default function StripeCallbackPage() {
         .then((data) => {
           if (data.payment_status === "paid" || data.payment_status === "unpaid") {
             setStatus("success");
-            setMessage("Checkout concluído com sucesso! Sua organização está ativa.");
-            // Redireciona após 3 segundos
+            setMessage("Checkout concluído com sucesso! Sua organização está ativa.");
             setTimeout(() => {
               router.push("/organizations");
             }, 3000);

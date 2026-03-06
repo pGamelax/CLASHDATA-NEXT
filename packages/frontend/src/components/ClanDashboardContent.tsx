@@ -14,9 +14,7 @@ interface ClanDashboardContentProps {
 }
 
 export function ClanDashboardContent({ organization, clan }: ClanDashboardContentProps) {
-  const [clanData, setClanData] = useState<any | null>(null);
-
-  // Função para buscar dados do clan
+  const [clanData, setClanData] = useState<any | null>(null);
   const loadClanData = useCallback(async () => {
     if (!clan?.clanTag) {
       setClanData({
@@ -36,8 +34,7 @@ export function ClanDashboardContent({ organization, clan }: ClanDashboardConten
       const data = await fetchClanData(clanTag, undefined, true); // Usa cache no cliente
       setClanData(data);
     } catch (error) {
-      console.error("Erro ao buscar dados do clan:", error);
-      // Se não conseguir buscar, cria dados básicos
+      console.error("Erro ao buscar dados do clan:", error);
       setClanData({
         tag: clan.clanTag || "",
         name: clan.name || "Clan",
@@ -48,21 +45,16 @@ export function ClanDashboardContent({ organization, clan }: ClanDashboardConten
         members: 0,
       });
     } 
-  }, [clan]);
-
-  // Carrega dados do clan
+  }, [clan]);
   useEffect(() => {
     loadClanData();
-  }, [loadClanData]);
-
-  // Escuta mudanças no clan selecionado
+  }, [loadClanData]);
   useEffect(() => {
     const handleClanChange = () => {
       const savedClanSlug = localStorage.getItem("selectedClan");
       if (savedClanSlug) {
         const clanSlug = clan.clanTag.replace("#", "").toLowerCase();
-        if (savedClanSlug !== clanSlug) {
-          // Se o clan mudou, recarrega os dados
+        if (savedClanSlug !== clanSlug) {
           loadClanData();
         }
       }

@@ -11,9 +11,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-
-// Client component para atualizar o título
+import { Alert, AlertDescription } from "@/components/ui/alert";
 function TitleUpdater({ title }: { title: string }) {
   useEffect(() => {
     document.title = title;
@@ -44,9 +42,7 @@ function SignUpForm() {
   });
 
   async function handleSignUp({ email, password, name }: SignUpSchema) {
-    setServerError(null);
-
-    // Usa o callbackUrl da query string ou /organizations como padrão
+    setServerError(null);
     const redirectUrl = callbackUrl || "/organizations";
 
     await authClient.signUp.email(

@@ -41,7 +41,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(signInUrl);
   }
 
-  // Se está tentando acessar sign-in ou sign-up já autenticado, redireciona para home
   if ((pathname === "/sign-in" || pathname === "/sign-up") && isAuthenticatedUser) {
     return NextResponse.redirect(new URL("/", request.url));
   }
@@ -55,6 +54,4 @@ export const config = {
     "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
-
-
 

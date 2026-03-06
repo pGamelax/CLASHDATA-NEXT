@@ -1,10 +1,8 @@
-// Funções auxiliares para chamadas de API
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 export async function fetchClanData(tag: string, cookies?: string, useCache: boolean = true) {
   const cleanTag = tag.startsWith("#") ? tag.replace("#", "") : tag;
   
-  // Tenta buscar do cache primeiro (apenas no cliente)
   if (useCache && typeof window !== "undefined") {
     const { getCachedClanData, setCachedClanData } = await import("./clan-cache");
     const cached = getCachedClanData(cleanTag);
@@ -19,7 +17,7 @@ export async function fetchClanData(tag: string, cookies?: string, useCache: boo
           Cookie: cookies,
         }
       : undefined,
-    credentials: "include", // Inclui cookies automaticamente no cliente
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -30,7 +28,6 @@ export async function fetchClanData(tag: string, cookies?: string, useCache: boo
 
   const data = await response.json();
 
-  // Salva no cache (apenas no cliente)
   if (useCache && typeof window !== "undefined") {
     const { setCachedClanData } = await import("./clan-cache");
     setCachedClanData(cleanTag, data);
@@ -49,7 +46,7 @@ export async function getSession(cookieHeader?: string) {
       : {
           "Content-Type": "application/json",
         },
-    credentials: "include", // Inclui cookies automaticamente no cliente
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -61,7 +58,6 @@ export async function getSession(cookieHeader?: string) {
 }
 
 export async function getOrganizations(cookieHeader?: string) {
-  // Usa nossa API customizada que retorna organizations com members incluídos
   const response = await fetch(`${API_URL}/organizations/list`, {
     headers: cookieHeader
       ? {
@@ -71,7 +67,7 @@ export async function getOrganizations(cookieHeader?: string) {
       : {
           "Content-Type": "application/json",
         },
-    credentials: "include", // Inclui cookies automaticamente no cliente
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -80,7 +76,6 @@ export async function getOrganizations(cookieHeader?: string) {
   }
 
   const result = await response.json();
-  // Retorna no formato esperado (data ou diretamente o array)
   return result.data || result;
 }
 
@@ -140,7 +135,6 @@ export async function getWarRanking(
     .join(",");
   const cacheKey = `${cleanTag}_${monthsKey}`;
 
-  // Tenta buscar do cache primeiro (apenas no cliente)
   if (useCache && typeof window !== "undefined") {
     const { getCachedWarData, setCachedWarData } = await import("./war-cache");
     const cached = getCachedWarData(cacheKey);
@@ -168,7 +162,6 @@ export async function getWarRanking(
   const result = await response.json();
   const data = result.data || [];
 
-  // Salva no cache (apenas no cliente)
   if (useCache && typeof window !== "undefined") {
     const { setCachedWarData } = await import("./war-cache");
     setCachedWarData(cacheKey, data);
@@ -248,7 +241,6 @@ export async function getCWLRanking(
     .join(",");
   const cacheKey = `${cleanTag}_${seasonsKey}`;
 
-  // Tenta buscar do cache primeiro (apenas no cliente)
   if (useCache && typeof window !== "undefined") {
     const { getCachedCWLData, setCachedCWLData } = await import("./cwl-cache");
     const cached = getCachedCWLData(cacheKey);
@@ -276,22 +268,18 @@ export async function getCWLRanking(
   const result = await response.json();
   let data = result.data || [];
 
-  // Normaliza os dados para garantir que warsParticipated sempre existe
   data = data.map((player: any) => {
-    // Converte seasonsParticipated antigo para warsParticipated se necessário
     if (player.seasonsParticipated !== undefined && player.seasonsParticipated !== null) {
       player.warsParticipated = player.seasonsParticipated;
       delete player.seasonsParticipated;
     }
     
-    // Se não tiver warsParticipated, usa totalAttacks como fallback (1 ataque por guerra na CWL)
     if (player.warsParticipated === undefined || player.warsParticipated === null) {
       player.warsParticipated = player.totalAttacks || 0;
     }
     return player;
   });
 
-  // Salva no cache (apenas no cliente)
   if (useCache && typeof window !== "undefined") {
     const { setCachedCWLData } = await import("./cwl-cache");
     setCachedCWLData(cacheKey, data);
@@ -639,7 +627,6 @@ export async function getPlayerPushLogs(clanTag: string): Promise<PlayerPushStat
   return result.data || [];
 }
 
-// Invites API
 export interface Invite {
   id: string;
   organizationId: string;
@@ -1011,7 +998,6 @@ export async function getPlayer(playerTag: string, cookies?: string): Promise<Pl
   }
 
   const responseData = await response.json();
-  // O backend retorna { success: true, data: {...} }
   const data = responseData.data || responseData;
   
   return data;

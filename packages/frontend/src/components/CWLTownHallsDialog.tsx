@@ -76,9 +76,7 @@ export function CWLTownHallsDialog({
       }
       return newSet;
     });
-  };
-
-  // Processa os Town Halls de cada clã, ordenando do maior para o menor
+  };
   const getTownHallsList = (townHalls: Record<string, number>) => {
     return Object.entries(townHalls)
       .map(([key, count]) => {
@@ -130,7 +128,7 @@ export function CWLTownHallsDialog({
                       !isCurrentClan && "bg-muted/30 border-border hover:bg-muted/50"
                     )}
                   >
-                    {/* Row Principal */}
+                    {}
                     <div
                       className="flex items-center gap-2 sm:gap-3 lg:gap-4 px-3 sm:px-4 lg:px-5 py-2.5 sm:py-3 lg:py-3.5 cursor-pointer"
                       onClick={() => toggleRow(item.clan.tag)}
@@ -165,7 +163,7 @@ export function CWLTownHallsDialog({
                       </span>
                     </div>
 
-                    {/* Conteúdo Expandido */}
+                    {}
                     {isExpanded && townHallsList.length > 0 && (
                       <div className="px-3 sm:px-4 lg:px-5 pb-3 sm:pb-4 lg:pb-5 pt-0 border-t bg-muted/20">
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3 lg:gap-4 pt-3 lg:pt-4">

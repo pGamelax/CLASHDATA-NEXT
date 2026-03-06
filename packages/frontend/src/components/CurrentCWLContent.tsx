@@ -33,8 +33,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
       setError(null);
       try {
         const data = await getCurrentCWL(clanTag);
-        setAnalysis(data);
-        // Define a rodada atual como selecionada por padrão
+        setAnalysis(data);
         if (data.currentRound) {
           setSelectedRound(data.currentRound);
           setSelectedWar(data.currentWar || null);
@@ -49,14 +48,11 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
     if (clanTag) {
       loadCurrentCWL();
     }
-  }, [clanTag]);
-
-  // Função para carregar guerra da rodada
+  }, [clanTag]);
   const loadWarForRound = useCallback(async (skipLoading = false) => {
     if (!analysis || !selectedRound) return;
 
-    if (selectedRound === analysis.currentRound) {
-      // Se for a rodada atual, atualiza com dados mais recentes
+    if (selectedRound === analysis.currentRound) {
       try {
         const data = await getCurrentCWL(clanTag);
         setAnalysis(data);
@@ -71,17 +67,13 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
       setIsLoadingWar(true);
     }
 
-    try {
-      // Encontra a guerra do clan na rodada selecionada
+    try {
       const round = analysis.group.rounds[selectedRound - 1];
-      const clanTagToFind = clanTag.startsWith("#") ? clanTag : `#${clanTag}`;
-      
-      // Procura a guerra que contém nosso clan
+      const clanTagToFind = clanTag.startsWith("#") ? clanTag : `#${clanTag}`;
       for (const warTag of round.warTags) {
         if (warTag && warTag !== "#0") {
           try {
-            const war = await getCWLWar(warTag);
-            // Verifica se a guerra tem clan e opponent antes de acessar
+            const war = await getCWLWar(warTag);
             if (war?.clan && war?.opponent) {
               if (war.clan.tag === clanTagToFind || war.opponent.tag === clanTagToFind) {
                 setSelectedWar(war);
@@ -105,34 +97,24 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
         setIsLoadingWar(false);
       }
     }
-  }, [analysis, selectedRound, clanTag]);
-
-  // Carrega guerra quando a rodada é alterada
+  }, [analysis, selectedRound, clanTag]);
   useEffect(() => {
     if (selectedRound && analysis) {
       loadWarForRound();
     }
-  }, [selectedRound, analysis, loadWarForRound]);
-
-  // Polling para atualizar dados em tempo real quando a guerra está em andamento
+  }, [selectedRound, analysis, loadWarForRound]);
   useEffect(() => {
     if (!selectedWar || selectedWar.state !== "inWar") {
       return;
-    }
-
-    // Atualiza a cada 30 segundos quando a guerra está em andamento
-    const interval = setInterval(() => {
-      // Atualiza o CWL completo para pegar standings atualizados
+    }
+    const interval = setInterval(() => {
       const refreshData = async () => {
         try {
           const data = await getCurrentCWL(clanTag);
-          setAnalysis(data);
-          
-          // Se for a rodada atual, atualiza a guerra também
+          setAnalysis(data);
           if (selectedRound === data.currentRound) {
             setSelectedWar(data.currentWar || null);
-          } else {
-            // Se for outra rodada, recarrega a guerra dessa rodada
+          } else {
             loadWarForRound(true);
           }
         } catch (err) {
@@ -144,10 +126,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
     }, 30000); // 30 segundos
 
     return () => clearInterval(interval);
-  }, [selectedWar?.state, selectedRound, clanTag, loadWarForRound]);
-
-  // Processa timeline e ataques de 3 estrelas da guerra selecionada
-  // IMPORTANTE: Este hook deve ser chamado ANTES de qualquer early return
+  }, [selectedWar?.state, selectedRound, clanTag, loadWarForRound]);
   const { timeline, threeStarAttacks } = useMemo(() => {
     if (!selectedWar || !selectedWar.clan || !selectedWar.opponent) {
       return { timeline: [], threeStarAttacks: [] };
@@ -163,9 +142,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
       isClanAttack: boolean;
       clanStarsAfter: number;
       opponentStarsAfter: number;
-    }> = [];
-
-    // Processa ataques do nosso clan
+    }> = [];
     const clanMembers = selectedWar.clan.members || [];
     clanMembers.forEach((member) => {
       if (member.attacks) {
@@ -186,9 +163,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
           });
         });
       }
-    });
-
-    // Processa ataques do oponente
+    });
     const opponentMembers = selectedWar.opponent.members || [];
     opponentMembers.forEach((member) => {
       if (member.attacks) {
@@ -209,12 +184,8 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
           });
         });
       }
-    });
-
-    // Ordena por ordem do ataque
-    timelineEvents.sort((a, b) => a.order - b.order);
-
-    // Calcula estrelas acumuladas após cada ataque
+    });
+    timelineEvents.sort((a, b) => a.order - b.order);
     let clanStars = 0;
     let opponentStars = 0;
     timelineEvents.forEach((event) => {
@@ -225,9 +196,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
       }
       event.clanStarsAfter = clanStars;
       event.opponentStarsAfter = opponentStars;
-    });
-
-    // Filtra ataques de 3 estrelas
+    });
     const threeStars = timelineEvents.filter(
       (event) => event.stars === 3 && event.destructionPercentage === 100
     );
@@ -236,10 +205,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
       timeline: timelineEvents,
       threeStarAttacks: threeStars,
     };
-  }, [selectedWar]);
-
-  // Cria ranking de clans com total de estrelas, ordenado do primeiro para o último
-  // IMPORTANTE: Este hook deve ser chamado ANTES de qualquer early return
+  }, [selectedWar]);
   const clansRanking = useMemo(() => {
     if (!analysis || !analysis.group) {
       return [];
@@ -247,8 +213,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
 
     const { group, standings } = analysis;
 
-    if (standings && standings.length > 0) {
-      // Usa standings se disponível (já tem estrelas)
+    if (standings && standings.length > 0) {
       return standings
         .map((standing) => {
           const clan = group.clans.find((c) => c.tag === standing.clan.tag);
@@ -262,8 +227,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
           };
         })
         .filter((c): c is NonNullable<typeof c> => c !== null)
-        .sort((a, b) => {
-          // Ordena por estrelas (maior primeiro), depois por destruição, depois por vitórias
+        .sort((a, b) => {
           if (b.totalStars !== a.totalStars) {
             return b.totalStars - a.totalStars;
           }
@@ -272,8 +236,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
           }
           return b.wins - a.wins;
         });
-    }
-    // Se não houver standings, retorna clans sem ordenação (ordem original)
+    }
     return group.clans.map((clan) => ({
       ...clan,
       totalStars: 0,
@@ -316,9 +279,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
   const { group, currentRound, clanPosition } = analysis;
   const currentClan = group.clans.find(
     (c) => c.tag === (clanTag.startsWith("#") ? clanTag : `#${clanTag}`)
-  );
-
-  // Formata data
+  );
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
     try {
@@ -342,7 +303,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header Simples */}
+      {}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-4">
           <div>
@@ -391,9 +352,9 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
 
       </div>
 
-      {/* Ranking e Guerra Atual - Lado a Lado */}
+      {}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Ranking de Clans - Desktop */}
+        {}
         <Card className="hidden lg:block">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-2">
@@ -447,7 +408,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
           </CardContent>
         </Card>
 
-        {/* Botão para abrir ranking no mobile */}
+        {}
         <div className="lg:hidden">
           <Button
             variant="outline"
@@ -459,7 +420,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
           </Button>
         </div>
 
-        {/* Guerra Atual */}
+        {}
         {isLoadingWar ? (
           <Card>
             <CardContent className="pt-6">
@@ -490,9 +451,9 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
               </div>
             ) : (
               <>
-                {/* Comparação de Clans - Compacto e Responsivo */}
+                {}
                 <div className="space-y-3">
-                  {/* Nomes: logo - nome x nome - logo */}
+                  {}
                   <div className="flex items-center justify-between gap-2 sm:gap-3">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <img
@@ -513,7 +474,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
                     </div>
                   </div>
 
-                  {/* Estrelas: stars x stars */}
+                  {}
                   <div className="flex items-center justify-between gap-2 sm:gap-3">
                     <div className="flex items-center gap-1 flex-1">
                       <Star className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500 shrink-0" />
@@ -526,7 +487,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
                     </div>
                   </div>
 
-                  {/* Destruição: destruction x destruction */}
+                  {}
                   <div className="flex items-center justify-between gap-2 sm:gap-3">
                     <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
                       <span className="text-xs text-muted-foreground whitespace-nowrap">Destruição</span>
@@ -539,7 +500,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
                     </div>
                   </div>
 
-                  {/* Ataques: ataques x ataques */}
+                  {}
                   <div className="flex items-center justify-between gap-2 sm:gap-3">
                     <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
                       <span className="text-xs text-muted-foreground whitespace-nowrap">Ataques</span>
@@ -552,7 +513,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
                     </div>
                   </div>
 
-                  {/* Início e Fim */}
+                  {}
                   {selectedWar.startTime && (
                     <div className="pt-2 border-t flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 text-xs">
                       <div className="flex items-center gap-2">
@@ -589,7 +550,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
         )}
       </div>
 
-      {/* Tabs - Timeline, 3 Estrelas e Performance */}
+      {}
       {selectedWar && selectedWar.clan && selectedWar.opponent && (
         <Tabs defaultValue="timeline" className="w-full">
           <TabsList className="grid w-full grid-cols-3 overflow-x-auto scrollbar-hide">
@@ -604,7 +565,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
             </TabsTrigger>
           </TabsList>
 
-          {/* Tab Timeline */}
+          {}
           <TabsContent value="timeline" className="space-y-4 mt-4">
             {timeline.length === 0 ? (
               <Card>
@@ -616,7 +577,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
               </Card>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* Ataques do Nosso Clan */}
+                {}
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm flex items-center gap-2">
@@ -668,7 +629,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
                   </CardContent>
                 </Card>
 
-                {/* Ataques do Oponente */}
+                {}
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm flex items-center gap-2">
@@ -723,7 +684,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
             )}
           </TabsContent>
 
-          {/* Tab 3 Estrelas */}
+          {}
           <TabsContent value="three-stars" className="space-y-4 mt-4">
             {threeStarAttacks.length === 0 ? (
               <Card>
@@ -735,7 +696,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
               </Card>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* Ataques do Nosso Clan */}
+                {}
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm flex items-center gap-2">
@@ -780,7 +741,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
                   </CardContent>
                 </Card>
 
-                {/* Ataques do Oponente */}
+                {}
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm flex items-center gap-2">
@@ -828,7 +789,7 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
             )}
           </TabsContent>
 
-          {/* Tab Performance */}
+          {}
           <TabsContent value="performance" className="space-y-4 mt-4">
             <Card>
               <CardHeader className="pb-3">
@@ -896,14 +857,14 @@ export function CurrentCWLContent({ clanTag }: CurrentCWLContentProps) {
         </Tabs>
       )}
 
-      {/* Dialog de Town Halls */}
+      {}
       <CWLTownHallsDialog
         open={showTownHallsDialog}
         onOpenChange={setShowTownHallsDialog}
         clanTag={clanTag}
       />
 
-      {/* Sheet de Ranking para Mobile */}
+      {}
       <Sheet open={showRankingSheet} onOpenChange={setShowRankingSheet}>
         <SheetContent side="bottom" className="h-[90vh] overflow-hidden flex flex-col p-0">
           <SheetHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b">

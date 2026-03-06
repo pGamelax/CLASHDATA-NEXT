@@ -12,9 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useEffect } from "react";
-
-// Client component para atualizar o título
+import { useEffect } from "react";
 function TitleUpdater({ title }: { title: string }) {
   useEffect(() => {
     document.title = title;
@@ -44,9 +42,7 @@ function SignInForm() {
   });
 
   async function handleSignIn({ email, password }: SignInSchema) {
-    setServerError(null);
-
-    // Usa o callbackUrl da query string ou /organizations como padrão
+    setServerError(null);
     const redirectUrl = callbackUrl || "/organizations";
 
     await authClient.signIn.email(

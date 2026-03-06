@@ -26,22 +26,17 @@ export function WarsContent({
   const [isLoading, setIsLoading] = useState(false);
   const [selectedMonths, setSelectedMonths] = useState<Array<{ year: number; month: number }>>([]);
   const [selectedOrg, setSelectedOrg] = useState(organization);
-  const [selectedClan, setSelectedClan] = useState(clan);
-
-  // Atualiza selectedOrg e selectedClan quando props mudarem (apenas uma vez)
+  const [selectedClan, setSelectedClan] = useState(clan);
   useEffect(() => {
     if (organization && organization.id !== selectedOrg?.id) {
       setSelectedOrg(organization);
     }
     if (clan && clan.clanTag !== selectedClan?.clanTag) {
       setSelectedClan(clan);
-    } else if (!clan && selectedClan) {
-      // Se o clan foi removido, limpa o estado
+    } else if (!clan && selectedClan) {
       setSelectedClan(null);
     }
-  }, [organization?.id, clan?.clanTag]); // Usa apenas IDs para evitar loops
-
-  // Gera lista de meses disponíveis (últimos 12 meses)
+  }, [organization?.id, clan?.clanTag]); // Usa apenas IDs para evitar loops
   const getAvailableMonths = () => {
     const months: Array<{ year: number; month: number; label: string }> = [];
     const now = new Date();
@@ -57,11 +52,8 @@ export function WarsContent({
     return months;
   };
 
-  const availableMonths = getAvailableMonths();
-
-  // Carrega ranking quando clan ou meses mudarem
-  const loadRanking = useCallback(async () => {
-    // Sempre usa o clanTag do clan, que sempre deve existir
+  const availableMonths = getAvailableMonths();
+  const loadRanking = useCallback(async () => {
     const clanTag = selectedClan?.clanTag;
     
     if (!clanTag || selectedMonths.length === 0) {
@@ -79,25 +71,18 @@ export function WarsContent({
     } finally {
       setIsLoading(false);
     }
-  }, [selectedClan, selectedMonths]);
-
-  // Inicializa com mês atual se não houver meses selecionados
+  }, [selectedClan, selectedMonths]);
   useEffect(() => {
     if (selectedMonths.length === 0 && selectedClan?.clanTag) {
       const now = new Date();
       setSelectedMonths([{ year: now.getFullYear(), month: now.getMonth() + 1 }]);
     }
-  }, [selectedClan, selectedMonths.length]);
-
-  // Carrega ranking quando meses ou clan mudarem
+  }, [selectedClan, selectedMonths.length]);
   useEffect(() => {
     if (selectedMonths.length > 0 && selectedClan?.clanTag) {
       loadRanking();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMonths.length, selectedClan?.clanTag]); // Remove loadRanking da dependência para evitar loop
-
-  // Escuta mudanças de organização apenas via eventos (sem polling)
+    }
+  }, [selectedMonths.length, selectedClan?.clanTag]); // Remove loadRanking da dependência para evitar loop
   useEffect(() => {
     const handleOrganizationChange = (event: Event) => {
       const customEvent = event as CustomEvent<{ organizationId: string }>;
@@ -106,8 +91,7 @@ export function WarsContent({
       if (organizationId && organizationId !== selectedOrg?.id) {
         const org = organizations.find((o: any) => o.id === organizationId);
         if (org) {
-          setSelectedOrg(org);
-          // Reseta meses quando organização muda
+          setSelectedOrg(org);
           const now = new Date();
           setSelectedMonths([{ year: now.getFullYear(), month: now.getMonth() + 1 }]);
         }
@@ -122,9 +106,7 @@ export function WarsContent({
 
   const handleMonthsChange = (months: Array<{ year: number; month: number }>) => {
     setSelectedMonths(months);
-  };
-
-  // Verifica se há um clan válido
+  };
   if (!selectedClan?.clanTag) {
     return (
       <div className="container mx-auto px-4 py-4 max-w-7xl">
@@ -149,14 +131,14 @@ export function WarsContent({
         </p>
       </div>
 
-      {/* Filtro de Meses */}
+      {}
       <MonthFilter
         availableMonths={availableMonths}
         selectedMonths={selectedMonths}
         onMonthsChange={handleMonthsChange}
       />
 
-      {/* Tabela de Ranking */}
+      {}
       {isLoading ? (
         <Card className="border-2">
           <CardContent className="p-8 sm:p-12 text-center">

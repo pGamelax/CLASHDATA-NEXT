@@ -56,13 +56,10 @@ export function ClanLayout({
 
   const handleClanChange = (clanSlug: string) => {
     setSelectedClanSlug(clanSlug);
-    localStorage.setItem("selectedClan", clanSlug);
-    // Extrai o slug da organização do pathname
+    localStorage.setItem("selectedClan", clanSlug);
     const orgSlug = pathname.split("/")[2];
     router.push(`/org/${orgSlug}/${clanSlug}/wars`);
-  };
-
-  // Determina a rota base do clan
+  };
   const orgBasePath = `/org/${organization.slug}`;
   const clanBasePath = `${orgBasePath}/${selectedClanSlug}`;
   const currentPath = pathname.replace(clanBasePath, "") || "";

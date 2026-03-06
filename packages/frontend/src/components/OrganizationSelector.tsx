@@ -47,27 +47,19 @@ export function OrganizationSelector({
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
-  const getSubscriptionBadge = (org: Organization) => {
-    // Se tem subscription com plano, sempre mostra o plano
+  const getSubscriptionBadge = (org: Organization) => {
     if (org.subscription?.plan) {
       const planName = org.subscription.plan;
       const planDisplayName = planName === "MESTRE" ? "Mestre" : 
                               planName === "CAMPEAO" ? "Campeão" : 
-                              planName === "TITA" ? "Titã" : planName;
-      
-      // Se está ativa ou em trial, usa badge primary
+                              planName === "TITA" ? "Titã" : planName;
       if (org.subscription.status === "TRIAL" || org.subscription.status === "ACTIVE") {
         return <Badge variant="default" className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full">{planDisplayName}</Badge>;
-      }
-      
-      // Se está expirada ou cancelada, usa badge secondary
+      }
       return <Badge variant="secondary" className="bg-muted text-muted-foreground text-[10px] px-1.5 py-0.5 rounded-full">{planDisplayName}</Badge>;
-    }
-    
-    // Se não tem subscription ou plano, mostra FREE
+    }
     return <Badge variant="secondary" className="bg-muted text-muted-foreground text-[10px] px-1.5 py-0.5 rounded-full">FREE</Badge>;
   };
-
 
   if (!currentOrganization && organizations.length === 0) {
     return (
@@ -92,7 +84,7 @@ export function OrganizationSelector({
           )}
           disabled={isLoading}
         >
-          {/* Ícone da organização */}
+          {}
           <div className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-md bg-primary/10 shrink-0">
             {currentOrganization?.logo ? (
               <img
@@ -105,7 +97,7 @@ export function OrganizationSelector({
             )}
           </div>
           
-          {/* Nome da organização - visível quando showFullName ou em desktop */}
+          {}
           <span className={cn(
             "truncate flex-1 text-left text-foreground",
             showFullName ? "flex min-w-0" : "hidden sm:flex"
@@ -113,14 +105,14 @@ export function OrganizationSelector({
             {currentOrganization?.name || "Selecione uma organização"}
           </span>
           
-          {/* Badge de status - visível quando showFullName */}
+          {}
           {showFullName && currentOrganization && (
             <div className="shrink-0 hidden xs:block">
               {getSubscriptionBadge(currentOrganization)}
             </div>
           )}
           
-          {/* Ícone de setas */}
+          {}
           <ChevronsUpDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
         </button>
       </DropdownMenuTrigger>

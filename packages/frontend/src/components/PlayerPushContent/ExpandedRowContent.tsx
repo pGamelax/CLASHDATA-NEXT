@@ -57,13 +57,10 @@ function LogCard({ log, isAttack }: { log: any; isAttack: boolean }) {
 export function ExpandedRowContent({
   player,
   selectedDay,
-}: ExpandedRowContentProps) {
-  // Filtra logs por dia se houver seleção
+}: ExpandedRowContentProps) {
   const filteredLogs = selectedDay
     ? filterLogsByDay(player.logs, selectedDay)
-    : player.logs;
-
-  // Separa logs por tipo e ordena por data (mais recente primeiro)
+    : player.logs;
   const attackLogs = [...filteredLogs]
     .filter((log) => log.type === "attack")
     .sort(
@@ -76,9 +73,7 @@ export function ExpandedRowContent({
     .sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
-
-  // Determina o número máximo de pares
+    );
   const maxPairs = Math.max(attackLogs.length, defenseLogs.length);
 
   return (

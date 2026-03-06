@@ -52,8 +52,7 @@ export function ConfirmationDialog({
       await onConfirm();
       setOpen(false);
       setInputValue("");
-    } catch (error) {
-      // Erro será tratado pelo componente pai
+    } catch (error) {
     } finally {
       setIsConfirming(false);
     }

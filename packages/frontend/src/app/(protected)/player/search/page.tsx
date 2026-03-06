@@ -38,9 +38,7 @@ function PlayerSearchContent() {
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  // Sincroniza o input com a URL
+  }, []);
   useEffect(() => {
     const tag = searchParams.get("tag");
     if (tag) {
@@ -51,9 +49,7 @@ function PlayerSearchContent() {
       setPlayerData(null);
       setError(null);
     }
-  }, [searchParams, loadPlayerData]);
-
-  // Verifica se há erro na URL
+  }, [searchParams, loadPlayerData]);
   useEffect(() => {
     const errorParam = searchParams.get("error");
     if (errorParam) {
@@ -69,15 +65,13 @@ function PlayerSearchContent() {
       return;
     }
 
-    const cleanTag = playerTag.trim().replace(/^#/, "");
-    
-    // Atualiza apenas a URL sem redirecionar
+    const cleanTag = playerTag.trim().replace(/^#/, "");
     router.push(`/player/search?tag=${encodeURIComponent(cleanTag)}`, { scroll: false });
   };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
-      {/* Input de Busca - Compacto e Minimalista */}
+      {}
       <div className="mb-6">
         <form onSubmit={handleSearch} className="flex gap-2 items-start">
           <div className="flex-1 relative">
@@ -112,7 +106,7 @@ function PlayerSearchContent() {
         </form>
       </div>
 
-      {/* Dados do Jogador - Mostrado quando há dados */}
+      {}
       {loading && (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />

@@ -6,27 +6,20 @@ const formatDate = (dateString: string) => {
   if (!dateString) return "N/A";
   
   try {
-    let date: Date;
-    
-    // Formato compacto ISO 8601: 20260302T013802.000Z
-    // Regex: YYYYMMDDTHHmmss.sssZ
+    let date: Date;
     const compactMatch = dateString.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(?:\.(\d{1,3}))?Z?$/);
     
     if (compactMatch) {
-      const [, year, month, day, hour, minute, second, millisecond] = compactMatch;
-      // Converte para formato ISO padrão: 2026-03-02T01:38:02.000Z
+      const [, year, month, day, hour, minute, second, millisecond] = compactMatch;
       const isoString = `${year}-${month}-${day}T${hour}:${minute}:${second}${millisecond ? `.${millisecond.padEnd(3, '0')}` : '.000'}Z`;
       date = new Date(isoString);
-    } else {
-      // Tenta formato ISO padrão ou outros formatos
+    } else {
       date = new Date(dateString);
     }
     
     if (isNaN(date.getTime())) {
       return "N/A";
-    }
-    
-    // Formata usando UTC para evitar problemas de timezone
+    }
     return date.toLocaleDateString("pt-BR", {
       day: "2-digit",
       month: "2-digit",

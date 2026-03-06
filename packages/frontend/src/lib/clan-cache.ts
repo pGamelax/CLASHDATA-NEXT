@@ -1,6 +1,5 @@
-// Sistema de cache para dados do clan
 const CACHE_KEY_PREFIX = "clan_cache_";
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos em milissegundos
+const CACHE_DURATION = 5 * 60 * 1000;
 
 interface CachedClanData {
   data: any;
@@ -19,12 +18,10 @@ export function getCachedClanData(tag: string): any | null {
     const { data, timestamp }: CachedClanData = JSON.parse(cached);
     const now = Date.now();
 
-    // Verifica se o cache ainda é válido
     if (now - timestamp < CACHE_DURATION) {
       return data;
     }
 
-    // Cache expirado, remove
     localStorage.removeItem(cacheKey);
     return null;
   } catch (error) {
@@ -42,9 +39,7 @@ export function setCachedClanData(tag: string, data: any): void {
       timestamp: Date.now(),
     };
     localStorage.setItem(cacheKey, JSON.stringify(cached));
-  } catch (error) {
-    // Erro silencioso ao salvar cache
-  }
+  } catch (error) {}
 }
 
 export function clearClanCache(tag?: string): void {
@@ -55,7 +50,6 @@ export function clearClanCache(tag?: string): void {
       const cacheKey = `${CACHE_KEY_PREFIX}${tag}`;
       localStorage.removeItem(cacheKey);
     } else {
-      // Remove todos os caches de clans
       const keys = Object.keys(localStorage);
       keys.forEach((key) => {
         if (key.startsWith(CACHE_KEY_PREFIX)) {
@@ -63,8 +57,6 @@ export function clearClanCache(tag?: string): void {
         }
       });
     }
-  } catch (error) {
-    // Erro silencioso ao limpar cache
-  }
+  } catch (error) {}
 }
 

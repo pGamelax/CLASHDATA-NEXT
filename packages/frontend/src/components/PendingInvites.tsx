@@ -42,11 +42,9 @@ export function PendingInvites() {
     try {
       await acceptInvite(inviteId);
       setMessage({ type: "success", text: "Convite aceito com sucesso!" });
-      await loadInvites();
-      // Redireciona para a organização após aceitar
+      await loadInvites();
       const invite = invites.find((i) => i.id === inviteId);
-      if (invite?.organization?.slug) {
-        // Dispara evento para atualizar a lista de organizações
+      if (invite?.organization?.slug) {
         window.dispatchEvent(new CustomEvent("organizationChanged"));
         setTimeout(() => {
           router.push(`/org/${invite?.organization?.slug}`);

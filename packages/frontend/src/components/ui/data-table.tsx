@@ -96,8 +96,7 @@ export function DataTable<TData, TValue>({
       try {
         const renderedHeader = header({ column });
         if (renderedHeader?.props?.title) return renderedHeader.props.title;
-      } catch (e) {
-        // Erro ao ler header - usa fallback
+      } catch (e) {
       }
     }
     return column.id.replace(/([A-Z])/g, " $1").toUpperCase();
@@ -126,12 +125,9 @@ export function DataTable<TData, TValue>({
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2000);
       }
-    } catch (err) {
-      // Erro silencioso ao copiar
+    } catch (err) {
     }
-  };
-
-  // Componente de Paginação Reaproveitável
+  };
   const PaginationControls = () => (
     <div className="flex items-center justify-between px-2 py-4">
       <div className="flex-1 text-sm text-muted-foreground">
@@ -309,7 +305,7 @@ export function DataTable<TData, TValue>({
     <>
       {renderContent()}
       
-      {/* EXPORTAÇÃO DESKTOP (Sempre os top 10 do ranking geral ou da busca) */}
+      {}
       <div style={{ position: "absolute", left: "-9999px", top: 0, pointerEvents: "none" }}>
         <div ref={exportRef} style={{ width: "1200px" }} className="bg-[#020617] p-6 text-white">
           <Table>

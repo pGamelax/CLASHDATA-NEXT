@@ -28,7 +28,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
   return (
     <>
-      {/* Secondary Navigation Bar */}
+      {}
       <div className="sticky top-16 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto">
           <div className="flex h-12 items-center gap-1 overflow-x-auto px-2 sm:px-4 scrollbar-hide">

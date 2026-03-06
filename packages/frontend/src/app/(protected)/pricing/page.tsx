@@ -20,9 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSession } from "@/auth";
 
-type PaymentPeriod = "monthly" | "quarterly" | "yearly";
-
-// Preços dos planos
+type PaymentPeriod = "monthly" | "quarterly" | "yearly";
 const PLAN_PRICES = {
   MESTRE: {
     monthly: { amount: 2990, originalAmount: null },
@@ -142,18 +140,16 @@ export default function PricingPage() {
   const [selectedPeriod, setSelectedPeriod] =
     useState<PaymentPeriod>("monthly");
 
-  const handleSelectPlan = (plan: "MESTRE" | "CAMPEAO" | "TITA" | "LEGEND") => {
-    // Salva o plano e período no localStorage
+  const handleSelectPlan = (plan: "MESTRE" | "CAMPEAO" | "TITA" | "LEGEND") => {
     localStorage.setItem("selectedPlan", plan);
-    localStorage.setItem("selectedPeriod", selectedPeriod);
-    // Redireciona para a página de criação com tag do clan
+    localStorage.setItem("selectedPeriod", selectedPeriod);
     router.push(`/org/new?plan=${plan}&period=${selectedPeriod}`);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-primary/5 to-background">
       <div className="container mx-auto px-4 py-12 sm:py-16 lg:py-20">
-        {/* Header */}
+        {}
         <div className="text-center mb-12 sm:mb-16">
           <div className="inline-flex items-center gap-2 rounded-full border-2 border-primary/20 bg-primary/5 backdrop-blur-sm px-4 py-2 text-sm mb-6">
             <Sparkles className="h-4 w-4 text-primary" />
@@ -172,7 +168,7 @@ export default function PricingPage() {
             Comece com 3 dias grátis. Sem compromisso. Cancele quando quiser.
           </p>
 
-          {/* Seletor de Período */}
+          {}
           <div className="flex justify-center mb-8 px-4">
             <div className="inline-flex rounded-xl border-2 border-border bg-card p-1 sm:p-1.5 shadow-lg overflow-x-auto scrollbar-hide max-w-full">
               <button
@@ -224,7 +220,7 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Cards de Planos */}
+        {}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 lg:gap-8 max-w-7xl mx-auto mb-12">
           {(["MESTRE", "CAMPEAO", "TITA", "LEGEND"] as const).map((plan) => {
             const details = PLAN_DETAILS[plan];
@@ -349,7 +345,7 @@ export default function PricingPage() {
           })}
         </div>
 
-        {/* Features Section */}
+        {}
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="text-2xl sm:text-3xl font-bold mb-2">
@@ -406,7 +402,7 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* FAQ Section */}
+        {}
         <div className="max-w-3xl mx-auto mt-16">
           <div className="text-center mb-8">
             <h2 className="text-2xl sm:text-3xl font-bold mb-2">

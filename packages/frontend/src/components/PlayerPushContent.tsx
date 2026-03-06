@@ -27,22 +27,17 @@ export function PlayerPushContent({
   const [isLoading, setIsLoading] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState(organization);
   const [selectedClan, setSelectedClan] = useState(clan);
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
-
-  // Atualiza selectedOrg e selectedClan quando props mudarem
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   useEffect(() => {
     if (organization && organization.id !== selectedOrg?.id) {
       setSelectedOrg(organization);
     }
     if (clan) {
       setSelectedClan(clan);
-    } else if (!clan && selectedClan) {
-      // Se o clan foi removido, limpa o estado
+    } else if (!clan && selectedClan) {
       setSelectedClan(null);
     }
-  }, [organization, selectedOrg?.id, clan]);
-
-  // Carrega logs quando clan mudar
+  }, [organization, selectedOrg?.id, clan]);
   const loadLogs = useCallback(async () => {
     const clanTag = selectedClan?.clanTag;
     
@@ -62,16 +57,12 @@ export function PlayerPushContent({
     } finally {
       setIsLoading(false);
     }
-  }, [selectedClan]);
-
-  // Carrega logs quando clan mudar
+  }, [selectedClan]);
   useEffect(() => {
     if (selectedClan?.clanTag) {
       loadLogs();
     }
-  }, [selectedClan, loadLogs]);
-
-  // Escuta mudanças de organização
+  }, [selectedClan, loadLogs]);
   useEffect(() => {
     const handleOrganizationChange = (event: Event) => {
       const customEvent = event as CustomEvent<{ organizationId: string }>;
@@ -83,9 +74,7 @@ export function PlayerPushContent({
           setSelectedOrg(org);
         }
       }
-    };
-
-    // Verifica periodicamente se a organização mudou
+    };
     const checkInterval = setInterval(() => {
       const savedOrgId = localStorage.getItem("selectedOrganization");
       if (savedOrgId && selectedOrg?.id !== savedOrgId) {
@@ -101,19 +90,14 @@ export function PlayerPushContent({
       window.removeEventListener("organizationChanged", handleOrganizationChange);
       clearInterval(checkInterval);
     };
-  }, [organizations, selectedOrg]);
-
-  // Extrai todos os dias únicos dos logs
+  }, [organizations, selectedOrg]);
   const availableDays = useMemo(() => {
     const allLogs = playerPushLogs.flatMap((player) => player.logs);
      
     const allDays = extractUniqueDays(allLogs);
     setSelectedDay(allDays[0]);
     return allDays.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-  }, [playerPushLogs]);
-
-  // Filtra os logs por dia selecionado
-  // e recalcula os totais (ataque, defesa e troféus finais do dia)
+  }, [playerPushLogs]);
   const filteredPlayerPushLogs = useMemo(() => {
     if (!selectedDay) {
       return playerPushLogs;
@@ -124,35 +108,26 @@ export function PlayerPushContent({
         const filteredLogs = filterLogsByDay(player.logs, selectedDay);
         if (filteredLogs.length === 0) {
           return null;
-        }
-
-        // Recalcula totais baseado nos logs filtrados
+        }
         const attackLogs = filteredLogs.filter((log: any) => log.type === "attack");
-        const defenseLogs = filteredLogs.filter((log: any) => log.type === "defense");
-
-        // Troféus totais do dia: usa o último log do dia como referência
+        const defenseLogs = filteredLogs.filter((log: any) => log.type === "defense");
         const lastLogOfDay = [...filteredLogs].sort(
           (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         )[filteredLogs.length - 1];
 
         return {
           ...player,
-          logs: filteredLogs,
-          // Totais diários de ataque/defesa
+          logs: filteredLogs,
           totalAttack: attackLogs.reduce((sum: number, log: any) => sum + log.trophiesChange, 0),
           totalDefense: defenseLogs.reduce((sum: number, log: any) => sum + log.trophiesChange, 0),
           attackCount: attackLogs.length,
-          defenseCount: defenseLogs.length,
-          // Ranking por troféus passa a considerar o total de troféus daquele dia
+          defenseCount: defenseLogs.length,
           currentTrophies: lastLogOfDay?.currentTrophies ?? player.currentTrophies,
         };
       })
-      .filter((player): player is PlayerPushStats => player !== null)
-      // Ordena pelo total de troféus do dia (descendente)
+      .filter((player): player is PlayerPushStats => player !== null)
       .sort((a, b) => (b.currentTrophies || 0) - (a.currentTrophies || 0));
-  }, [playerPushLogs, selectedDay]);
-
-  // Verifica se há um clan válido
+  }, [playerPushLogs, selectedDay]);
   if (!selectedClan?.clanTag) {
     return (
       <div className="container mx-auto  px-4 py-4 max-w-7xl">
@@ -177,7 +152,7 @@ export function PlayerPushContent({
         </p>
       </div>
 
-      {/* Filtro de Dias */}
+      {}
       {availableDays.length > 0 && (
         <DayFilter
           days={availableDays}
@@ -186,7 +161,7 @@ export function PlayerPushContent({
         />
       )}
 
-      {/* Tabela de Logs */}
+      {}
       {isLoading ? (
         <Card className="border-2">
           <CardContent className="p-8 sm:p-12 text-center">

@@ -103,7 +103,6 @@ const mainNavItems = [
   { title: "Jogador", href: "/player/search", icon: User },
 ];
 
-// Componente para badge de notificação de convites
 function InviteBadge() {
   const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -115,7 +114,6 @@ function InviteBadge() {
         const count = data.filter((i: Invite) => i.status === "PENDING").length;
         setPendingCount(count);
       } catch (error) {
-        // Erro silencioso ao carregar convites
       } finally {
         setLoading(false);
       }
@@ -135,7 +133,6 @@ function InviteBadge() {
   );
 }
 
-// Componente para separador após convites (apenas se houver convites)
 function PendingInvitesDropdownSeparator() {
   const [hasInvites, setHasInvites] = useState(false);
 
@@ -159,7 +156,6 @@ function PendingInvitesDropdownSeparator() {
   return <DropdownMenuSeparator />;
 }
 
-// Componente para exibir convites dentro do dropdown do avatar
 function PendingInvitesDropdown() {
   const router = useRouter();
   const [invites, setInvites] = useState<Invite[]>([]);
@@ -304,7 +300,6 @@ function PendingInvitesDropdown() {
   );
 }
 
-// Componente para exibir convites no footer do sheet mobile
 function PendingInvitesSheetFooter() {
   const router = useRouter();
   const [invites, setInvites] = useState<Invite[]>([]);
@@ -459,11 +454,7 @@ export function Header({
   const [detectedOrg, setDetectedOrg] = useState<any>(null);
   const [detectedClan, setDetectedClan] = useState<any>(null);
 
-  // Usa o usuário da sessão apenas se não estiver pendente e houver usuário
-  // Caso contrário, usa o initialUser (que pode ser undefined se não houver usuário)
   const user = (!isSessionPending && session?.user) ? session.user : (initialUser || null);
-
-  // Proteção contra erros ao acessar organizações
   let organizationsData;
   try {
     organizationsData = organizations?.data || organizations || [];
@@ -474,7 +465,6 @@ export function Header({
   const orgsList = Array.isArray(organizationsData) ? organizationsData : [];
 
   useEffect(() => {
-    // Se não há usuário, limpa a organização selecionada
     if (!user) {
       setSelectedOrganization(null);
       localStorage.removeItem("selectedOrganization");
@@ -503,7 +493,6 @@ export function Header({
   }, [orgsList, selectedOrganization, organization, user]);
 
   useEffect(() => {
-    // Só adiciona o listener se houver usuário
     if (!user) {
       return;
     }
@@ -549,7 +538,6 @@ export function Header({
   }, [refetch, user]);
 
   const handleOrganizationChange = async (orgId: string) => {
-    // Se não há usuário, não faz nada
     if (!user) {
       return;
     }
@@ -578,27 +566,40 @@ export function Header({
     }
   };
 
-  // Proteção ao processar organizações
-  const orgsForSelector = user && Array.isArray(orgsList)
-    ? orgsList.map((org: any) => {
-        try {
-          return {
-            id: org.id,
-            name: org.name,
-            slug: org.slug,
-            logo: org.logo,
-            subscription: org.subscription
-              ? {
-                  plan: org.subscription.plan,
-                  status: org.subscription.status,
-                }
-              : null,
-          };
-        } catch (error) {
-          console.error("Erro ao processar organização:", error);
-          return null;
-        }
-      }).filter((org: any) => org !== null)
+  const orgsForSelector: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    logo: string | null;
+    subscription: { plan: string; status: string } | null;
+  }> = user && Array.isArray(orgsList)
+    ? orgsList
+        .map((org: any) => {
+          try {
+            return {
+              id: org.id,
+              name: org.name,
+              slug: org.slug,
+              logo: org.logo,
+              subscription: org.subscription
+                ? {
+                    plan: org.subscription.plan,
+                    status: org.subscription.status,
+                  }
+                : null,
+            };
+          } catch (error) {
+            console.error("Erro ao processar organização:", error);
+            return null;
+          }
+        })
+        .filter((org): org is {
+          id: string;
+          name: string;
+          slug: string;
+          logo: string | null;
+          subscription: { plan: string; status: string } | null;
+        } => org !== null)
     : [];
 
   const currentOrgId = organization?.id || selectedOrganization;
@@ -606,9 +607,7 @@ export function Header({
     ? orgsForSelector.find((o: any) => o.id === currentOrgId)
     : null;
 
-  // Detecta organização e clan da URL se não foram passados como props
   useEffect(() => {
-    // Se não há usuário, limpa tudo e não faz nada
     if (!user) {
       setDetectedOrg(null);
       setDetectedClan(null);
@@ -617,14 +616,12 @@ export function Header({
     }
 
     if (organization && clan) {
-      // Se já foram passados como props, usa eles
       setDetectedOrg(organization);
       setDetectedClan(clan);
       return;
     }
 
     const pathParts = pathname?.split("/").filter(Boolean) || [];
-    // Só detecta organização se estiver em uma rota de organização (/org/[slug])
     const isOrgRoute = pathParts[0] === "org" && pathParts[1] && pathParts[1] !== "new";
     const orgSlugFromUrl = isOrgRoute ? pathParts[1] : null;
     const clanSlugFromUrl = isOrgRoute && pathParts[2] ? pathParts[2] : null;
@@ -634,7 +631,6 @@ export function Header({
       if (orgFromUrl) {
         setDetectedOrg(orgFromUrl);
         
-        // Busca clans se houver slug de clan na URL
         if (clanSlugFromUrl && orgFromUrl.id) {
           getClansByOrganization(orgFromUrl.id)
             .then((response) => {
@@ -646,9 +642,7 @@ export function Header({
               );
               setDetectedClan(clanFromUrl || null);
             })
-            .catch(() => {
-              // Erro silencioso ao buscar clans
-            });
+            .catch(() => {});
         } else {
           setClansFromUrl([]);
           setDetectedClan(null);
@@ -659,14 +653,12 @@ export function Header({
         setClansFromUrl([]);
       }
     } else {
-      // Se não está em rota de org, limpa tudo
       setDetectedOrg(null);
       setDetectedClan(null);
       setClansFromUrl([]);
     }
   }, [pathname, orgsList, organization, clan, user]);
 
-  // Só processa currentOrg se houver usuário
   const currentOrg = user
     ? (currentOrgFromList ||
       detectedOrg ||
@@ -686,32 +678,25 @@ export function Header({
         : null))
     : null;
 
-  // Só processa currentClan se houver usuário
   const currentClan = user ? (clan || detectedClan || null) : null;
   const currentClans = user ? (clans.length > 0 ? clans : clansFromUrl) : [];
 
-  // Só processa basePath se houver usuário e organização/clan
-  // Garante que basePath seja sempre uma string válida para evitar problemas de hidratação
   const basePath = user && currentClan && currentOrg && currentOrg.slug && currentClan.clanTag
     ? `/org/${currentOrg.slug}/${currentClan.clanTag.replace("#", "").toLowerCase()}`
     : user && currentOrg && currentOrg.slug
       ? `/org/${currentOrg.slug}`
       : "";
 
-  // Garante que navItems seja sempre um array válido para evitar erros de hidratação
   const isClanRoute = user ? !!currentClan : false;
   const navItems = user && isClanRoute ? clanNavItems : (user ? orgNavItems : []);
 
   const handleSignOut = async () => {
     try {
       await authClient.signOut();
-      // Aguarda um pouco para garantir que o logout foi processado
       await new Promise(resolve => setTimeout(resolve, 100));
-      // Redireciona para a home e força refresh completo
       window.location.href = "/";
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
-      // Mesmo com erro, tenta redirecionar
       window.location.href = "/";
     }
   };
@@ -726,12 +711,9 @@ export function Header({
 
   return (
     <>
-      {/* Main Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-16 items-center justify-between px-2 sm:px-4 gap-1 sm:gap-2">
-          {/* Left Section - Logo, Links, Selectors */}
           <div className="flex items-center gap-1 sm:gap-2 md:gap-4 min-w-0 flex-1">
-            {/* Logo */}
             <Link
               href="/"
               className="flex items-center gap-2.5 group transition-transform hover:scale-105 shrink-0"
@@ -788,7 +770,6 @@ export function Header({
               </span>
             </Link>
 
-            {/* Main Navigation Links - Only visible on desktop, always show when logged in */}
             {user && (
               <>
                 <div className="hidden md:block h-6 w-px bg-border shrink-0" />
@@ -817,7 +798,6 @@ export function Header({
               </>
             )}
 
-            {/* Organization Selector - Always visible when org exists */}
             {user && (currentOrg || orgsForSelector.length > 0) && (
               <>
                 <div className="h-6 w-px bg-border shrink-0 hidden sm:block" />
@@ -849,7 +829,6 @@ export function Header({
               </>
             )}
 
-            {/* Clan Selector - Always visible when clan exists */}
             {user && currentOrg && (currentClan || currentClans.length > 0) && (
               <>
                 <div className="h-6 w-px bg-border shrink-0 hidden sm:block" />
@@ -868,9 +847,7 @@ export function Header({
             )}
           </div>
 
-          {/* Right Section - User Menu */}
           <div className="flex items-center gap-3">
-            {/* Mobile Menu Button */}
             {user && (
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
@@ -903,7 +880,6 @@ export function Header({
                         </Link>
                       );
                     })}
-                    {/* Organization Selector - Always show if user has orgs */}
                     {user && (currentOrg || orgsForSelector.length > 0) && (
                       <>
                         <div className="h-px bg-border my-4" />
@@ -940,7 +916,6 @@ export function Header({
                         </div>
                       </>
                     )}
-                    {/* Clan Selector - Show if user has org and clans */}
                     {user && currentOrg && (currentClan || currentClans.length > 0) && (
                       <>
                         <div className="h-px bg-border my-4" />
@@ -962,7 +937,6 @@ export function Header({
                       </>
                     )}
                   </div>
-                  {/* Footer with user menu options */}
                   <SheetFooter className="flex-col gap-2 border-t pt-4 mt-4">
                     {user && (
                       <>
@@ -1012,7 +986,6 @@ export function Header({
               </Sheet>
             )}
 
-            {/* User Avatar & Dropdown - Hidden on mobile */}
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -1074,7 +1047,6 @@ export function Header({
         </div>
       </header>
 
-      {/* Secondary Navigation - Context-specific - Only show on org/clan routes */}
       {user && pathname?.startsWith("/org/") && !pathname?.startsWith("/org/new") && (currentOrg || currentClan) && navItems.length > 0 && (
         <div className="sticky top-16 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="container mx-auto">

@@ -11,7 +11,6 @@ export const authClient = createAuthClient({
 
 export const { signIn, signOut, signUp, useSession } = authClient;
 
-// Hook customizado para organizações
 export function useOrganizations() {
   const { data: session, isPending: isSessionPending } = useSession();
   const [data, setData] = useState<any>(null);
@@ -19,7 +18,6 @@ export function useOrganizations() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
   const refetch = async () => {
-    // Se a sessão ainda está carregando ou não há usuário, não faz requisição
     if (isSessionPending || !session?.user) {
       setData(null);
       setIsPending(false);
@@ -28,7 +26,6 @@ export function useOrganizations() {
 
     setIsPending(true);
     try {
-      // Usa o endpoint customizado que retorna organizações com subscriptions
       const response = await fetch(`${apiUrl}/organizations/list`, {
         method: "GET",
         credentials: "include",
@@ -52,7 +49,6 @@ export function useOrganizations() {
   };
 
   useEffect(() => {
-    // Só faz refetch se a sessão não estiver pendente
     if (!isSessionPending) {
       refetch();
     }

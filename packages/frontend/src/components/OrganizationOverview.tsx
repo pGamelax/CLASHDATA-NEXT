@@ -24,12 +24,10 @@ export function OrganizationOverview({ organization }: OrganizationOverviewProps
         if (organization && session?.user) {
           const member = organization.members?.find(
             (m: any) => m.userId === session.user.id
-          );
-          // Apenas o owner pode adicionar clans
+          );
           setIsOwner(member?.role === "owner");
         }
-      } catch (error) {
-        // Erro silencioso - permissão negada por padrão
+      } catch (error) {
       }
     }
     
@@ -51,7 +49,7 @@ export function OrganizationOverview({ organization }: OrganizationOverviewProps
         </p>
       </div>
 
-      {/* Estatísticas Gerais */}
+      {}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -95,7 +93,7 @@ export function OrganizationOverview({ organization }: OrganizationOverviewProps
         </Card>
       </div>
 
-      {/* Clans Section */}
+      {}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-4">

@@ -8,10 +8,8 @@ interface ExpandedRowContentProps {
   player: CWLPlayerStats;
 }
 
-export function ExpandedRowContent({ player }: ExpandedRowContentProps) {
-  // Ordena ataques por temporada (mais recente primeiro)
-  const sortedAttacks = [...player.attacks].sort((a, b) => {
-    // Compara temporadas no formato "YYYY-MM"
+export function ExpandedRowContent({ player }: ExpandedRowContentProps) {
+  const sortedAttacks = [...player.attacks].sort((a, b) => {
     return b.season.localeCompare(a.season);
   });
 
@@ -25,16 +23,13 @@ export function ExpandedRowContent({ player }: ExpandedRowContentProps) {
       </div>
       {sortedAttacks.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
-          {sortedAttacks.map((attack, index) => {
-            // Formata a temporada (ex: "2026-01" -> "Janeiro 2026")
+          {sortedAttacks.map((attack, index) => {
             const [year, month] = attack.season.split("-");
             const monthNumber = parseInt(month, 10);
             const monthName = new Date(2000, monthNumber - 1, 1).toLocaleDateString("pt-BR", {
               month: "long",
             });
-            const formattedSeason = `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${year}`;
-            
-            // Garante que opponentClanName existe
+            const formattedSeason = `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${year}`;
             const opponentClanName = attack.opponentClanName || "Clan Desconhecido";
             const isPerfect = attack.stars === 3 && attack.destructionPercentage === 100;
             
@@ -43,7 +38,7 @@ export function ExpandedRowContent({ player }: ExpandedRowContentProps) {
                 key={`${attack.season}-${attack.defenderTag}-${index}`}
                 className="relative bg-card/50 border border-border/50 rounded-lg p-2 sm:p-3 hover:bg-card hover:border-border transition-all"
               >
-                {/* Badge de performance no canto superior direito */}
+                {}
                 <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2">
                   <Badge 
                     variant="secondary" 
@@ -57,7 +52,7 @@ export function ExpandedRowContent({ player }: ExpandedRowContentProps) {
                   </Badge>
                 </div>
                 
-                {/* Conteúdo do card */}
+                {}
                 <div className="pr-16 sm:pr-20">
                   <div className="font-medium text-xs sm:text-sm mb-1 sm:mb-1.5 line-clamp-1">
                     {opponentClanName}

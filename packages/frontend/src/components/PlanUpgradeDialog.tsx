@@ -113,11 +113,9 @@ export function PlanUpgradeDialog({
 
       const data = await response.json();
 
-      if (data.url && data.url !== window.location.href) {
-        // Redireciona para o checkout
+      if (data.url && data.url !== window.location.href) {
         window.location.href = data.url;
-      } else {
-        // Se não há URL (valor 0), atualiza direto
+      } else {
         await handleDirectUpgrade();
       }
     } catch (err) {
@@ -180,7 +178,7 @@ export function PlanUpgradeDialog({
         )}
 
         <div className="space-y-6">
-          {/* Seleção de Período */}
+          {}
           <div className="space-y-3">
             <Label className="text-lg font-bold">Período de Pagamento</Label>
             <RadioGroup value={selectedPeriod} onValueChange={(v) => setSelectedPeriod(v as Period)}>
@@ -211,7 +209,7 @@ export function PlanUpgradeDialog({
             </RadioGroup>
           </div>
 
-          {/* Seleção de Plano */}
+          {}
           <div className="space-y-3">
             <Label className="text-lg font-bold">Escolha o Plano</Label>
             <div className="grid grid-cols-2 gap-4">
@@ -294,7 +292,7 @@ export function PlanUpgradeDialog({
             </div>
           </div>
 
-          {/* Resumo */}
+          {}
           {!isSamePlan && (
             <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-2 border-primary/20">
               <CardHeader>

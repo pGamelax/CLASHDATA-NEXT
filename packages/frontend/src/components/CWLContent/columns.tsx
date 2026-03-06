@@ -91,8 +91,7 @@ export const columns: ColumnDef<CWLPlayerStatsWithRank>[] = [
     cell: ({ row }) => {
       const score = row.getValue("bayesianScore") as number;
       const player = row.original;
-      const perfectAttacks = player.perfectAttacks || 0;
-      // Calcula porcentagem baseada no máximo de 3.0
+      const perfectAttacks = player.perfectAttacks || 0;
       const percentage = (score / 3.0) * 100;
 
       return (
@@ -149,8 +148,7 @@ export const columns: ColumnDef<CWLPlayerStatsWithRank>[] = [
       <DataTableColumnHeader column={column} title="PARTICIPAÇÃO" />
     ),
     cell: ({ row }) => {
-      const player = row.original;
-      // Garante que warsParticipated existe (pode ser undefined em dados antigos)
+      const player = row.original;
       const wars = player.warsParticipated ?? player.totalAttacks ?? 0;
       const attacks = player.totalAttacks ?? 0;
       const maxAttacks = wars > 0 ? wars * 1 : attacks; // Na CWL é apenas 1 ataque por guerra

@@ -8,8 +8,7 @@ interface ExpandedRowContentProps {
   player: PlayerStats;
 }
 
-export function ExpandedRowContent({ player }: ExpandedRowContentProps) {
-  // Ordena ataques por data (mais recente primeiro)
+export function ExpandedRowContent({ player }: ExpandedRowContentProps) {
   const sortedAttacks = [...player.attacks].sort((a, b) => {
     return new Date(b.warEndTime).getTime() - new Date(a.warEndTime).getTime();
   });
@@ -56,8 +55,7 @@ export function ExpandedRowContent({ player }: ExpandedRowContentProps) {
             } else {
               date = new Date(warEndTime);
             }
-            
-           
+
             const isValidDate = !isNaN(date.getTime());
             const year = isValidDate ? date.getFullYear() : 0;
             const isReasonableDate = year >= 2000 && year <= 2100;
@@ -68,9 +66,7 @@ export function ExpandedRowContent({ player }: ExpandedRowContentProps) {
                   month: "2-digit",
                   year: "numeric",
                 })
-              : "Data inválida";
-            
-            // Garante que opponentClanName existe (já validado no backend)
+              : "Data inválida";
             const opponentClanName = attack.opponentClanName || "Clan Desconhecido";
             const isPerfect = attack.stars === 3 && attack.destructionPercentage === 100;
             
@@ -79,7 +75,7 @@ export function ExpandedRowContent({ player }: ExpandedRowContentProps) {
                 key={`${attack.warEndTime}-${attack.defenderTag}-${index}`}
                 className="relative bg-card/50 border border-border/50 rounded-lg p-2 sm:p-3 hover:bg-card hover:border-border transition-all"
               >
-                {/* Badge de performance no canto superior direito */}
+                {}
                 <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2">
                   <Badge 
                     variant="secondary" 
@@ -93,7 +89,7 @@ export function ExpandedRowContent({ player }: ExpandedRowContentProps) {
                   </Badge>
                 </div>
                 
-                {/* Conteúdo do card */}
+                {}
                 <div className="pr-16 sm:pr-20">
                   <div className="font-medium text-xs sm:text-sm mb-1 sm:mb-1.5 line-clamp-1">
                     {opponentClanName}

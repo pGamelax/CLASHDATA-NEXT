@@ -2,9 +2,6 @@ import { cookies } from "next/headers";
 import { getOrganizations, getClansByOrganization } from "@/lib/api";
 import type { Metadata } from "next";
 
-/**
- * Busca organização e clan baseado nos parâmetros da URL
- */
 export async function getOrganizationAndClan(slug: string, clan?: string) {
   const cookieStore = await cookies();
   const cookieHeader = cookieStore
@@ -35,9 +32,6 @@ export async function getOrganizationAndClan(slug: string, clan?: string) {
   return { organization, selectedClan };
 }
 
-/**
- * Gera metadata para páginas de organização
- */
 export async function generateOrganizationMetadata(
   slug: string,
   defaultTitle: string = "Organização | CLASHDATA"
@@ -52,9 +46,6 @@ export async function generateOrganizationMetadata(
   };
 }
 
-/**
- * Gera metadata para páginas de clan
- */
 export async function generateClanMetadata(
   slug: string,
   clan: string,

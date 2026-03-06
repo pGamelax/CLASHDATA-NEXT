@@ -46,7 +46,6 @@ export default async function OrganizationsPage() {
     );
   }
 
-  // Busca os clãs de cada organização
   const orgsWithClans = await Promise.all(
     orgsList.map(async (org: any) => {
       const clansResponse = await getClansByOrganization(org.id, cookieHeader);
@@ -58,7 +57,7 @@ export default async function OrganizationsPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header */}
+        {}
         <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
@@ -76,7 +75,7 @@ export default async function OrganizationsPage() {
           </Button>
         </div>
 
-        {/* Organizations Grid */}
+        {}
         {orgsWithClans.length === 0 ? (
           <Card className="border-2 border-dashed bg-gradient-to-br from-muted/40 to-muted/20">
             <CardContent className="flex flex-col items-center justify-center py-20">

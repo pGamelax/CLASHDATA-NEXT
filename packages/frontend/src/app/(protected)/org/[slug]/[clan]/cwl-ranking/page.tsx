@@ -22,9 +22,7 @@ export default async function CWLPage({
     slug,
     clan,
     (slug, clanSlug) => `/org/${slug}/${clanSlug}/cwl`
-  );
-
-  // Busca ranking inicial (mês atual)
+  );
   let initialRanking: CWLPlayerStats[] = [];
   try {
     const clanTag = selectedClan.clanTag.replace("#", "");
@@ -32,8 +30,7 @@ export default async function CWLPage({
     const currentMonth = {
       year: now.getFullYear(),
       month: now.getMonth() + 1,
-    };
-    // No servidor, não usa cache
+    };
     initialRanking = await getCWLRanking(clanTag, [currentMonth], false);
   } catch (error) {
     console.error("Erro ao buscar ranking inicial de CWL:", error);

@@ -18,9 +18,7 @@ export default async function ClansPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const { organization, cookieHeader } = await getValidatedOrganization(slug);
-
-  // Busca os clans da organização
+  const { organization, cookieHeader } = await getValidatedOrganization(slug);
   const clansResponse = await getClansByOrganization(organization.id, cookieHeader);
   const clans = clansResponse?.data || clansResponse || [];
 

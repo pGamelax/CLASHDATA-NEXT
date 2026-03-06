@@ -134,9 +134,7 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
 
     try {
       setRenewing(true);
-      setError(null);
-      
-      // Redireciona para a página de pricing para renovar
+      setError(null);
       window.location.href = `/pricing?org=${organization.slug}&renew=true`;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao renovar assinatura");
@@ -145,15 +143,11 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
   }
 
   async function handleChangePlan() {
-    if (!subscription) return;
-
-    // Se não tem stripeCustomerId, não pode trocar de plano (é manual)
+    if (!subscription) return;
     if (!subscription.stripeCustomerId) {
       setError("Assinaturas manuais não podem ser alteradas pelo portal. Entre em contato com o administrador.");
       return;
-    }
-
-    // Abre o diálogo de upgrade
+    }
     setShowUpgradeDialog(true);
   }
 
@@ -246,7 +240,7 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
         </p>
       </div>
 
-      {/* Status da Subscription */}
+      {}
       <Card className="border-2 shadow-sm">
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
@@ -319,7 +313,7 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
           <div className="flex flex-col gap-3">
             {(isExpired || isCancelled) ? (
               <>
-                {/* Se tem stripeCustomerId, mostra botão para abrir portal Stripe */}
+                {}
                 {subscription.stripeCustomerId ? (
                   <>
                     <Button
@@ -388,7 +382,7 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
               </>
             ) : (
               <>
-                {/* Só mostra botões do Stripe se tiver stripeCustomerId (não é manual) */}
+                {}
                 {subscription.stripeCustomerId ? (
                   <>
                     <Button
@@ -445,7 +439,7 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
         </CardContent>
       </Card>
 
-      {/* Limites e Uso */}
+      {}
       <Card className="border-2 shadow-sm">
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -459,7 +453,7 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Clans */}
+          {}
           <div className="space-y-3 p-4 rounded-lg border bg-card">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -502,7 +496,7 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
             )}
           </div>
 
-          {/* Convites */}
+          {}
           <div className="space-y-3 p-4 rounded-lg border bg-card">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -547,7 +541,7 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
         </CardContent>
       </Card>
 
-      {/* Recursos do Plano */}
+      {}
       <Card className="border-2 shadow-sm">
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -602,7 +596,7 @@ export function SubscriptionContent({ organization }: SubscriptionContentProps) 
         </CardContent>
       </Card>
 
-      {/* Dialog de Upgrade */}
+      {}
       {subscription && subscription.stripeCustomerId && (
         <PlanUpgradeDialog
           open={showUpgradeDialog}

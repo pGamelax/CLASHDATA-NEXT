@@ -28,7 +28,6 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 
-// Client component para atualizar o título
 function TitleUpdater({ title }: { title: string }) {
   useEffect(() => {
     document.title = title;
@@ -62,7 +61,6 @@ export default function NewOrganizationPage() {
   const [error, setError] = useState<string | null>(null);
   const { data: session } = useSession();
 
-  // Pega plano e período da URL ou localStorage
   const plan = (searchParams.get("plan") ||
     localStorage.getItem("selectedPlan") ||
     "MESTRE") as "MESTRE" | "CAMPEAO" | "TITA" | "LEGEND";
@@ -83,7 +81,7 @@ export default function NewOrganizationPage() {
     setError(null);
 
     try {
-      // Gera slug a partir do nome da organização
+
       const slug = name
         .toLowerCase()
         .normalize("NFD")
@@ -91,7 +89,6 @@ export default function NewOrganizationPage() {
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "");
 
-      // Cria sessão de checkout no Stripe
       const checkoutResponse = await fetch(
         `${API_URL}/stripe/create-checkout-session`,
         {
@@ -116,7 +113,6 @@ export default function NewOrganizationPage() {
 
       const checkoutResult = await checkoutResponse.json();
 
-      // Redireciona para o checkout do Stripe
       if (checkoutResult.url) {
         window.location.href = checkoutResult.url;
       } else {
@@ -129,7 +125,6 @@ export default function NewOrganizationPage() {
     }
   }
 
-  // Se não tiver plano, redireciona para pricing
   useEffect(() => {
     if (!plan || !["MESTRE", "CAMPEAO", "TITA", "LEGEND"].includes(plan)) {
       router.push("/pricing");
@@ -172,7 +167,7 @@ export default function NewOrganizationPage() {
           </div>
 
           <form onSubmit={handleSubmit(handleCreateOrganization)}>
-            {/* Nome da Organização */}
+            {}
             <Card className="mb-6 border-2 shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -211,12 +206,11 @@ export default function NewOrganizationPage() {
             </Card>
 
             <div className="w-full mt-6">
-              {/* Removido o Flexbox de container e o botão Voltar */}
+              {}
               <Button
                 type="submit"
                 disabled={isCreating}
-                // h-12 para manter a altura boa de clique
-                // w-full para garantir que ele preencha o container e fique robusto
+
                 className="w-full h-12 shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-95 transition-all"
                 size="lg"
               >

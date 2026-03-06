@@ -78,18 +78,14 @@ interface ClanPanelProps {
 
 export function ClanPanel({ initialData, organization }: ClanPanelProps) {
   const [clanData, setClanData] = useState<ClanData>(initialData);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // Verifica cache quando o componente monta (apenas no cliente)
+  const [isRefreshing, setIsRefreshing] = useState(false);
   useEffect(() => {
     if (!organization?.metadata?.clanTag) return;
 
     const checkCache = async () => {
       const clanTag = organization.metadata.clanTag.replace("#", "");
       const { getCachedClanData } = await import("@/lib/clan-cache");
-      const cached = getCachedClanData(clanTag);
-      
-      // Se houver cache válido e os dados iniciais parecerem antigos, usa o cache
+      const cached = getCachedClanData(clanTag);
       if (cached && cached.tag === initialData.tag) {
         setClanData(cached);
       }
@@ -103,11 +99,9 @@ export function ClanPanel({ initialData, organization }: ClanPanelProps) {
 
     setIsRefreshing(true);
     try {
-      const clanTag = organization.metadata.clanTag.replace("#", "");
-      // Limpa o cache antes de buscar novos dados
+      const clanTag = organization.metadata.clanTag.replace("#", "");
       const { clearClanCache } = await import("@/lib/clan-cache");
-      clearClanCache(clanTag);
-      // Busca dados frescos (sem usar cache)
+      clearClanCache(clanTag);
       const freshData = await fetchClanData(clanTag, undefined, false);
       setClanData(freshData);
     } catch (error) {
@@ -131,7 +125,7 @@ export function ClanPanel({ initialData, organization }: ClanPanelProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header do Clan */}
+      {}
       <Card className="border-2">
         <CardContent className="p-4 sm:p-6">
         <div className="flex flex-col md:flex-row items-start md:items-center gap-4 sm:gap-6">
@@ -206,7 +200,7 @@ export function ClanPanel({ initialData, organization }: ClanPanelProps) {
         </CardContent>
       </Card>
 
-      {/* Estatísticas Principais */}
+      {}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-2">
           <CardContent className="p-6">
@@ -271,7 +265,7 @@ export function ClanPanel({ initialData, organization }: ClanPanelProps) {
         )}
       </div>
 
-      {/* Estatísticas de Guerra */}
+      {}
       {(clanData.warWins !== undefined ||
         clanData.warLosses !== undefined ||
         clanData.warTies !== undefined) && (
@@ -418,7 +412,7 @@ export function ClanPanel({ initialData, organization }: ClanPanelProps) {
         </div>
       )}
 
-      {/* Top Membros */}
+      {}
       {clanData.memberList && clanData.memberList.length > 0 && (
         <Card className="border-2">
           <CardHeader>

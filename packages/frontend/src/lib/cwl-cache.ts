@@ -1,5 +1,4 @@
-// Cache para dados de CWL com TTL de 5 minutos
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutos em milissegundos
+const CACHE_TTL = 5 * 60 * 1000;
 const CACHE_PREFIX = "cwl_";
 
 interface CachedCWLData {
@@ -7,18 +6,15 @@ interface CachedCWLData {
   timestamp: number;
 }
 
-// Normaliza dados de CWL para garantir que warsParticipated sempre existe
 function normalizeCWLData(data: any[]): any[] {
   if (!Array.isArray(data)) return data;
   
   return data.map((player) => {
-    // Converte seasonsParticipated antigo para warsParticipated se necessário
     if (player.seasonsParticipated !== undefined && player.seasonsParticipated !== null) {
       player.warsParticipated = player.seasonsParticipated;
       delete player.seasonsParticipated;
     }
     
-    // Se não tiver warsParticipated, usa totalAttacks como fallback (1 ataque por guerra na CWL)
     if (player.warsParticipated === undefined || player.warsParticipated === null) {
       player.warsParticipated = player.totalAttacks || 0;
     }
@@ -36,13 +32,11 @@ export function getCachedCWLData(key: string): any | null {
     const parsed: CachedCWLData = JSON.parse(cached);
     const now = Date.now();
 
-    // Verifica se o cache expirou
     if (now - parsed.timestamp > CACHE_TTL) {
       localStorage.removeItem(`${CACHE_PREFIX}${key}`);
       return null;
     }
 
-    // Normaliza os dados antes de retornar
     return normalizeCWLData(parsed.data);
   } catch (error) {
     return null;
@@ -53,7 +47,6 @@ export function setCachedCWLData(key: string, data: any): void {
   if (typeof window === "undefined") return;
 
   try {
-    // Normaliza os dados antes de salvar
     const normalizedData = normalizeCWLData(data);
     
     const cached: CachedCWLData = {
@@ -71,9 +64,7 @@ export function setCachedCWLData(key: string, data: any): void {
           timestamp: Date.now(),
         };
         localStorage.setItem(`${CACHE_PREFIX}${key}`, JSON.stringify(cached));
-      } catch (retryError) {
-        // Falha ao salvar após limpeza
-      }
+      } catch (retryError) {}
     }
   }
 }
@@ -89,7 +80,7 @@ export function clearCWLCache(): void {
       }
     });
   } catch (error) {
-    // Erro silencioso ao limpar cache
+
   }
 }
 
@@ -113,14 +104,11 @@ function clearOldCaches(): void {
             }
           }
         } catch {
-          // Se não conseguir parsear, remove
           localStorage.removeItem(key);
           cleared++;
         }
       }
     });
-  } catch (error) {
-    // Erro silencioso ao limpar caches antigos
-  }
+  } catch (error) {}
 }
 

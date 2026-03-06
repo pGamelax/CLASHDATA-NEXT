@@ -30,9 +30,7 @@ export default async function PlayerPushPage({
     slug,
     clan,
     (slug, clanSlug) => `/org/${slug}/${clanSlug}/player-push`
-  );
-
-  // Busca logs iniciais
+  );
   let initialPlayerPushLogs: any[] = [];
   try {
     const clanTag = selectedClan.clanTag.replace("#", "");

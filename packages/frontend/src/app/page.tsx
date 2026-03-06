@@ -13,8 +13,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const cookieStore = await cookies();
-  // Converte cookies do Next.js para string de header HTTP
+  const cookieStore = await cookies();
   const cookieHeader = cookieStore
     .getAll()
     .map((cookie) => `${cookie.name}=${cookie.value}`)
@@ -58,7 +57,7 @@ export default async function Home() {
     <div className="min-h-screen bg-background">
       <ClientHeader initialUser={session?.user} />
       
-      {/* Hero Section */}
+      {}
       <section className="relative overflow-hidden border-b">
         <div className="container mx-auto px-4 py-20 sm:py-32">
           <div className="mx-auto max-w-3xl text-center">
@@ -93,7 +92,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Features Section */}
+      {}
       <section className="container mx-auto px-4 py-20 lg:py-28">
         <div className="mx-auto max-w-2xl text-center mb-16">
           <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
@@ -126,7 +125,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Stats Section */}
+      {}
       <section className="border-y bg-gradient-to-b from-muted/40 via-primary/5 to-muted/40">
         <div className="container mx-auto px-4 py-20">
           <div className="grid gap-8 md:grid-cols-3">
@@ -146,7 +145,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* CTA Section */}
+      {}
       <section className="container mx-auto px-4 py-20 lg:py-28">
         <Card className="border-2 bg-gradient-to-br from-primary/15 via-primary/8 to-primary/5 shadow-2xl overflow-hidden relative">
           <div className="absolute inset-0 bg-grid-pattern opacity-[0.04]" />

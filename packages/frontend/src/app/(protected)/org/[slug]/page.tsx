@@ -17,11 +17,8 @@ export default async function OrganizationPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await params;
-  // Verifica assinatura expirada e redireciona se necessário
-  const { organization, cookieHeader } = await getValidatedOrganization(slug);
-
-  // Busca os clans da organização
+  const { slug } = await params;
+  const { organization, cookieHeader } = await getValidatedOrganization(slug);
   const clansResponse = await getClansByOrganization(organization.id, cookieHeader);
   const clans = clansResponse?.data || clansResponse || [];
 

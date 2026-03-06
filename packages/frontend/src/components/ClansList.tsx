@@ -33,13 +33,11 @@ export function ClansList({ organization, clans }: ClansListProps) {
         if (organization && session?.user) {
           const member = organization.members?.find(
             (m: any) => m.userId === session.user.id
-          );
-          // Apenas o owner pode adicionar clans
+          );
           setIsOwner(member?.role === "owner");
           
         }
-      } catch (error) {
-        // Erro silencioso - permissão negada por padrão
+      } catch (error) {
       }
     }
     

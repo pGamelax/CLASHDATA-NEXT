@@ -16,13 +16,11 @@ import { Star, Users, Building2, Shield, ArrowUp, ArrowDown, Swords, Hammer, Spa
 
 interface PlayerDetailsContentProps {
   playerData: PlayerStats;
-}
-
-// Componente para conteúdo expandido da guerra
+}
 function WarExpandedContent({ war }: { war: any }) {
   return (
     <div className="p-4 space-y-4">
-      {/* Ataques */}
+      {}
       {war.attacks && war.attacks.length > 0 ? (
         <div>
           <h4 className="font-semibold text-sm mb-3">Ataques ({war.attacks.length})</h4>
@@ -65,9 +63,7 @@ function WarExpandedContent({ war }: { war: any }) {
 }
 
 export function PlayerDetailsContent({ playerData }: PlayerDetailsContentProps) {
-  const { player, warHistory, cwlHistory, friendlyHistory, totalStats } = playerData;
-  
-  // Adiciona renderExpandedContent às guerras (backend já agrupa)
+  const { player, warHistory, cwlHistory, friendlyHistory, totalStats } = playerData;
   const groupedWarHistory = warHistory.map((war) => ({
     ...war,
     renderExpandedContent: (data: any) => <WarExpandedContent war={data} />,
@@ -79,9 +75,7 @@ export function PlayerDetailsContent({ playerData }: PlayerDetailsContentProps) 
   const groupedFriendlyHistory = friendlyHistory.map((war) => ({
     ...war,
     renderExpandedContent: (data: any) => <WarExpandedContent war={data} />,
-  }));
-
-  // Calcula progresso de heróis, tropas e feitiços
+  }));
   const calculateProgress = () => {
     if (!player.heroes || !player.troops || !player.spells) return null;
     
@@ -105,9 +99,7 @@ export function PlayerDetailsContent({ playerData }: PlayerDetailsContentProps) 
     };
   };
 
-  const progress = calculateProgress();
-
-  // Função para traduzir role
+  const progress = calculateProgress();
   const translateRole = (role: string) => {
     const roles: Record<string, string> = {
       leader: "Líder",
@@ -116,9 +108,7 @@ export function PlayerDetailsContent({ playerData }: PlayerDetailsContentProps) 
       member: "Membro",
     };
     return roles[role] || role;
-  };
-
-  // Função para obter o caminho da imagem do Town Hall
+  };
   const getTownHallImage = (level: number) => {
     if (level >= 3 && level <= 18) {
       return `/townhall/th${level}_min.png`;
@@ -128,7 +118,7 @@ export function PlayerDetailsContent({ playerData }: PlayerDetailsContentProps) 
 
   return (
     <div className="w-full space-y-6">
-      {/* Header com Badges */}
+      {}
       <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
@@ -158,7 +148,7 @@ export function PlayerDetailsContent({ playerData }: PlayerDetailsContentProps) 
           </div>
         </div>
 
-        {/* Badges Principais */}
+        {}
         <div className="flex flex-wrap gap-2">
           {player.townHallLevel && (
             <Tooltip content="Nível do Centro de Vila">
@@ -203,7 +193,7 @@ export function PlayerDetailsContent({ playerData }: PlayerDetailsContentProps) 
           )}
         </div>
 
-        {/* Estatísticas em Badges */}
+        {}
         <div className="flex flex-wrap gap-2">
           {player.trophies !== undefined && (
             <Tooltip content="Troféus atuais">
@@ -279,7 +269,7 @@ export function PlayerDetailsContent({ playerData }: PlayerDetailsContentProps) 
           )}
         </div>
 
-        {/* Melhores Recordes */}
+        {}
         {(player.bestTrophies !== undefined || player.bestBuilderBaseTrophies !== undefined) && (
           <div className="space-y-2">
             <h3 className="text-sm font-semibold text-muted-foreground">Melhores Recordes</h3>
@@ -304,7 +294,7 @@ export function PlayerDetailsContent({ playerData }: PlayerDetailsContentProps) 
           </div>
         )}
 
-        {/* Labels */}
+        {}
         {player.labels && player.labels.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {player.labels.map((label: any) => (
@@ -319,7 +309,7 @@ export function PlayerDetailsContent({ playerData }: PlayerDetailsContentProps) 
         )}
       </div>
 
-      {/* Informações Adicionais - Liga e Ranking */}
+      {}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -361,7 +351,7 @@ export function PlayerDetailsContent({ playerData }: PlayerDetailsContentProps) 
         </CardContent>
       </Card>
 
-      {/* Resumo de Estatísticas - Layout compacto em tabela */}
+      {}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Estatísticas Gerais</CardTitle>
@@ -416,7 +406,7 @@ export function PlayerDetailsContent({ playerData }: PlayerDetailsContentProps) 
         </CardContent>
       </Card>
 
-      {/* Tabs com Histórico */}
+      {}
       <Tabs defaultValue="wars" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="wars">Guerras ({groupedWarHistory.length})</TabsTrigger>

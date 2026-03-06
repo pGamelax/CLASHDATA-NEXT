@@ -98,7 +98,7 @@ export function AdminDashboardStats() {
         </p>
       </div>
 
-      {/* Stats Cards */}
+      {}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -153,7 +153,7 @@ export function AdminDashboardStats() {
         </Card>
       </div>
 
-      {/* Subscription Status Cards */}
+      {}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
@@ -204,7 +204,7 @@ export function AdminDashboardStats() {
         </Card>
       </div>
 
-      {/* Distribution by Plan */}
+      {}
       <Card>
         <CardHeader>
           <CardTitle>Distribuição por Plano</CardTitle>
@@ -221,7 +221,7 @@ export function AdminDashboardStats() {
         </CardContent>
       </Card>
 
-      {/* Quick Actions */}
+      {}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
         <Card>
           <CardHeader>

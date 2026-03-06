@@ -12,9 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { fetchClanData, createClan, getSession } from "@/lib/api";
-import { useOrganizations } from "@/auth";
-
-// Client component para atualizar o título
+import { useOrganizations } from "@/auth";
 function TitleUpdater({ title }: { title: string }) {
   useEffect(() => {
     document.title = title;
@@ -83,8 +81,7 @@ export default function NewClanPage() {
         const session = await getSession();
         setCurrentUser(session?.user || null);
         
-        if (organization && session?.user) {
-          // Verifica se o usuário é owner ou admin
+        if (organization && session?.user) {
           const member = organization.members?.find(
             (m: any) => m.userId === session.user.id
           );
@@ -141,9 +138,7 @@ export default function NewClanPage() {
         clanPoints: clanData.clanPoints,
         members: clanData.members,
         location: clanData.location,
-      });
-
-      // Redireciona para a página da organização
+      });
       router.push(`/org/${orgSlug}`);
       router.refresh();
     } catch (err) {

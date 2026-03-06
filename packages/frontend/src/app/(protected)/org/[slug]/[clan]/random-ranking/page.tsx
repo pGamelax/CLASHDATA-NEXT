@@ -22,9 +22,7 @@ export default async function WarsPage({
     slug,
     clan,
     (slug, clanSlug) => `/org/${slug}/${clanSlug}/wars`
-  );
-
-  // Busca ranking inicial (mês atual)
+  );
   let initialRanking: PlayerStats[] = [];
   try {
     const clanTag = selectedClan.clanTag.replace("#", "");
@@ -32,8 +30,7 @@ export default async function WarsPage({
     const currentMonth = {
       year: now.getFullYear(),
       month: now.getMonth() + 1,
-    };
-    // No servidor, não usa cache
+    };
     initialRanking = await getWarRanking(clanTag, [currentMonth], false);
   } catch (error) {
     console.error("Erro ao buscar ranking inicial:", error);

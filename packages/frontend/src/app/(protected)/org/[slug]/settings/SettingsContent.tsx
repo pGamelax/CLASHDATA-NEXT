@@ -87,9 +87,7 @@ export function SettingsContent({ organization: initialOrganization }: { organiz
   const isAdmin = currentUser?.role === "admin";
   const isOwner = (organization.members || []).some(
     (m: any) => m.userId === currentUser?.id && m.role === "owner"
-  ) || isAdmin;
-
-  // Se não for owner, redireciona
+  ) || isAdmin;
   useEffect(() => {
     if (currentUser && !isOwner) {
       router.push(`/org/${organization.slug}`);
@@ -108,8 +106,7 @@ export function SettingsContent({ organization: initialOrganization }: { organiz
     try {
       const result = await updateOrganization(organization.id, { name, slug });
       setMessage({ type: "success", text: "Organização atualizada com sucesso" });
-      setOrganization({ ...organization, name, slug });
-      // Atualiza a URL se o slug mudou
+      setOrganization({ ...organization, name, slug });
       if (slug !== organization.slug) {
         router.push(`/org/${slug}/settings`);
       }
@@ -119,7 +116,6 @@ export function SettingsContent({ organization: initialOrganization }: { organiz
       setLoading(false);
     }
   };
-
 
   if (!isOwner) {
     return null;
@@ -140,7 +136,7 @@ export function SettingsContent({ organization: initialOrganization }: { organiz
           </Alert>
         )}
 
-        {/* Informações da Organização */}
+        {}
         <Card className="border-2 shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -199,7 +195,7 @@ export function SettingsContent({ organization: initialOrganization }: { organiz
           </CardContent>
         </Card>
 
-        {/* Clans */}
+        {}
         <Card className="border-2 shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-2">

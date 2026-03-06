@@ -69,8 +69,7 @@ export function MembersContent({ organization: initialOrganization }: { organiza
 
       if (orgResponse.ok) {
         const orgData = await orgResponse.json();
-        if (orgData.organization) {
-          // Atualiza o estado da organização com os membros
+        if (orgData.organization) {
           setOrganization({
             ...organization,
             members: orgData.organization.members || [],
@@ -106,17 +105,13 @@ export function MembersContent({ organization: initialOrganization }: { organiza
       }
     }
     loadData();
-  }, [organization.id]);
-
-  // Escuta eventos de mudança de organização e atualiza periodicamente
+  }, [organization.id]);
   useEffect(() => {
     const handleOrganizationChange = async () => {
       await loadOrganizationData();
       const invitesData = await getInvitesByOrganization(organization.id);
       setInvites(invitesData);
-    };
-
-    // Polling a cada 3 segundos para atualizar membros
+    };
     const interval = setInterval(() => {
       loadOrganizationData();
       getInvitesByOrganization(organization.id).then(setInvites).catch(console.error);
@@ -133,22 +128,16 @@ export function MembersContent({ organization: initialOrganization }: { organiza
     if (!email.trim()) {
       setMessage({ type: "error", text: "Digite um email" });
       return;
-    }
-
-    // Buscar usuário por email
+    }
     const user = allUsers.find((u) => u.email === email.trim());
     if (!user) {
       setMessage({ type: "error", text: "Usuário não encontrado com este email" });
       return;
-    }
-
-    // Verificar se já é membro
+    }
     if ((organization.members || []).some((m) => m.userId === user.id)) {
       setMessage({ type: "error", text: "Este usuário já é membro da organização" });
       return;
-    }
-
-    // Verificar se já existe convite pendente
+    }
     if (invites.some((i) => i.userId === user.id && i.status === "PENDING")) {
       setMessage({ type: "error", text: "Já existe um convite pendente para este usuário" });
       return;
@@ -159,8 +148,7 @@ export function MembersContent({ organization: initialOrganization }: { organiza
     try {
       await sendInvite(organization.id, user.id);
       setMessage({ type: "success", text: "Convite enviado com sucesso" });
-      setEmail("");
-      // Recarregar convites e organização
+      setEmail("");
       await loadOrganizationData();
       const invitesData = await getInvitesByOrganization(organization.id);
       setInvites(invitesData);
@@ -174,17 +162,14 @@ export function MembersContent({ organization: initialOrganization }: { organiza
   const handleCancelInvite = async (inviteId: string) => {
     try {
       await cancelInvite(inviteId);
-      setMessage({ type: "success", text: "Convite cancelado" });
-      // Recarregar convites e organização
+      setMessage({ type: "success", text: "Convite cancelado" });
       await loadOrganizationData();
       const invitesData = await getInvitesByOrganization(organization.id);
       setInvites(invitesData);
     } catch (error: any) {
       setMessage({ type: "error", text: error.message || "Erro ao cancelar convite" });
     }
-  };
-
-  // Buscar usuários por email quando o email mudar
+  };
   useEffect(() => {
     const searchUsers = async () => {
       if (email.trim().length >= 3) {
@@ -261,7 +246,7 @@ export function MembersContent({ organization: initialOrganization }: { organiza
           </Alert>
         )}
 
-        {/* Busca */}
+        {}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
@@ -272,7 +257,7 @@ export function MembersContent({ organization: initialOrganization }: { organiza
           />
         </div>
 
-        {/* Enviar convite (apenas owner) */}
+        {}
         {isOwner && (
           <Card className="border-2 shadow-sm">
             <CardHeader>
@@ -338,7 +323,7 @@ export function MembersContent({ organization: initialOrganization }: { organiza
           </Card>
         )}
 
-        {/* Membros - Visível para todos os membros */}
+        {}
         <Card className="border-2 shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -435,7 +420,7 @@ export function MembersContent({ organization: initialOrganization }: { organiza
           </CardContent>
         </Card>
 
-        {/* Convites */}
+        {}
         {isOwner && (
           <Card className="border-2 shadow-sm">
             <CardHeader>

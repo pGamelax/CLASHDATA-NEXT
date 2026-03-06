@@ -68,9 +68,7 @@ export function CurrentWarContent({ clanTag }: CurrentWarContentProps) {
   }
 
   const { war, prediction, warStatus, warCloser, threeStarAttacks, timeline } = analysis;
-  const { clan, opponent } = war;
-
-  // Verificação de segurança
+  const { clan, opponent } = war;
   if (!clan || !opponent) {
     return (
       <Card>
@@ -81,13 +79,10 @@ export function CurrentWarContent({ clanTag }: CurrentWarContentProps) {
         </CardContent>
       </Card>
     );
-  }
-
-  // Formata data
+  }
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
-    try {
-      // Formato: "20260130T043807.000Z"
+    try {
       const year = dateString.substring(0, 4);
       const month = dateString.substring(4, 6);
       const day = dateString.substring(6, 8);
@@ -104,9 +99,7 @@ export function CurrentWarContent({ clanTag }: CurrentWarContentProps) {
     } catch {
       return dateString;
     }
-  };
-
-  // Determina a cor do badge baseado no status
+  };
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case "winning":
@@ -127,7 +120,7 @@ export function CurrentWarContent({ clanTag }: CurrentWarContentProps) {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-7xl">
-      {/* Status da Guerra */}
+      {}
       <div className="flex justify-center">
         <Badge 
           variant={getStatusBadgeVariant(warStatus.status)} 
@@ -137,9 +130,9 @@ export function CurrentWarContent({ clanTag }: CurrentWarContentProps) {
         </Badge>
       </div>
 
-      {/* Header com informações gerais */}
+      {}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Nosso Clan */}
+        {}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -176,7 +169,7 @@ export function CurrentWarContent({ clanTag }: CurrentWarContentProps) {
           </CardContent>
         </Card>
 
-        {/* Oponente */}
+        {}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -214,7 +207,7 @@ export function CurrentWarContent({ clanTag }: CurrentWarContentProps) {
         </Card>
       </div>
 
-      {/* Quem Fechou - Compacto */}
+      {}
       {warCloser && (
         <Card className={cn(
           "border-2",
@@ -252,7 +245,7 @@ export function CurrentWarContent({ clanTag }: CurrentWarContentProps) {
         </Card>
       )}
 
-      {/* Previsão de Vitória */}
+      {}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -288,7 +281,7 @@ export function CurrentWarContent({ clanTag }: CurrentWarContentProps) {
         </CardContent>
       </Card>
 
-      {/* Tabs */}
+      {}
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="grid w-full grid-cols-3 sm:grid-cols-3">
           <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
@@ -296,7 +289,7 @@ export function CurrentWarContent({ clanTag }: CurrentWarContentProps) {
           <TabsTrigger value="three-stars" className="text-xs sm:text-sm">3 Estrelas</TabsTrigger>
         </TabsList>
 
-        {/* Tab Overview */}
+        {}
         <TabsContent value="overview" className="space-y-4">
           <Card>
             <CardHeader>
@@ -340,7 +333,7 @@ export function CurrentWarContent({ clanTag }: CurrentWarContentProps) {
           </Card>
         </TabsContent>
 
-        {/* Tab Timeline */}
+        {}
         <TabsContent value="timeline" className="space-y-4">
           <Card>
             <CardHeader>
@@ -394,7 +387,7 @@ export function CurrentWarContent({ clanTag }: CurrentWarContentProps) {
           </Card>
         </TabsContent>
 
-        {/* Tab 3 Estrelas */}
+        {}
         <TabsContent value="three-stars" className="space-y-4">
           <Card>
             <CardHeader>

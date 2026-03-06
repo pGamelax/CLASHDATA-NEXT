@@ -9,12 +9,9 @@ export function DashboardContent() {
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [selectedOrg, setSelectedOrg] = useState<any | null>(null);
   const [clanData, setClanData] = useState<any | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Função para buscar dados do clan
+  const [isLoading, setIsLoading] = useState(true);
   const loadClanData = useCallback(async (org: any) => {
-    if (!org?.metadata?.clanTag) {
-      // Se não tiver clanTag, cria dados básicos
+    if (!org?.metadata?.clanTag) {
       setClanData({
         tag: "",
         name: org.name || "Organização",
@@ -32,8 +29,7 @@ export function DashboardContent() {
       const data = await fetchClanData(clanTag, undefined, true); // Usa cache no cliente
       setClanData(data);
     } catch (error) {
-      console.error("Erro ao buscar dados do clan:", error);
-      // Se não conseguir buscar, cria dados básicos
+      console.error("Erro ao buscar dados do clan:", error);
       setClanData({
         tag: org.metadata.clanTag || "",
         name: org.name || "Organização",
@@ -44,9 +40,7 @@ export function DashboardContent() {
         members: 0,
       });
     }
-  }, []);
-
-  // Função para buscar organizações
+  }, []);
   const loadOrganizations = useCallback(async () => {
     try {
       const orgs = await getOrganizations();
@@ -58,16 +52,13 @@ export function DashboardContent() {
       console.error("Erro ao buscar organizações:", error);
       return [];
     }
-  }, []);
-
-  // Carrega organizações e seleciona a organização ativa
+  }, []);
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       const orgsList = await loadOrganizations();
 
-      if (Array.isArray(orgsList) && orgsList.length > 0) {
-        // Pega a organização selecionada do localStorage
+      if (Array.isArray(orgsList) && orgsList.length > 0) {
         const savedOrgId = localStorage.getItem("selectedOrganization");
         const org = savedOrgId
           ? orgsList.find((o: any) => o.id === savedOrgId) || orgsList[0]
@@ -81,9 +72,7 @@ export function DashboardContent() {
     };
 
     loadData();
-  }, [loadOrganizations, loadClanData]);
-
-  // Escuta eventos customizados de criação e mudança de organização
+  }, [loadOrganizations, loadClanData]);
   useEffect(() => {
     const handleOrganizationEvent = async (event: Event) => {
       const customEvent = event as CustomEvent<{ organizationId?: string }>;
@@ -108,14 +97,11 @@ export function DashboardContent() {
       window.removeEventListener("organizationCreated", handleOrganizationEvent);
       window.removeEventListener("organizationChanged", handleOrganizationEvent);
     };
-  }, [loadOrganizations, loadClanData, selectedOrg?.id]);
-
-  // Verifica periodicamente se a organização mudou
+  }, [loadOrganizations, loadClanData, selectedOrg?.id]);
   useEffect(() => {
     const interval = setInterval(async () => {
       const savedOrgId = localStorage.getItem("selectedOrganization");
-      if (savedOrgId && selectedOrg?.id !== savedOrgId) {
-        // Recarrega organizações para garantir que temos a lista atualizada
+      if (savedOrgId && selectedOrg?.id !== savedOrgId) {
         const orgsList = await loadOrganizations();
         const org = Array.isArray(orgsList)
           ? orgsList.find((o: any) => o.id === savedOrgId)

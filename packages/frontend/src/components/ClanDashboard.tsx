@@ -13,8 +13,7 @@ interface ClanDashboardProps {
   clanData: any;
 }
 
-export function ClanDashboard({ organization, clan, clanData }: ClanDashboardProps) {
-  // Usa dados da API se disponível, senão usa dados do banco
+export function ClanDashboard({ organization, clan, clanData }: ClanDashboardProps) {
   const displayData = clanData || {
     name: clan.name,
     tag: clan.clanTag || clan.tag,
@@ -36,7 +35,7 @@ export function ClanDashboard({ organization, clan, clanData }: ClanDashboardPro
 
   return (
     <div className="space-y-6">
-      {/* Header do Clan */}
+      {}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
           {displayData.badgeUrls?.large && (
@@ -67,7 +66,7 @@ export function ClanDashboard({ organization, clan, clanData }: ClanDashboardPro
         </Button>
       </div>
 
-      {/* Estatísticas Principais */}
+      {}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -116,7 +115,7 @@ export function ClanDashboard({ organization, clan, clanData }: ClanDashboardPro
         </Card>
       </div>
 
-      {/* Informações de Guerra */}
+      {}
       {(displayData.warWins !== undefined || displayData.warLosses !== undefined) && (
         <Card>
           <CardHeader>
@@ -161,7 +160,7 @@ export function ClanDashboard({ organization, clan, clanData }: ClanDashboardPro
         </Card>
       )}
 
-      {/* Informações Adicionais */}
+      {}
       <div className="grid gap-4 md:grid-cols-2">
         {displayData.requiredTrophies !== undefined && (
           <Card>

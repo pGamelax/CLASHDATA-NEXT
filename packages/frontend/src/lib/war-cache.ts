@@ -1,6 +1,5 @@
-// Sistema de cache para dados de guerra
 const CACHE_KEY_PREFIX = "war_cache_";
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutos em milissegundos
+const CACHE_DURATION = 10 * 60 * 1000;
 
 interface CachedWarData {
   data: any;
@@ -19,12 +18,10 @@ export function getCachedWarData(key: string): any | null {
     const { data, timestamp }: CachedWarData = JSON.parse(cached);
     const now = Date.now();
 
-    // Verifica se o cache ainda é válido
     if (now - timestamp < CACHE_DURATION) {
       return data;
     }
 
-    // Cache expirado, remove
     localStorage.removeItem(cacheKey);
     return null;
   } catch (error) {
@@ -42,9 +39,7 @@ export function setCachedWarData(key: string, data: any): void {
       timestamp: Date.now(),
     };
     localStorage.setItem(cacheKey, JSON.stringify(cached));
-  } catch (error) {
-    // Erro silencioso ao salvar cache
-  }
+  } catch (error) {}
 }
 
 export function clearWarCache(key?: string): void {
@@ -55,7 +50,6 @@ export function clearWarCache(key?: string): void {
       const cacheKey = `${CACHE_KEY_PREFIX}${key}`;
       localStorage.removeItem(cacheKey);
     } else {
-      // Remove todos os caches de guerra
       const keys = Object.keys(localStorage);
       keys.forEach((k) => {
         if (k.startsWith(CACHE_KEY_PREFIX)) {
@@ -63,8 +57,6 @@ export function clearWarCache(key?: string): void {
         }
       });
     }
-  } catch (error) {
-    // Erro silencioso ao limpar cache
-  }
+  } catch (error) {}
 }
 

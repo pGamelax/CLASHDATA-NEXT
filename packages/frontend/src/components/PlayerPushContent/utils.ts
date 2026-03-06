@@ -1,12 +1,7 @@
-/**
- * Normaliza a data considerando que o dia começa às 02:00 AM
- * Se um log for às 01:50, ele pertence ao dia anterior
- */
+
 export function normalizeDateForDay(date: Date): Date {
   const normalized = new Date(date);
-  const hour = normalized.getHours();
-  
-  // Se for antes das 02:00, subtrai um dia
+  const hour = normalized.getHours();
   if (hour < 2) {
     normalized.setDate(normalized.getDate() - 1);
   }
@@ -14,9 +9,6 @@ export function normalizeDateForDay(date: Date): Date {
   return normalized;
 }
 
-/**
- * Retorna a string do dia no formato DD/MM
- */
 export function getDayString(date: Date): string {
   const normalized = normalizeDateForDay(date);
   return normalized.toLocaleDateString("pt-BR", {
@@ -25,18 +17,12 @@ export function getDayString(date: Date): string {
   });
 }
 
-/**
- * Verifica se duas datas pertencem ao mesmo dia (considerando 02:00 AM como início)
- */
 export function isSameDay(date1: Date, date2: Date): boolean {
   const day1 = getDayString(date1);
   const day2 = getDayString(date2);
   return day1 === day2;
 }
 
-/**
- * Extrai todos os dias únicos de uma lista de logs
- */
 export function extractUniqueDays(logs: Array<{ createdAt: Date | string }>): string[] {
   const daysMap = new Map<string, Date>();
   
@@ -46,23 +32,16 @@ export function extractUniqueDays(logs: Array<{ createdAt: Date | string }>): st
     const dayString = normalized.toLocaleDateString("pt-BR", {
       day: "2-digit",
       month: "2-digit",
-    });
-    
-    // Mantém a data mais recente para cada dia
+    });
     if (!daysMap.has(dayString) || daysMap.get(dayString)! < normalized) {
       daysMap.set(dayString, normalized);
     }
-  });
-  
-  // Ordena os dias do mais recente para o mais antigo usando as datas reais
+  });
   return Array.from(daysMap.entries())
     .sort((a, b) => b[1].getTime() - a[1].getTime())
     .map(([dayString]) => dayString);
 }
 
-/**
- * Filtra logs por dia
- */
 export function filterLogsByDay<T extends { createdAt: Date | string }>(
   logs: T[],
   selectedDay: string | null

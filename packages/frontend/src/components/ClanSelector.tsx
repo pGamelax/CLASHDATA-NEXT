@@ -46,9 +46,7 @@ export function ClanSelector({
 
   if (clans.length === 0) {
     return null;
-  }
-  
-  // Se não há clan selecionado, usa o primeiro da lista
+  }
   const displayClan = currentClan || clans[0];
 
   return (
@@ -61,7 +59,7 @@ export function ClanSelector({
             "focus:outline-none"
           )}
         >
-          {/* Badge do clan */}
+          {}
           <div className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-md shrink-0">
             {displayClan.badgeUrls?.small ? (
               <img
@@ -74,7 +72,7 @@ export function ClanSelector({
             )}
           </div>
           
-          {/* Nome do clan - visível quando showFullName ou em desktop */}
+          {}
           <span className={cn(
             "truncate flex-1 text-left text-foreground font-medium text-xs sm:text-sm",
             showFullName ? "flex min-w-0" : "hidden sm:flex"
@@ -82,7 +80,7 @@ export function ClanSelector({
             {displayClan.name}
           </span>
           
-          {/* Ícone de setas */}
+          {}
           <ChevronsUpDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
         </button>
       </DropdownMenuTrigger>

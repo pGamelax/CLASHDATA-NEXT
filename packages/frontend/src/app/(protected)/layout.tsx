@@ -8,16 +8,12 @@ export default async function ProtectedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = await cookies();
-  // Converte cookies do Next.js para string de header HTTP
+  const cookieStore = await cookies();
   const cookieHeader = cookieStore
     .getAll()
     .map((cookie) => `${cookie.name}=${cookie.value}`)
     .join("; ");
-  const session = await getSession(cookieHeader);
-
-  // Se não estiver autenticado, redireciona para login
-  // Os layouts específicos já tratam o callbackUrl
+  const session = await getSession(cookieHeader);
   if (!session?.user) {
     redirect("/sign-in");
   }

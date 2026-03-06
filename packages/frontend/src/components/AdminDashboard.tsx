@@ -124,15 +124,11 @@ export function AdminDashboard() {
       }
 
       const result = await response.json();
-      const organizationId = result.organization?.id;
-
-      // Fecha o modal e recarrega os dados
+      const organizationId = result.organization?.id;
       setShowCreateModal(false);
       setOrgName("");
       setOrgSlug("");
-      await fetchData();
-      
-      // Dispara evento para atualizar a lista de organizações no Header
+      await fetchData();
       if (organizationId) {
         window.dispatchEvent(new CustomEvent("organizationCreated", {
           detail: { organizationId }
@@ -223,7 +219,7 @@ export function AdminDashboard() {
         </Button>
       </div>
 
-      {/* Modal de Criação */}
+      {}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <Card className="w-full max-w-md">
@@ -320,7 +316,7 @@ export function AdminDashboard() {
         </div>
       )}
 
-      {/* Stats Cards */}
+      {}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -375,7 +371,7 @@ export function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Subscription Status Cards */}
+      {}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="pt-6">
@@ -426,7 +422,7 @@ export function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Tabs */}
+      {}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
           <TabsList className="w-full sm:w-auto min-w-full sm:min-w-0">
