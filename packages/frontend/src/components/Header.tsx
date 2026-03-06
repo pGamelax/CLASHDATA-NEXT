@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { authClient, useOrganizations, useSession } from "@/auth";
 import {
   DropdownMenu,
@@ -455,42 +455,90 @@ export function Header({
   const [detectedClan, setDetectedClan] = useState<any>(null);
 
   const user = (!isSessionPending && session?.user) ? session.user : (initialUser || null);
-  let organizationsData;
-  try {
-    organizationsData = organizations?.data || organizations || [];
-  } catch (error) {
-    console.error("Erro ao processar organizações:", error);
-    organizationsData = [];
-  }
-  const orgsList = Array.isArray(organizationsData) ? organizationsData : [];
+  
+  const orgsList = useMemo(() => {
+    try {
+      const organizationsData = organizations?.data || organizations || [];
+      return Array.isArray(organizationsData) ? organizationsData : [];
+    } catch (error) {
+      console.error("Erro ao processar organizações:", error);
+      return [];
+    }
+  }, [organizations]);
+
+  const orgsListIds = useMemo(() => orgsList.map((org: any) => org?.id).filter(Boolean).join(","), [orgsList]);
+  const prevOrgsListIdsRef = useRef<string>("");
+  const prevOrgIdRef = useRef<string | null>(null);
+  const prevUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    const currentOrgId = organization?.id || null;
+    const currentUserId = user?.id || null;
+    const orgsListChanged = prevOrgsListIdsRef.current !== orgsListIds;
+    const orgChanged = prevOrgIdRef.current !== currentOrgId;
+    const userChanged = prevUserIdRef.current !== currentUserId;
+
+    if (!orgsListChanged && !orgChanged && !userChanged) {
+      return;
+    }
+
+    prevOrgsListIdsRef.current = orgsListIds;
+    prevOrgIdRef.current = currentOrgId;
+    prevUserIdRef.current = currentUserId;
+
     if (!user) {
-      setSelectedOrganization(null);
-      localStorage.removeItem("selectedOrganization");
+      setSelectedOrganization((prev) => {
+        if (prev !== null) {
+          localStorage.removeItem("selectedOrganization");
+          return null;
+        }
+        return prev;
+      });
       return;
     }
 
     if (organization) {
-      setSelectedOrganization(organization.id);
-    } else if (Array.isArray(orgsList) && orgsList.length > 0) {
+      const currentId = organization.id;
+      setSelectedOrganization((prev) => {
+        if (prev !== currentId) {
+          return currentId;
+        }
+        return prev;
+      });
+      return;
+    }
+
+    if (orgsList.length > 0) {
       const saved = localStorage.getItem("selectedOrganization");
       if (saved && orgsList.some((org: any) => org.id === saved)) {
-        if (selectedOrganization !== saved) {
-          setSelectedOrganization(saved);
-        }
+        setSelectedOrganization((prev) => {
+          if (prev !== saved) {
+            return saved;
+          }
+          return prev;
+        });
       } else {
         const firstOrg = orgsList[0];
-        if (firstOrg && selectedOrganization !== firstOrg.id) {
-          setSelectedOrganization(firstOrg.id);
-          localStorage.setItem("selectedOrganization", firstOrg.id);
+        if (firstOrg) {
+          setSelectedOrganization((prev) => {
+            if (prev !== firstOrg.id) {
+              localStorage.setItem("selectedOrganization", firstOrg.id);
+              return firstOrg.id;
+            }
+            return prev;
+          });
         }
       }
-    } else if (Array.isArray(orgsList) && orgsList.length === 0) {
-      setSelectedOrganization(null);
-      localStorage.removeItem("selectedOrganization");
+    } else if (orgsList.length === 0) {
+      setSelectedOrganization((prev) => {
+        if (prev !== null) {
+          localStorage.removeItem("selectedOrganization");
+          return null;
+        }
+        return prev;
+      });
     }
-  }, [orgsList, selectedOrganization, organization, user]);
+  }, [orgsListIds, organization?.id, user?.id, orgsList]);
 
   useEffect(() => {
     if (!user) {

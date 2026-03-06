@@ -1,10 +1,10 @@
 import { cookies } from "next/headers";
 import { getSession } from "@/lib/api";
 import { ClientHeader } from "@/components/ClientHeader";
-import { HomeActions } from "@/components/HomeActions";
-import { HomeCTA } from "@/components/HomeCTA";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Swords, Trophy, BarChart3, Zap, Users, TrendingUp, Target } from "lucide-react";
+import Link from "next/link";
 
 import type { Metadata } from "next";
 
@@ -75,7 +75,20 @@ export default async function Home() {
               Análise completa de guerras, rankings detalhados e estatísticas avançadas para tomar as melhores decisões e liderar seu clã ao topo.
             </p>
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-              <HomeActions isAuthenticated={!!session?.user} />
+              {session?.user ? (
+                <Button asChild size="lg" className="text-lg px-8 h-12 shadow-lg hover:shadow-xl transition-all">
+                  <Link href="/organizations">Minhas Organizações</Link>
+                </Button>
+              ) : (
+                <>
+                  <Button asChild size="lg" className="text-lg px-8 h-12 shadow-lg hover:shadow-xl transition-all">
+                    <Link href="/sign-up">Começar Agora</Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline" className="text-lg px-8 h-12 border-2 hover:bg-primary/5 transition-all">
+                    <Link href="/sign-in">Entrar</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -148,7 +161,15 @@ export default async function Home() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center relative z-10">
-            <HomeCTA isAuthenticated={!!session?.user} />
+            {session?.user ? (
+              <Button asChild size="lg" className="text-lg px-8 h-12 shadow-lg hover:shadow-xl hover:scale-105 transition-all">
+                <Link href="/organizations">Minhas Organizações</Link>
+              </Button>
+            ) : (
+              <Button asChild size="lg" className="text-lg px-8 h-12 shadow-lg hover:shadow-xl hover:scale-105 transition-all">
+                <Link href="/sign-up">Criar Conta Grátis</Link>
+              </Button>
+            )}
           </CardContent>
         </Card>
       </section>
