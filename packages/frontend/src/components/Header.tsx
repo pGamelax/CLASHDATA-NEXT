@@ -469,14 +469,14 @@ export function Header({
   const orgsListIds = useMemo(() => orgsList.map((org: any) => org?.id).filter(Boolean).join(","), [orgsList]);
   const prevOrgsListIdsRef = useRef<string>("");
   const prevOrgIdRef = useRef<string | null>(null);
-  const prevUserIdRef = useRef<string | null>(null);
+  const prevUserEmailRef = useRef<string | null>(null);
 
   useEffect(() => {
     const currentOrgId = organization?.id || null;
-    const currentUserId = user?.id || null;
+    const currentUserEmail = user?.email || null;
     const orgsListChanged = prevOrgsListIdsRef.current !== orgsListIds;
     const orgChanged = prevOrgIdRef.current !== currentOrgId;
-    const userChanged = prevUserIdRef.current !== currentUserId;
+    const userChanged = prevUserEmailRef.current !== currentUserEmail;
 
     if (!orgsListChanged && !orgChanged && !userChanged) {
       return;
@@ -484,7 +484,7 @@ export function Header({
 
     prevOrgsListIdsRef.current = orgsListIds;
     prevOrgIdRef.current = currentOrgId;
-    prevUserIdRef.current = currentUserId;
+    prevUserEmailRef.current = currentUserEmail;
 
     if (!user) {
       setSelectedOrganization((prev) => {
@@ -538,7 +538,7 @@ export function Header({
         return prev;
       });
     }
-  }, [orgsListIds, organization?.id, user?.id, orgsList]);
+  }, [orgsListIds, organization?.id, user?.email, orgsList]);
 
   useEffect(() => {
     if (!user) {
