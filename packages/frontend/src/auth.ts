@@ -13,13 +13,14 @@ export const { signIn, signOut, signUp, useSession } = authClient;
 
 // Hook customizado para organizações
 export function useOrganizations() {
-  const { data: session } = useSession();
+  const { data: session, isPending: isSessionPending } = useSession();
   const [data, setData] = useState<any>(null);
   const [isPending, setIsPending] = useState(true);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
   const refetch = async () => {
-    if (!session?.user) {
+    // Se a sessão ainda está carregando ou não há usuário, não faz requisição
+    if (isSessionPending || !session?.user) {
       setData(null);
       setIsPending(false);
       return;
@@ -43,6 +44,7 @@ export function useOrganizations() {
         setData(null);
       }
     } catch (error) {
+      console.error("Erro ao buscar organizações:", error);
       setData(null);
     } finally {
       setIsPending(false);
@@ -50,8 +52,11 @@ export function useOrganizations() {
   };
 
   useEffect(() => {
-    refetch();
-  }, [session?.user?.id]);
+    // Só faz refetch se a sessão não estiver pendente
+    if (!isSessionPending) {
+      refetch();
+    }
+  }, [session?.user?.id, isSessionPending]);
 
-  return { data, isPending, refetch };
+  return { data, isPending: isPending || isSessionPending, refetch };
 }

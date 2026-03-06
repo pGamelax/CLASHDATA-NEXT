@@ -36,11 +36,21 @@ export function ClientHeader({ initialUser, organization, clan, clans }: ClientH
   }, []);
 
   // Usa o usuário da sessão se disponível, senão usa o initialUser
-  // Se a sessão estiver pendente ou não houver usuário na sessão, usa initialUser
+  // Se a sessão estiver pendente, usa initialUser para evitar flash de conteúdo
+  // Se não houver usuário na sessão após carregar, usa null (não initialUser) para garantir logout
+  // Durante SSR, sempre usa initialUser para evitar problemas de hidratação
   const user = mounted 
-    ? (isPending ? initialUser : (session?.user || initialUser))
+    ? (isPending 
+        ? initialUser 
+        : (session?.user || (session === null ? null : initialUser)))
     : initialUser;
 
-  return <Header user={user} organization={organization} clan={clan} clans={clans} />;
+  // Garante que organization e clan só sejam passados se houver usuário
+  // Isso evita problemas de hidratação quando o usuário faz logout
+  const safeOrganization = user ? organization : undefined;
+  const safeClan = user ? clan : undefined;
+  const safeClans = user ? clans : [];
+
+  return <Header user={user} organization={safeOrganization} clan={safeClan} clans={safeClans} />;
 }
 

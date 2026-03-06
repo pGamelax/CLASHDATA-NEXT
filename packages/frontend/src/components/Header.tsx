@@ -255,9 +255,9 @@ function PendingInvitesDropdown() {
         Convites Pendentes ({pendingCount})
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
-      {pendingInvites.map((invite) => (
+      {Array.isArray(pendingInvites) && pendingInvites.map((invite) => (
         <DropdownMenuItem
-          key={invite.id}
+          key={invite?.id || Math.random()}
           className="flex flex-col items-start p-3 cursor-default"
           onSelect={(e) => e.preventDefault()}
         >
@@ -394,9 +394,9 @@ function PendingInvitesSheetFooter() {
         Convites Pendentes ({pendingInvites.length})
       </div>
       <div className="space-y-2">
-        {pendingInvites.map((invite) => (
+        {Array.isArray(pendingInvites) && pendingInvites.map((invite) => (
           <div
-            key={invite.id}
+            key={invite?.id || Math.random()}
             className="flex flex-col gap-2 p-3 rounded-md border bg-muted/50"
           >
             <div className="flex items-start gap-2">
@@ -445,7 +445,7 @@ export function Header({
 }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { data: session, isPending: isSessionPending } = useSession();
   const {
     data: organizations,
     isPending: isLoadingOrgs,
@@ -459,12 +459,28 @@ export function Header({
   const [detectedOrg, setDetectedOrg] = useState<any>(null);
   const [detectedClan, setDetectedClan] = useState<any>(null);
 
-  const user = session?.user || initialUser;
+  // Usa o usuário da sessão apenas se não estiver pendente e houver usuário
+  // Caso contrário, usa o initialUser (que pode ser undefined se não houver usuário)
+  const user = (!isSessionPending && session?.user) ? session.user : (initialUser || null);
 
-  const organizationsData = organizations?.data || organizations || [];
+  // Proteção contra erros ao acessar organizações
+  let organizationsData;
+  try {
+    organizationsData = organizations?.data || organizations || [];
+  } catch (error) {
+    console.error("Erro ao processar organizações:", error);
+    organizationsData = [];
+  }
   const orgsList = Array.isArray(organizationsData) ? organizationsData : [];
 
   useEffect(() => {
+    // Se não há usuário, limpa a organização selecionada
+    if (!user) {
+      setSelectedOrganization(null);
+      localStorage.removeItem("selectedOrganization");
+      return;
+    }
+
     if (organization) {
       setSelectedOrganization(organization.id);
     } else if (Array.isArray(orgsList) && orgsList.length > 0) {
@@ -475,7 +491,7 @@ export function Header({
         }
       } else {
         const firstOrg = orgsList[0];
-        if (selectedOrganization !== firstOrg.id) {
+        if (firstOrg && selectedOrganization !== firstOrg.id) {
           setSelectedOrganization(firstOrg.id);
           localStorage.setItem("selectedOrganization", firstOrg.id);
         }
@@ -484,33 +500,42 @@ export function Header({
       setSelectedOrganization(null);
       localStorage.removeItem("selectedOrganization");
     }
-  }, [orgsList, selectedOrganization, organization]);
+  }, [orgsList, selectedOrganization, organization, user]);
 
   useEffect(() => {
+    // Só adiciona o listener se houver usuário
+    if (!user) {
+      return;
+    }
+
     const handleOrganizationCreated = async (event: Event) => {
       const customEvent = event as CustomEvent<{ organizationId: string }>;
       const { organizationId } = customEvent.detail;
       if (organizationId) {
-        await refetch();
-        let attempts = 0;
-        const maxAttempts = 5;
+        try {
+          await refetch();
+          let attempts = 0;
+          const maxAttempts = 5;
 
-        const checkAndSet = () => {
-          attempts++;
-          const saved = localStorage.getItem("selectedOrganization");
-          if (saved === organizationId) {
-            setSelectedOrganization(organizationId);
-          }
+          const checkAndSet = () => {
+            attempts++;
+            const saved = localStorage.getItem("selectedOrganization");
+            if (saved === organizationId) {
+              setSelectedOrganization(organizationId);
+            }
 
-          if (attempts >= maxAttempts) {
-            setSelectedOrganization(organizationId);
-            localStorage.setItem("selectedOrganization", organizationId);
-          } else {
-            setTimeout(checkAndSet, 200);
-          }
-        };
+            if (attempts >= maxAttempts) {
+              setSelectedOrganization(organizationId);
+              localStorage.setItem("selectedOrganization", organizationId);
+            } else {
+              setTimeout(checkAndSet, 200);
+            }
+          };
 
-        setTimeout(checkAndSet, 300);
+          setTimeout(checkAndSet, 300);
+        } catch (error) {
+          console.error("Erro ao processar organização criada:", error);
+        }
       }
     };
 
@@ -521,42 +546,59 @@ export function Header({
         handleOrganizationCreated,
       );
     };
-  }, [refetch]);
+  }, [refetch, user]);
 
   const handleOrganizationChange = async (orgId: string) => {
-    setSelectedOrganization(orgId);
-    localStorage.setItem("selectedOrganization", orgId);
-    document.cookie = `selectedOrganization=${orgId}; path=/; max-age=31536000; SameSite=Lax`;
-
-    const selectedOrg = Array.isArray(orgsList)
-      ? orgsList.find((org: any) => org.id === orgId)
-      : null;
-
-    if (selectedOrg) {
-      router.push(`/org/${selectedOrg.slug}`);
+    // Se não há usuário, não faz nada
+    if (!user) {
+      return;
     }
 
-    window.dispatchEvent(
-      new CustomEvent("organizationChanged", {
-        detail: { organizationId: orgId },
-      }),
-    );
-    router.refresh();
+    try {
+      setSelectedOrganization(orgId);
+      localStorage.setItem("selectedOrganization", orgId);
+      document.cookie = `selectedOrganization=${orgId}; path=/; max-age=31536000; SameSite=Lax`;
+
+      const selectedOrg = Array.isArray(orgsList)
+        ? orgsList.find((org: any) => org.id === orgId)
+        : null;
+
+      if (selectedOrg) {
+        router.push(`/org/${selectedOrg.slug}`);
+      }
+
+      window.dispatchEvent(
+        new CustomEvent("organizationChanged", {
+          detail: { organizationId: orgId },
+        }),
+      );
+      router.refresh();
+    } catch (error) {
+      console.error("Erro ao mudar organização:", error);
+    }
   };
 
-  const orgsForSelector = Array.isArray(orgsList)
-    ? orgsList.map((org: any) => ({
-        id: org.id,
-        name: org.name,
-        slug: org.slug,
-        logo: org.logo,
-        subscription: org.subscription
-          ? {
-              plan: org.subscription.plan,
-              status: org.subscription.status,
-            }
-          : null,
-      }))
+  // Proteção ao processar organizações
+  const orgsForSelector = user && Array.isArray(orgsList)
+    ? orgsList.map((org: any) => {
+        try {
+          return {
+            id: org.id,
+            name: org.name,
+            slug: org.slug,
+            logo: org.logo,
+            subscription: org.subscription
+              ? {
+                  plan: org.subscription.plan,
+                  status: org.subscription.status,
+                }
+              : null,
+          };
+        } catch (error) {
+          console.error("Erro ao processar organização:", error);
+          return null;
+        }
+      }).filter((org: any) => org !== null)
     : [];
 
   const currentOrgId = organization?.id || selectedOrganization;
@@ -566,6 +608,14 @@ export function Header({
 
   // Detecta organização e clan da URL se não foram passados como props
   useEffect(() => {
+    // Se não há usuário, limpa tudo e não faz nada
+    if (!user) {
+      setDetectedOrg(null);
+      setDetectedClan(null);
+      setClansFromUrl([]);
+      return;
+    }
+
     if (organization && clan) {
       // Se já foram passados como props, usa eles
       setDetectedOrg(organization);
@@ -614,37 +664,43 @@ export function Header({
       setDetectedClan(null);
       setClansFromUrl([]);
     }
-  }, [pathname, orgsList, organization, clan]);
+  }, [pathname, orgsList, organization, clan, user]);
 
-  const currentOrg =
-    currentOrgFromList ||
-    detectedOrg ||
-    (organization
-      ? {
-          id: organization.id,
-          name: organization.name,
-          slug: organization.slug,
-          logo: organization.logo,
-          subscription: organization.subscription
-            ? {
-                plan: organization.subscription.plan,
-                status: organization.subscription.status,
-              }
-            : null,
-        }
-      : null);
+  // Só processa currentOrg se houver usuário
+  const currentOrg = user
+    ? (currentOrgFromList ||
+      detectedOrg ||
+      (organization
+        ? {
+            id: organization.id,
+            name: organization.name,
+            slug: organization.slug,
+            logo: organization.logo,
+            subscription: organization.subscription
+              ? {
+                  plan: organization.subscription.plan,
+                  status: organization.subscription.status,
+                }
+              : null,
+          }
+        : null))
+    : null;
 
-  const currentClan = clan || detectedClan || null;
-  const currentClans = clans.length > 0 ? clans : clansFromUrl;
+  // Só processa currentClan se houver usuário
+  const currentClan = user ? (clan || detectedClan || null) : null;
+  const currentClans = user ? (clans.length > 0 ? clans : clansFromUrl) : [];
 
-  const basePath = currentClan
-    ? `/org/${currentOrg?.slug}/${currentClan.clanTag.replace("#", "").toLowerCase()}`
-    : currentOrg
+  // Só processa basePath se houver usuário e organização/clan
+  // Garante que basePath seja sempre uma string válida para evitar problemas de hidratação
+  const basePath = user && currentClan && currentOrg && currentOrg.slug && currentClan.clanTag
+    ? `/org/${currentOrg.slug}/${currentClan.clanTag.replace("#", "").toLowerCase()}`
+    : user && currentOrg && currentOrg.slug
       ? `/org/${currentOrg.slug}`
       : "";
 
-  const isClanRoute = !!currentClan;
-  const navItems = isClanRoute ? clanNavItems : orgNavItems;
+  // Garante que navItems seja sempre um array válido para evitar erros de hidratação
+  const isClanRoute = user ? !!currentClan : false;
+  const navItems = user && isClanRoute ? clanNavItems : (user ? orgNavItems : []);
 
   const handleSignOut = async () => {
     try {
@@ -737,7 +793,8 @@ export function Header({
               <>
                 <div className="hidden md:block h-6 w-px bg-border shrink-0" />
                 <nav className="hidden md:flex items-center gap-1">
-                  {mainNavItems.map((item) => {
+                  {Array.isArray(mainNavItems) && mainNavItems.map((item) => {
+                    if (!item || !item.href || !item.icon) return null;
                     const Icon = item.icon;
                     const isActive = pathname?.startsWith(item.href);
                     return (
@@ -1018,13 +1075,15 @@ export function Header({
       </header>
 
       {/* Secondary Navigation - Context-specific - Only show on org/clan routes */}
-      {pathname?.startsWith("/org/") && !pathname?.startsWith("/org/new") && (currentOrg || currentClan) && (
+      {user && pathname?.startsWith("/org/") && !pathname?.startsWith("/org/new") && (currentOrg || currentClan) && navItems.length > 0 && (
         <div className="sticky top-16 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="container mx-auto">
             <div className="flex h-12 items-center gap-1 overflow-x-auto px-2 sm:px-4 scrollbar-hide">
-              {navItems.map((item) => {
+              {Array.isArray(navItems) && navItems.map((item) => {
+                if (!item || !item.href || !item.icon) return null;
+                
                 const Icon = item.icon;
-                const href = `${basePath}${item.href}`;
+                const href = basePath ? `${basePath}${item.href}` : item.href;
                 const isActive =
                   item.href === ""
                     ? pathname === basePath
