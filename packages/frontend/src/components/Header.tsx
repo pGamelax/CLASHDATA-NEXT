@@ -647,9 +647,17 @@ export function Header({
   const navItems = isClanRoute ? clanNavItems : orgNavItems;
 
   const handleSignOut = async () => {
-    await authClient.signOut();
-    router.push("/");
-    router.refresh();
+    try {
+      await authClient.signOut();
+      // Aguarda um pouco para garantir que o logout foi processado
+      await new Promise(resolve => setTimeout(resolve, 100));
+      // Redireciona para a home e força refresh completo
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+      // Mesmo com erro, tenta redirecionar
+      window.location.href = "/";
+    }
   };
 
   const initials =
@@ -996,12 +1004,12 @@ export function Header({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => router.push("/sign-in")}
+                  asChild
                 >
-                  Entrar
+                  <Link href="/sign-in">Entrar</Link>
                 </Button>
-                <Button size="sm" onClick={() => router.push("/sign-up")}>
-                  Cadastrar
+                <Button size="sm" asChild>
+                  <Link href="/sign-up">Cadastrar</Link>
                 </Button>
               </div>
             )}

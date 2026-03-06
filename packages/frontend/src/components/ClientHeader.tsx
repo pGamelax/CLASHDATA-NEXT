@@ -27,7 +27,7 @@ interface ClientHeaderProps {
 }
 
 export function ClientHeader({ initialUser, organization, clan, clans }: ClientHeaderProps) {
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
   const [mounted, setMounted] = useState(false);
 
   // Garante que o componente está montado no cliente
@@ -36,7 +36,10 @@ export function ClientHeader({ initialUser, organization, clan, clans }: ClientH
   }, []);
 
   // Usa o usuário da sessão se disponível, senão usa o initialUser
-  const user = mounted ? (session?.user || initialUser) : initialUser;
+  // Se a sessão estiver pendente ou não houver usuário na sessão, usa initialUser
+  const user = mounted 
+    ? (isPending ? initialUser : (session?.user || initialUser))
+    : initialUser;
 
   return <Header user={user} organization={organization} clan={clan} clans={clans} />;
 }
