@@ -3,9 +3,10 @@ import { getSession } from "@/lib/api";
 import { ClientHeader } from "@/components/ClientHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Swords, Trophy, BarChart3, Zap, Users, TrendingUp, Target } from "lucide-react";
-import Link from "next/link";
+import { Swords, Trophy, BarChart3, Zap, Users, TrendingUp, Target } from "lucide-react";
+
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "CLASHDATA",
@@ -13,7 +14,8 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const cookieStore = await cookies();
+  const cookieStore = await cookies();
+
   const cookieHeader = cookieStore
     .getAll()
     .map((cookie) => `${cookie.name}=${cookie.value}`)
@@ -74,17 +76,23 @@ export default async function Home() {
             </p>
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
               {session?.user ? (
-                <Button asChild size="lg" className="text-lg px-8 h-12 shadow-lg hover:shadow-xl transition-all">
-                  <Link href="/organizations">Minhas Organizações</Link>
-                </Button>
+                <Link href="/organizations">
+                  <Button size="lg" className="text-lg px-8 h-12 shadow-lg hover:shadow-xl transition-all">
+                    Minhas Organizações
+                  </Button>
+                </Link>
               ) : (
                 <>
-                  <Button asChild size="lg" className="text-lg px-8 h-12 shadow-lg hover:shadow-xl transition-all">
-                    <Link href="/sign-up">Começar Agora</Link>
-                  </Button>
-                  <Button asChild size="lg" variant="outline" className="text-lg px-8 h-12 border-2 hover:bg-primary/5 transition-all">
-                    <Link href="/sign-in">Entrar</Link>
-                  </Button>
+                  <Link href="/sign-up">
+                    <Button size="lg" className="text-lg px-8 h-12 shadow-lg hover:shadow-xl transition-all">
+                      Começar Agora
+                    </Button>
+                  </Link>
+                  <Link href="/sign-in">
+                    <Button size="lg" variant="outline" className="text-lg px-8 h-12 border-2 hover:bg-primary/5 transition-all">
+                      Entrar
+                    </Button>
+                  </Link>
                 </>
               )}
             </div>
@@ -160,13 +168,17 @@ export default async function Home() {
           </CardHeader>
           <CardContent className="flex justify-center relative z-10">
             {session?.user ? (
-              <Button asChild size="lg" className="text-lg px-8 h-12 shadow-lg hover:shadow-xl hover:scale-105 transition-all">
-                <Link href="/organizations">Minhas Organizações</Link>
-              </Button>
+              <Link href="/organizations">
+                <Button size="lg" className="text-lg px-8 h-12 shadow-lg hover:shadow-xl hover:scale-105 transition-all">
+                  Minhas Organizações
+                </Button>
+              </Link>
             ) : (
-              <Button asChild size="lg" className="text-lg px-8 h-12 shadow-lg hover:shadow-xl hover:scale-105 transition-all">
-                <Link href="/sign-up">Criar Conta Grátis</Link>
-              </Button>
+              <Link href="/sign-up">
+                <Button size="lg" className="text-lg px-8 h-12 shadow-lg hover:shadow-xl hover:scale-105 transition-all">
+                  Criar Conta Grátis
+                </Button>
+              </Link>
             )}
           </CardContent>
         </Card>
