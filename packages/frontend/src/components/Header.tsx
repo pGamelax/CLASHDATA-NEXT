@@ -36,7 +36,6 @@ import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { OrganizationSelector } from "./OrganizationSelector";
-import { ClanSelector } from "./ClanSelector";
 import {
   getPendingInvites,
   acceptInvite,
@@ -98,7 +97,6 @@ const clanNavItems = [
 ];
 
 const mainNavItems = [
-  { title: "Organizações", href: "/organizations", icon: Building2 },
   { title: "Planos", href: "/pricing", icon: CreditCard },
   { title: "Jogador", href: "/player/search", icon: User },
 ];
@@ -666,6 +664,14 @@ export function Header({
     if (organization && clan) {
       setDetectedOrg(organization);
       setDetectedClan(clan);
+      if (organization.id && !clans.length) {
+        getClansByOrganization(organization.id)
+          .then((response) => {
+            const clansData = response?.data || response || [];
+            setClansFromUrl(Array.isArray(clansData) ? clansData : []);
+          })
+          .catch(() => {});
+      }
       return;
     }
 
@@ -679,16 +685,20 @@ export function Header({
       if (orgFromUrl) {
         setDetectedOrg(orgFromUrl);
         
-        if (clanSlugFromUrl && orgFromUrl.id) {
+        if (orgFromUrl.id) {
           getClansByOrganization(orgFromUrl.id)
             .then((response) => {
               const clansData = response?.data || response || [];
               setClansFromUrl(Array.isArray(clansData) ? clansData : []);
               
-              const clanFromUrl = clansData.find(
-                (c: any) => c.clanTag.replace("#", "").toLowerCase() === clanSlugFromUrl.toLowerCase()
-              );
-              setDetectedClan(clanFromUrl || null);
+              if (clanSlugFromUrl) {
+                const clanFromUrl = clansData.find(
+                  (c: any) => c.clanTag.replace("#", "").toLowerCase() === clanSlugFromUrl.toLowerCase()
+                );
+                setDetectedClan(clanFromUrl || null);
+              } else {
+                setDetectedClan(null);
+              }
             })
             .catch(() => {});
         } else {
@@ -705,7 +715,7 @@ export function Header({
       setDetectedClan(null);
       setClansFromUrl([]);
     }
-  }, [pathname, orgsList, organization, clan, user]);
+  }, [pathname, orgsList, organization, clan, user, clans.length]);
 
   const currentOrg = user
     ? (currentOrgFromList ||
@@ -728,6 +738,21 @@ export function Header({
 
   const currentClan = user ? (clan || detectedClan || null) : null;
   const currentClans = user ? (clans.length > 0 ? clans : clansFromUrl) : [];
+
+  useEffect(() => {
+    if (!user || !currentOrg?.id) {
+      return;
+    }
+
+    if (clans.length === 0 && currentClans.length === 0) {
+      getClansByOrganization(currentOrg.id)
+        .then((response) => {
+          const clansData = response?.data || response || [];
+          setClansFromUrl(Array.isArray(clansData) ? clansData : []);
+        })
+        .catch(() => {});
+    }
+  }, [currentOrg?.id, user, clans.length, currentClans.length]);
 
   const basePath = user && currentClan && currentOrg && currentOrg.slug && currentClan.clanTag
     ? `/org/${currentOrg.slug}/${currentClan.clanTag.replace("#", "").toLowerCase()}`
@@ -822,6 +847,42 @@ export function Header({
               <>
                 <div className="hidden md:block h-6 w-px bg-border shrink-0" />
                 <nav className="hidden md:flex items-center gap-1">
+                  <div className="min-w-0 flex-1 sm:flex-none">
+                    <OrganizationSelector
+                      organizations={orgsForSelector}
+                      currentOrganization={
+                        currentOrg
+                          ? {
+                              id: currentOrg.id,
+                              name: currentOrg.name,
+                              slug: currentOrg.slug,
+                              logo: currentOrg.logo,
+                              subscription: currentOrg.subscription
+                                ? {
+                                    plan: currentOrg.subscription.plan,
+                                    status: currentOrg.subscription.status,
+                                  }
+                                : null,
+                            }
+                          : null
+                      }
+                      currentClan={currentClan || null}
+                      clans={currentClans}
+                      organizationSlug={currentOrg?.slug}
+                      onSelect={handleOrganizationChange}
+                      onClanSelect={(clanSlug) => {
+                        if (currentOrg) {
+                          router.push(`/org/${currentOrg.slug}/${clanSlug}`);
+                        }
+                      }}
+                      isLoading={isLoadingOrgs}
+                      user={user}
+                      showFullName={true}
+                    />
+                  </div>
+                </nav>
+                <div className="h-6 w-px bg-border shrink-0 hidden sm:block" />
+                <nav className="hidden md:flex items-center gap-1">
                   {Array.isArray(mainNavItems) && mainNavItems.map((item) => {
                     if (!item || !item.href || !item.icon) return null;
                     const Icon = item.icon;
@@ -843,54 +904,6 @@ export function Header({
                     );
                   })}
                 </nav>
-              </>
-            )}
-
-            {user && (currentOrg || orgsForSelector.length > 0) && (
-              <>
-                <div className="h-6 w-px bg-border shrink-0 hidden sm:block" />
-                <div className="min-w-0 flex-1 sm:flex-none">
-                  <OrganizationSelector
-                    organizations={orgsForSelector}
-                    currentOrganization={
-                      currentOrg
-                        ? {
-                            id: currentOrg.id,
-                            name: currentOrg.name,
-                            slug: currentOrg.slug,
-                            logo: currentOrg.logo,
-                            subscription: currentOrg.subscription
-                              ? {
-                                  plan: currentOrg.subscription.plan,
-                                  status: currentOrg.subscription.status,
-                                }
-                              : null,
-                          }
-                        : null
-                    }
-                    onSelect={handleOrganizationChange}
-                    isLoading={isLoadingOrgs}
-                    user={user}
-                    showFullName={true}
-                  />
-                </div>
-              </>
-            )}
-
-            {user && currentOrg && (currentClan || currentClans.length > 0) && (
-              <>
-                <div className="h-6 w-px bg-border shrink-0 hidden sm:block" />
-                <div className="min-w-0 flex-1 sm:flex-none">
-                  <ClanSelector
-                    clans={currentClans}
-                    currentClan={currentClan || null}
-                    organizationSlug={currentOrg.slug}
-                    onSelect={(clanSlug) => {
-                      router.push(`/org/${currentOrg.slug}/${clanSlug}`);
-                    }}
-                    showFullName={true}
-                  />
-                </div>
               </>
             )}
           </div>
@@ -928,12 +941,9 @@ export function Header({
                         </Link>
                       );
                     })}
-                    {user && (currentOrg || orgsForSelector.length > 0) && (
+                    {user && (
                       <>
                         <div className="h-px bg-border my-4" />
-                        <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                          Organização
-                        </div>
                         <div className="px-3">
                           <OrganizationSelector
                             organizations={orgsForSelector}
@@ -953,32 +963,21 @@ export function Header({
                                   }
                                 : null
                             }
+                            currentClan={currentClan || null}
+                            clans={currentClans}
+                            organizationSlug={currentOrg?.slug}
                             onSelect={(orgId) => {
                               handleOrganizationChange(orgId);
                               setMobileMenuOpen(false);
                             }}
+                            onClanSelect={(clanSlug) => {
+                              if (currentOrg) {
+                                router.push(`/org/${currentOrg.slug}/${clanSlug}`);
+                                setMobileMenuOpen(false);
+                              }
+                            }}
                             isLoading={isLoadingOrgs}
                             user={user}
-                            showFullName={true}
-                          />
-                        </div>
-                      </>
-                    )}
-                    {user && currentOrg && (currentClan || currentClans.length > 0) && (
-                      <>
-                        <div className="h-px bg-border my-4" />
-                        <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                          Clan
-                        </div>
-                        <div className="px-3">
-                          <ClanSelector
-                            clans={currentClans}
-                            currentClan={currentClan || null}
-                            organizationSlug={currentOrg.slug}
-                            onSelect={(clanSlug) => {
-                              router.push(`/org/${currentOrg.slug}/${clanSlug}`);
-                              setMobileMenuOpen(false);
-                            }}
                             showFullName={true}
                           />
                         </div>
