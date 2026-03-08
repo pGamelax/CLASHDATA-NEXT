@@ -139,14 +139,18 @@ export function OrganizationSelector({
           className={cn(
             "flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md bg-muted/80 hover:bg-muted transition-colors text-xs sm:text-sm font-medium",
             "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
-            !showFullName && "max-w-[140px] sm:max-w-none"
+            showFullName ? "w-full sm:w-auto min-w-[200px] max-w-full" : "max-w-[140px] sm:max-w-none"
           )}
           disabled={isLoading}
         >
           <div className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-primary/10 shrink-0">
             {displayIcon}
           </div>
-          {showFullName && (
+          {showFullName ? (
+            <span className="truncate text-foreground flex-1 min-w-0 text-left max-w-full">
+              {displayName}
+            </span>
+          ) : (
             <span className="truncate text-foreground hidden sm:inline">
               {displayName}
             </span>

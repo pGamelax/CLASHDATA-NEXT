@@ -846,7 +846,7 @@ export function Header({
             {user && (
               <>
                 <div className="h-6 w-px bg-border shrink-0" />
-                <div className="md:hidden min-w-0 flex-1">
+                <div className="md:hidden min-w-0 flex-1 max-w-[calc(100vw-200px)]">
                   <OrganizationSelector
                     organizations={orgsForSelector}
                     currentOrganization={
@@ -876,7 +876,7 @@ export function Header({
                     }}
                     isLoading={isLoadingOrgs}
                     user={user}
-                    showFullName={false}
+                    showFullName={true}
                   />
                 </div>
                 <div className="hidden md:block h-6 w-px bg-border shrink-0" />
