@@ -845,6 +845,40 @@ export function Header({
 
             {user && (
               <>
+                <div className="h-6 w-px bg-border shrink-0" />
+                <div className="md:hidden min-w-0 flex-1">
+                  <OrganizationSelector
+                    organizations={orgsForSelector}
+                    currentOrganization={
+                      currentOrg
+                        ? {
+                            id: currentOrg.id,
+                            name: currentOrg.name,
+                            slug: currentOrg.slug,
+                            logo: currentOrg.logo,
+                            subscription: currentOrg.subscription
+                              ? {
+                                  plan: currentOrg.subscription.plan,
+                                  status: currentOrg.subscription.status,
+                                }
+                              : null,
+                          }
+                        : null
+                    }
+                    currentClan={currentClan || null}
+                    clans={currentClans}
+                    organizationSlug={currentOrg?.slug}
+                    onSelect={handleOrganizationChange}
+                    onClanSelect={(clanSlug) => {
+                      if (currentOrg) {
+                        router.push(`/org/${currentOrg.slug}/${clanSlug}`);
+                      }
+                    }}
+                    isLoading={isLoadingOrgs}
+                    user={user}
+                    showFullName={false}
+                  />
+                </div>
                 <div className="hidden md:block h-6 w-px bg-border shrink-0" />
                 <nav className="hidden md:flex items-center gap-1">
                   <div className="min-w-0 flex-1 sm:flex-none">

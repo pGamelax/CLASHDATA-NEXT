@@ -137,21 +137,24 @@ export function OrganizationSelector({
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "flex items-center gap-2 px-3 py-2 rounded-md bg-muted/80 hover:bg-muted transition-colors text-sm font-medium",
-            "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            "flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md bg-muted/80 hover:bg-muted transition-colors text-xs sm:text-sm font-medium",
+            "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+            !showFullName && "max-w-[140px] sm:max-w-none"
           )}
           disabled={isLoading}
         >
-          <div className="flex items-center justify-center w-6 h-6 rounded-md bg-primary/10 shrink-0">
+          <div className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-primary/10 shrink-0">
             {displayIcon}
           </div>
-          <span className="truncate text-foreground">
-            {displayName}
-          </span>
-          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+          {showFullName && (
+            <span className="truncate text-foreground hidden sm:inline">
+              {displayName}
+            </span>
+          )}
+          <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" sideOffset={4} className="w-[600px] z-50 p-0 bg-background border shadow-lg">
+      <DropdownMenuContent align="start" sideOffset={4} className="w-[95vw] md:w-[600px] max-w-[600px] z-50 p-0 bg-background border shadow-lg">
         <div className="p-3 border-b bg-muted/30">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -163,8 +166,8 @@ export function OrganizationSelector({
             />
           </div>
         </div>
-        <div className="flex max-h-[450px]">
-          <div className="w-1/2 border-r border-border overflow-y-auto bg-muted/20">
+        <div className="flex flex-col md:flex-row max-h-[70vh] md:max-h-[450px]">
+          <div className="w-full md:w-1/2 md:border-r border-b md:border-b-0 border-border overflow-y-auto bg-muted/20">
             <div className="px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider sticky top-0 bg-background border-b border-border z-10">
               Organizações
             </div>
@@ -223,7 +226,7 @@ export function OrganizationSelector({
               </div>
             )}
           </div>
-          <div className="w-1/2 overflow-y-auto bg-background">
+          <div className="w-full md:w-1/2 overflow-y-auto bg-background">
             {(selectedOrgId || currentOrganization) && (
               <>
                 <div className="px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider sticky top-0 bg-background border-b border-border z-10">

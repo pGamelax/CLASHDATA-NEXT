@@ -76,7 +76,8 @@ export function CWLTownHallsDialog({
       }
       return newSet;
     });
-  };
+  };
+
   const getTownHallsList = (townHalls: Record<string, number>) => {
     return Object.entries(townHalls)
       .map(([key, count]) => {
@@ -110,7 +111,7 @@ export function CWLTownHallsDialog({
           <div className="text-center text-destructive py-12 px-4 sm:px-6">{error}</div>
         ) : (
           <div className="overflow-auto flex-1 px-2 sm:px-4 lg:px-6 py-3 sm:py-4">
-            <div className="space-y-1.5 sm:space-y-2 lg:space-y-2.5">
+            <div className="space-y-1.5 sm:space-y-2 lg:space-y-3">
               {data.map((item) => {
                 const isCurrentClan =
                   item.clan.tag ===
@@ -123,30 +124,29 @@ export function CWLTownHallsDialog({
                   <div
                     key={item.clan.tag}
                     className={cn(
-                      "border rounded-md transition-colors",
+                      "border rounded-lg transition-colors",
                       isCurrentClan && "bg-primary/10 border-primary/30",
                       !isCurrentClan && "bg-muted/30 border-border hover:bg-muted/50"
                     )}
                   >
-                    {}
                     <div
-                      className="flex items-center gap-2 sm:gap-3 lg:gap-4 px-3 sm:px-4 lg:px-5 py-2.5 sm:py-3 lg:py-3.5 cursor-pointer"
+                      className="flex items-center gap-2 sm:gap-3 lg:gap-4 px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 lg:py-4 cursor-pointer"
                       onClick={() => toggleRow(item.clan.tag)}
                     >
-                      <div className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 shrink-0">
+                      <div className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 shrink-0">
                         {isExpanded ? (
-                          <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+                          <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-muted-foreground" />
                         ) : (
-                          <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+                          <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-muted-foreground" />
                         )}
                       </div>
                       <img
                         src={item.clan.badgeUrls.small}
                         alt={item.clan.name}
-                        className="w-5 h-5 sm:w-7 sm:h-7 lg:w-8 lg:h-8 shrink-0"
+                        className="w-5 h-5 sm:w-7 sm:h-7 lg:w-10 lg:h-10 shrink-0"
                       />
                       <div className="flex flex-col min-w-0 flex-1">
-                        <span className="font-medium text-xs sm:text-sm lg:text-base truncate leading-tight">
+                        <span className="font-medium text-xs sm:text-sm lg:text-lg truncate leading-tight">
                           {item.clan.name}
                         </span>
                         <span className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground truncate leading-tight">
@@ -154,7 +154,7 @@ export function CWLTownHallsDialog({
                         </span>
                       </div>
                       {item.clan.clanLevel && (
-                        <Badge variant="outline" className="text-[10px] sm:text-xs lg:text-sm shrink-0 px-1.5 sm:px-2 py-0 h-4 sm:h-5">
+                        <Badge variant="outline" className="text-[10px] sm:text-xs lg:text-sm shrink-0 px-1.5 sm:px-2 lg:px-2.5 py-0 h-4 sm:h-5 lg:h-6">
                           {item.clan.clanLevel}
                         </Badge>
                       )}
@@ -163,14 +163,13 @@ export function CWLTownHallsDialog({
                       </span>
                     </div>
 
-                    {}
                     {isExpanded && townHallsList.length > 0 && (
-                      <div className="px-3 sm:px-4 lg:px-5 pb-3 sm:pb-4 lg:pb-5 pt-0 border-t bg-muted/20">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3 lg:gap-4 pt-3 lg:pt-4">
+                      <div className="px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4 lg:pb-5 pt-0 border-t bg-muted/20">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3 lg:gap-4 pt-3 lg:pt-4">
                           {townHallsList.map(({ level, count }) => (
                             <div
                               key={level}
-                              className="flex items-center gap-2 sm:gap-2.5 lg:gap-3 p-2 sm:p-2.5 lg:p-3 rounded-md bg-background border hover:border-primary/30 transition-colors"
+                              className="flex items-center gap-2 sm:gap-2.5 lg:gap-3 p-2 sm:p-2.5 lg:p-3 rounded-lg bg-background border hover:border-primary/30 transition-colors"
                             >
                               {getTownHallImage(level) && (
                                 <Image
@@ -178,7 +177,7 @@ export function CWLTownHallsDialog({
                                   alt={`TH${level}`}
                                   width={24}
                                   height={24}
-                                  className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 object-contain shrink-0"
+                                  className="w-6 h-6 sm:w-7 sm:h-7 lg:w-10 lg:h-10 object-contain shrink-0"
                                   unoptimized
                                 />
                               )}
