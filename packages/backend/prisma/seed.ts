@@ -10,9 +10,7 @@
  *   bun run db:seed
  */
 
-import { PrismaClient } from "../src/generated/prisma";
-
-const prisma = new PrismaClient();
+import { prisma } from "../src/lib/prisma";
 
 const plans = [
   {
@@ -161,5 +159,4 @@ main()
   .catch((err) => {
     console.error("\n❌ Erro no seed:", err);
     process.exit(1);
-  })
-  .finally(() => prisma.$disconnect());
+  });

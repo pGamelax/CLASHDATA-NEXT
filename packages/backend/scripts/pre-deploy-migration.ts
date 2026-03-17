@@ -3,9 +3,7 @@
  * Cada migração é idempotente — erro de "já foi feito" é ignorado silenciosamente.
  */
 
-import { PrismaClient } from "../src/generated/prisma";
-
-const prisma = new PrismaClient();
+import { prisma } from "../src/lib/prisma";
 
 const migrations: { name: string; sql: string }[] = [
   {
@@ -30,5 +28,4 @@ main()
   .catch((err) => {
     console.error("❌ Erro na migração pré-deploy:", err);
     process.exit(1);
-  })
-  .finally(() => prisma.$disconnect());
+  });
