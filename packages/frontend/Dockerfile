@@ -48,7 +48,7 @@ COPY Caddyfile /etc/caddy/Caddyfile
 # ── Start script ─────────────────────────────────────────────────────────────
 # 1. Start Next.js standalone server in the background (port 3001)
 # 2. Start Caddy in the foreground (port 80 → proxies to 3001)
-RUN printf '#!/bin/sh\nset -e\ncd /app\nPORT=3001 HOSTNAME=127.0.0.1 node server.js &\nexec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile\n' \
+RUN printf '#!/bin/sh\nset -e\ncd /app\nPORT=3001 HOSTNAME=127.0.0.1 node server.js &\nuntil nc -z 127.0.0.1 3001 2>/dev/null; do sleep 0.2; done\nexec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile\n' \
     > /start.sh && chmod +x /start.sh
 
 # Caddy port (Dokploy maps this to your domain)
