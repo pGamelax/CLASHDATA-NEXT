@@ -16,8 +16,10 @@
     }
 
     # Serve Next.js static assets directly from disk (bypasses Node)
+    # URL: /_next/static/* → disk: /app/.next/static/*
     handle /_next/static/* {
-        root * /app/packages/frontend
+        root * /app/.next
+        uri strip_prefix /_next
         file_server {
             precompressed br gzip
         }
@@ -26,15 +28,15 @@
 
     # Serve public folder directly from disk
     handle /favicon* {
-        root * /app/packages/frontend/public
+        root * /app/public
         file_server
     }
 
     # All other traffic → Next.js server
     reverse_proxy localhost:3001 {
-        header_up Host              {host}
-        header_up X-Real-IP        {remote_host}
-        header_up X-Forwarded-For  {remote_host}
+        header_up Host               {host}
+        header_up X-Real-IP         {remote_host}
+        header_up X-Forwarded-For   {remote_host}
         header_up X-Forwarded-Proto {scheme}
     }
 }
