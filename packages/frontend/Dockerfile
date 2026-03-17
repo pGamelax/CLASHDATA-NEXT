@@ -37,9 +37,9 @@ COPY --from=builder /app/public           ./public
 COPY Caddyfile /etc/caddy/Caddyfile
 
 # Wait for Next.js then start Caddy in foreground
-RUN printf '#!/bin/sh\nset -e\nPORT=3001 HOSTNAME=127.0.0.1 node server.js &\nuntil nc -z 127.0.0.1 3001 2>/dev/null; do sleep 0.2; done\nexec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile\n' \
+RUN printf '#!/bin/sh\nset -e\nPORT=3002 HOSTNAME=127.0.0.1 node server.js &\nuntil nc -z 127.0.0.1 3002 2>/dev/null; do sleep 0.2; done\nexec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile\n' \
     > /start.sh && chmod +x /start.sh
 
-EXPOSE 3002
+EXPOSE 3004
 
 CMD ["/start.sh"]
