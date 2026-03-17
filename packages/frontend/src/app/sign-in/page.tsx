@@ -49,7 +49,6 @@ function SignInForm() {
       {
         email,
         password,
-        callbackURL: redirectUrl,
       },
       {
         onSuccess: () => {

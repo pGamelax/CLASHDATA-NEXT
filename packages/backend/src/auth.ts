@@ -10,6 +10,7 @@ const trustedOrigins = Array.isArray(env.BETTER_AUTH_TRUSTED_ORIGIN)
   : [env.BETTER_AUTH_TRUSTED_ORIGIN];
 
 export const auth = betterAuth({
+  baseURL: env.BETTER_AUTH_BASE_URL,
   basePath: "/auth",
   plugins: [openAPI(), admin(), organization()],
   trustedOrigins,
