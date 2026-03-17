@@ -135,6 +135,10 @@ export class ClanService {
     });
   }
 
+  async getPublicRanking() {
+    return await this.clanRepository.findAllPublicRanking();
+  }
+
   async removeClan(clanId: string, userId: string) {
     // Verifica se o clan existe
     const clan = await this.clanRepository.findById(clanId);

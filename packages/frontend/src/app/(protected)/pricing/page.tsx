@@ -91,7 +91,7 @@ export default function PricingPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<Period>("monthly");
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-background via-primary/5 to-background">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-12 sm:py-16 lg:py-20 max-w-7xl">
 
         {/* Hero */}

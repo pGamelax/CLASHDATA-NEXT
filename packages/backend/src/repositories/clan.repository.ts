@@ -127,5 +127,26 @@ export class ClanRepository {
   async findAll() {
     return await prisma.clan.findMany();
   }
+
+  async findAllPublicRanking() {
+    const clans = await prisma.clan.findMany({
+      select: {
+        tag: true,
+        name: true,
+        badgeUrls: true,
+        clanLevel: true,
+        clanPoints: true,
+        members: true,
+        organization: {
+          select: {
+            name: true,
+            slug: true,
+          },
+        },
+      },
+      orderBy: { clanPoints: "desc" },
+    });
+    return clans.map((clan) => ({ ...clan, clanTag: clan.tag }));
+  }
 }
 

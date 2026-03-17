@@ -117,6 +117,17 @@ export class ClansController {
     }
   }
 
+  async getPublicRanking(context: ElysiaContext) {
+    const { status } = context;
+    try {
+      const clans = await this.clanService.getPublicRanking();
+      return { success: true, data: clans };
+    } catch (error) {
+      console.error("Erro ao buscar ranking público:", error);
+      return status(500, { message: "Erro ao buscar ranking" });
+    }
+  }
+
   async removeClan(context: ElysiaContext) {
     const { params, request, status } = context;
     try {

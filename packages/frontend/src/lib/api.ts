@@ -748,6 +748,26 @@ export async function getPlayer(playerTag: string, cookies?: string): Promise<Pl
   return (responseData as any).data || responseData;
 }
 
+export interface PublicClanRank {
+  tag: string;
+  clanTag: string;
+  name: string;
+  badgeUrls: { small: string; medium: string; large: string } | null;
+  clanLevel: number | null;
+  clanPoints: number | null;
+  members: number | null;
+  organization: { name: string; slug: string };
+}
+
+export async function getPublicClanRanking(): Promise<PublicClanRank[]> {
+  try {
+    const result = await apiFetch<{ data: PublicClanRank[] }>("/clans/ranking");
+    return result.data || [];
+  } catch {
+    return [];
+  }
+}
+
 export async function getPlayerBasic(playerTag: string): Promise<any> {
   const cleanTag = stripHash(playerTag);
   const data = await apiFetch<{ data: any }>(`/player/${encodeURIComponent(cleanTag)}/basic`);

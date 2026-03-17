@@ -104,7 +104,7 @@ export function NewOrgContent({ plan, period }: Props) {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-background via-primary/5 to-background">
+    <div className="min-h-[calc(100vh-4rem)] bg-background">
       <div className="container mx-auto px-4 py-10 max-w-lg">
 
         {/* Back */}

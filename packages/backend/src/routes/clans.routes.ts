@@ -18,6 +18,17 @@ const clansController = new ClansController(clashOfClansService, clanService);
 
 export const clansRoutes = new Elysia({ prefix: "/clans" })
   .get(
+    "/ranking",
+    async (context) => await clansController.getPublicRanking(context),
+    {
+      detail: {
+        tags: ["Clans"],
+        summary: "Ranking público de clans",
+        description: "Retorna todos os clans registrados ordenados por clanPoints (sem autenticação)",
+      },
+    }
+  )
+  .get(
     "/search/:tag",
     async (context) => await clansController.searchClan(context),
     {
