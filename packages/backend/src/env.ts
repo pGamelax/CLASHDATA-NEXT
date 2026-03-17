@@ -11,7 +11,7 @@ const envSchema = z.object({
   BETTER_AUTH_TRUSTED_DOMAIN: z.string(),
   
   // Server
-  PORT: z.string().default("3000"),
+  PORT: z.string().default("3003"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   
   // CORS

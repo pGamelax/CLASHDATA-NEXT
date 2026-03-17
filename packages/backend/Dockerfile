@@ -23,6 +23,6 @@ COPY --from=builder /app/prisma          ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY package.json ./
 
-EXPOSE 3000
+EXPOSE 3003
 
 CMD ["sh", "-c", "bunx prisma db push && bun run src/index.ts"]
