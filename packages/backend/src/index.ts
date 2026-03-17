@@ -118,10 +118,11 @@ const app = new Elysia()
   .use(playerPushLogsRoutes)
   .use(playerRoutes)
   .use(seasonEndDateRoutes)
-  .get("/health", () => ({
-    status: "healthy",
-    timestamp: new Date().toISOString(),
-  }))
+  .get("/health", ({ request }) => {
+    const ip = request.headers.get("x-real-ip") || request.headers.get("x-forwarded-for") || "unknown";
+    console.log(`[health] ping from ${ip} at ${new Date().toISOString()}`);
+    return { status: "healthy", timestamp: new Date().toISOString() };
+  })
   .listen(Number(env.PORT));
 
 console.log(
