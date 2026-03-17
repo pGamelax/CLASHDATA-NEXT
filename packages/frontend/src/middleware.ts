@@ -3,12 +3,6 @@ import type { NextRequest } from "next/server";
 
 const publicRoutes = ["/", "/sign-in", "/sign-up"];
 
-// Use internal Docker URL for server-to-server calls (avoids going through Traefik)
-// Set INTERNAL_API_URL in Dokploy env to the internal container URL, e.g.:
-// http://clashdata-backend-xxxxx:3003
-// If not set, falls back to cookie-only check.
-const INTERNAL_API_URL = process.env.INTERNAL_API_URL;
-
 function getAppUrl(request: NextRequest): string {
   if (process.env.APP_URL) return process.env.APP_URL;
   const host =
@@ -27,43 +21,12 @@ function hasSessionCookie(request: NextRequest): boolean {
   );
 }
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublicRoute = publicRoutes.includes(pathname);
   const isProtectedRoute = !isPublicRoute;
 
-  const cookieHeader = request.headers.get("cookie") || "";
-
-  let isAuthenticated = false;
-
-  if (INTERNAL_API_URL) {
-    // Full session validation via internal Docker network
-    try {
-      const response = await fetch(`${INTERNAL_API_URL}/auth/get-session`, {
-        method: "GET",
-        headers: {
-          Cookie: cookieHeader,
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      });
-
-      if (response.ok) {
-        const session = await response.json();
-        isAuthenticated = !!(session?.user?.id || session?.data?.user?.id);
-      } else {
-        // Backend error: fall back to cookie check
-        isAuthenticated = hasSessionCookie(request);
-      }
-    } catch {
-      // Network error: fall back to cookie check
-      isAuthenticated = hasSessionCookie(request);
-    }
-  } else {
-    // No internal URL configured: trust cookie presence
-    isAuthenticated = hasSessionCookie(request);
-  }
-
+  const isAuthenticated = hasSessionCookie(request);
   const appUrl = getAppUrl(request);
 
   if (isProtectedRoute && !isAuthenticated) {
