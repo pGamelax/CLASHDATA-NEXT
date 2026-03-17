@@ -20,9 +20,10 @@ ENV NODE_ENV=production
 COPY --from=builder /app/node_modules    ./node_modules
 COPY --from=builder /app/src             ./src
 COPY --from=builder /app/prisma          ./prisma
+COPY --from=builder /app/scripts         ./scripts
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY package.json ./
 
 EXPOSE 3003
 
-CMD ["sh", "-c", "bunx prisma db push --accept-data-loss && bun run prisma/seed.ts && bun run src/index.ts"]
+CMD ["sh", "-c", "bun run scripts/pre-deploy-migration.ts && bunx prisma db push --accept-data-loss && bun run prisma/seed.ts && bun run src/index.ts"]
