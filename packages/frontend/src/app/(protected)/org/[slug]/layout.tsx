@@ -17,6 +17,12 @@ export default async function OrgLayout({
     .map((cookie) => `${cookie.name}=${cookie.value}`)
     .join("; ");
 
+  const session = await getSession(cookieHeader);
+  if (!session || !session.user) {
+    const currentPath = `/org/${slug}`;
+    redirect(`/sign-in?callbackUrl=${encodeURIComponent(currentPath)}`);
+  }
+
   const organizations = await getOrganizations(cookieHeader);
   const orgsList = organizations?.data || organizations || [];
 

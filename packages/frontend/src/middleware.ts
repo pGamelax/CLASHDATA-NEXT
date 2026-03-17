@@ -3,28 +3,41 @@ import type { NextRequest } from "next/server";
 
 const publicRoutes = ["/", "/sign-in", "/sign-up"];
 const APP_URL = process.env.APP_URL || "https://clashdata.pro";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.clashdata.pro";
 
-function hasSessionCookie(request: NextRequest): boolean {
-  const cookies = request.headers.get("cookie") || "";
-  return (
-    cookies.includes("better-auth.session_token") ||
-    cookies.includes("__Secure-better-auth.session_token")
-  );
-}
-
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublicRoute = publicRoutes.includes(pathname);
-  const isAuthenticated = hasSessionCookie(request);
+  const isProtectedRoute = !isPublicRoute;
 
-  if ((pathname === "/sign-in" || pathname === "/sign-up") && isAuthenticated) {
-    return NextResponse.redirect(`${APP_URL}/organizations`);
+  let isAuthenticated = false;
+
+  try {
+    const response = await fetch(`${API_URL}/auth/get-session`, {
+      method: "GET",
+      headers: {
+        Cookie: request.headers.get("cookie") || "",
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
+
+    if (response.ok) {
+      const session = await response.json();
+      isAuthenticated = !!(session?.user?.id || session?.data?.user?.id);
+    }
+  } catch {
+    isAuthenticated = false;
   }
 
-  if (!isPublicRoute && !isAuthenticated) {
+  if (isProtectedRoute && !isAuthenticated) {
     return NextResponse.redirect(
       `${APP_URL}/sign-in?callbackUrl=${encodeURIComponent(pathname)}`
     );
+  }
+
+  if ((pathname === "/sign-in" || pathname === "/sign-up") && isAuthenticated) {
+    return NextResponse.redirect(`${APP_URL}/organizations`);
   }
 
   return NextResponse.next();
