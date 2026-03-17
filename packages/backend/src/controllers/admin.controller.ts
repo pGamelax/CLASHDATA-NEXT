@@ -1013,8 +1013,10 @@ export class AdminController {
   }
 
   /**
-   * Corrige a subscription de um usuário migrado da Stripe.
-   * Busca pelo email do owner e ajusta status + currentPeriodEnd.
+   * Migra um cliente da Stripe para o novo sistema.
+   * - Se a org já existe: atualiza a subscription.
+   * - Se não existe: cria a org + subscription e adiciona o user como owner.
+   * Campos orgName, orgSlug e plan são obrigatórios apenas quando a org não existe.
    */
   async fixStripeSubscription(context: ElysiaContext) {
     const { body, request, status } = context;
@@ -1023,44 +1025,92 @@ export class AdminController {
       if (!session?.user) return status(401, { message: "Não autenticado" });
       if (session.user.role !== "admin") return status(403, { message: "Acesso negado. Apenas administradores." });
 
-      const { ownerEmail, newStatus, activeUntil } = body as {
+      const { ownerEmail, newStatus, activeUntil, orgName, orgSlug, plan } = body as {
         ownerEmail: string;
         newStatus: "ACTIVE" | "EXPIRED" | "CANCELLED";
-        activeUntil?: string; // ISO date, obrigatório se newStatus = ACTIVE
+        activeUntil?: string;
+        orgName?: string;
+        orgSlug?: string;
+        plan?: string;
       };
 
       if (newStatus === "ACTIVE" && !activeUntil)
         return status(400, { message: "activeUntil é obrigatório para status ACTIVE" });
 
-      // Busca o usuário pelo email
       const user = await prisma.user.findUnique({ where: { email: ownerEmail } });
       if (!user) return status(404, { message: `Usuário não encontrado: ${ownerEmail}` });
 
-      // Busca a org onde ele é owner
+      const currentPeriodEnd = activeUntil ? new Date(activeUntil) : null;
+
+      // Busca org existente onde ele é owner
       const member = await prisma.member.findFirst({
         where: { userId: user.id, role: "owner" },
         include: { organization: { include: { subscription: true } } },
       });
 
-      if (!member) return status(404, { message: `Nenhuma organização com owner ${ownerEmail}` });
+      let org: any;
+      let sub: any;
+      let action: "created" | "updated";
 
-      const org = member.organization;
-      const sub = org.subscription;
+      if (member) {
+        // Org existe — apenas atualiza a subscription
+        org = member.organization;
+        sub = org.subscription;
 
-      if (!sub) return status(404, { message: `Organização "${org.name}" não tem subscription` });
+        if (!sub) {
+          // Org sem subscription — cria
+          sub = await prisma.subscription.create({
+            data: {
+              organizationId: org.id,
+              plan: plan ?? "MESTRE",
+              status: SubscriptionStatus[newStatus],
+              paymentProvider: "syncpay",
+              currentPeriodEnd,
+              cancelAtPeriodEnd: false,
+            },
+          });
+        } else {
+          sub = await prisma.subscription.update({
+            where: { id: sub.id },
+            data: {
+              status: SubscriptionStatus[newStatus],
+              paymentProvider: "syncpay",
+              paymentProviderId: null,
+              currentPeriodEnd,
+              cancelAtPeriodEnd: false,
+              ...(plan ? { plan } : {}),
+            },
+          });
+        }
+        action = "updated";
+      } else {
+        // Org não existe — cria tudo
+        if (!orgName || !orgSlug || !plan)
+          return status(400, { message: "orgName, orgSlug e plan são obrigatórios para criar a organização" });
 
-      const currentPeriodEnd = activeUntil ? new Date(activeUntil) : null;
+        const existing = await prisma.organization.findUnique({ where: { slug: orgSlug } });
+        if (existing) return status(409, { message: `Já existe uma organização com slug "${orgSlug}"` });
 
-      const updated = await prisma.subscription.update({
-        where: { id: sub.id },
-        data: {
-          status: SubscriptionStatus[newStatus],
-          paymentProvider: "syncpay",
-          paymentProviderId: null,
-          currentPeriodEnd,
-          cancelAtPeriodEnd: false,
-        },
-      });
+        org = await prisma.organization.create({
+          data: { name: orgName, slug: orgSlug, metadata: {} },
+        });
+
+        await prisma.member.create({
+          data: { organizationId: org.id, userId: user.id, role: "owner" },
+        });
+
+        sub = await prisma.subscription.create({
+          data: {
+            organizationId: org.id,
+            plan,
+            status: SubscriptionStatus[newStatus],
+            paymentProvider: "syncpay",
+            currentPeriodEnd,
+            cancelAtPeriodEnd: false,
+          },
+        });
+        action = "created";
+      }
 
       if (newStatus === "ACTIVE" && currentPeriodEnd) {
         const { scheduleSubscriptionExpiryCheck } = await import("../jobs/subscription-expiry.job");
@@ -1069,12 +1119,13 @@ export class AdminController {
 
       return {
         success: true,
+        action,
         organization: { id: org.id, name: org.name, slug: org.slug },
-        subscription: { id: updated.id, status: updated.status, currentPeriodEnd: updated.currentPeriodEnd },
+        subscription: { id: sub.id, status: sub.status, currentPeriodEnd: sub.currentPeriodEnd },
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro desconhecido";
-      console.error("Erro ao corrigir subscription Stripe:", error);
+      console.error("Erro ao migrar subscription Stripe:", error);
       return status(500, { message });
     }
   }

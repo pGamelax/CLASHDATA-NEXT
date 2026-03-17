@@ -214,6 +214,9 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         ownerEmail: t.String(),
         newStatus: t.Union([t.Literal("ACTIVE"), t.Literal("EXPIRED"), t.Literal("CANCELLED")]),
         activeUntil: t.Optional(t.String()),
+        orgName: t.Optional(t.String()),
+        orgSlug: t.Optional(t.String()),
+        plan: t.Optional(t.String()),
       }),
       detail: {
         tags: ["Admin"],
