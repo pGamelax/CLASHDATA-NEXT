@@ -34,7 +34,9 @@
 
     # All other traffic → Next.js server
     reverse_proxy localhost:3001 {
-        header_up Host      {host}
-        header_up X-Real-IP {remote_host}
+        header_up Host             {host}
+        header_up X-Real-IP        {remote_host}
+        header_up X-Forwarded-Host {host}
+        header_up X-Forwarded-Proto https
     }
 }

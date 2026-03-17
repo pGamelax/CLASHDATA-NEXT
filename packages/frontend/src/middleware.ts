@@ -36,13 +36,17 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isProtectedRoute && !isAuthenticatedUser) {
-    const signInUrl = new URL("/sign-in", request.url);
-    signInUrl.searchParams.set("callbackUrl", pathname);
+    const signInUrl = request.nextUrl.clone();
+    signInUrl.pathname = "/sign-in";
+    signInUrl.search = `?callbackUrl=${encodeURIComponent(pathname)}`;
     return NextResponse.redirect(signInUrl);
   }
 
   if ((pathname === "/sign-in" || pathname === "/sign-up") && isAuthenticatedUser) {
-    return NextResponse.redirect(new URL("/", request.url));
+    const homeUrl = request.nextUrl.clone();
+    homeUrl.pathname = "/";
+    homeUrl.search = "";
+    return NextResponse.redirect(homeUrl);
   }
 
   return NextResponse.next();
