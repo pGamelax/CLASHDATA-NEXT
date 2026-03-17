@@ -3,6 +3,8 @@ import type { NextRequest } from "next/server";
 
 const publicRoutes = ["/", "/sign-in", "/sign-up"];
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.clashdata.pro";
+
 function getAppUrl(request: NextRequest): string {
   if (process.env.APP_URL) return process.env.APP_URL;
   const host =
@@ -13,26 +15,54 @@ function getAppUrl(request: NextRequest): string {
   return `${proto}://${host}`;
 }
 
-export function middleware(request: NextRequest) {
+function hasSesionCookie(request: NextRequest): boolean {
+  return !!(
+    request.cookies.get("better-auth.session_token") ||
+    request.cookies.get("__Secure-better-auth.session_token")
+  );
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublicRoute = publicRoutes.includes(pathname);
   const isProtectedRoute = !isPublicRoute;
 
-  // Check session cookie presence — actual validation happens in API calls
-  const sessionCookie =
-    request.cookies.get("better-auth.session_token") ||
-    request.cookies.get("__Secure-better-auth.session_token");
+  // Fast path: no cookie → definitely not authenticated
+  if (isProtectedRoute && !hasSesionCookie(request)) {
+    const appUrl = getAppUrl(request);
+    return NextResponse.redirect(
+      new URL(`/sign-in?callbackUrl=${encodeURIComponent(pathname)}`, appUrl)
+    );
+  }
 
-  const isAuthenticated = !!sessionCookie?.value;
+  // Validate session with backend
+  let isAuthenticated = false;
+  if (hasSesionCookie(request)) {
+    try {
+      const response = await fetch(`${API_URL}/auth/get-session`, {
+        method: "GET",
+        headers: {
+          Cookie: request.headers.get("cookie") || "",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const session = await response.json();
+        isAuthenticated = !!(session?.user || session?.data?.user);
+      }
+    } catch {
+      // Network error: trust the cookie to avoid locking out users
+      isAuthenticated = hasSesionCookie(request);
+    }
+  }
 
   const appUrl = getAppUrl(request);
 
   if (isProtectedRoute && !isAuthenticated) {
-    const signInUrl = new URL(
-      `/sign-in?callbackUrl=${encodeURIComponent(pathname)}`,
-      appUrl
+    return NextResponse.redirect(
+      new URL(`/sign-in?callbackUrl=${encodeURIComponent(pathname)}`, appUrl)
     );
-    return NextResponse.redirect(signInUrl);
   }
 
   if ((pathname === "/sign-in" || pathname === "/sign-up") && isAuthenticated) {
