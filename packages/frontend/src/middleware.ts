@@ -3,7 +3,11 @@ import type { NextRequest } from "next/server";
 
 const publicRoutes = ["/", "/sign-in", "/sign-up"];
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.clashdata.pro";
+// Use internal Docker URL for server-to-server calls (avoids going through Traefik)
+// Set INTERNAL_API_URL in Dokploy env to the internal container URL, e.g.:
+// http://clashdata-backend-xxxxx:3003
+// If not set, falls back to cookie-only check.
+const INTERNAL_API_URL = process.env.INTERNAL_API_URL;
 
 function getAppUrl(request: NextRequest): string {
   if (process.env.APP_URL) return process.env.APP_URL;
@@ -15,6 +19,14 @@ function getAppUrl(request: NextRequest): string {
   return `${proto}://${host}`;
 }
 
+function hasSessionCookie(request: NextRequest): boolean {
+  const cookies = request.headers.get("cookie") || "";
+  return (
+    cookies.includes("better-auth.session_token") ||
+    cookies.includes("__Secure-better-auth.session_token")
+  );
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublicRoute = publicRoutes.includes(pathname);
@@ -22,41 +34,34 @@ export async function middleware(request: NextRequest) {
 
   const cookieHeader = request.headers.get("cookie") || "";
 
-  // Fast path: no cookies → not authenticated
-  if (isProtectedRoute && !cookieHeader) {
-    const appUrl = getAppUrl(request);
-    return NextResponse.redirect(
-      new URL(`/sign-in?callbackUrl=${encodeURIComponent(pathname)}`, appUrl)
-    );
-  }
-
   let isAuthenticated = false;
 
-  try {
-    const response = await fetch(`${API_URL}/auth/get-session`, {
-      method: "GET",
-      headers: {
-        Cookie: cookieHeader,
-        "Content-Type": "application/json",
-      },
-      cache: "no-store",
-    });
+  if (INTERNAL_API_URL) {
+    // Full session validation via internal Docker network
+    try {
+      const response = await fetch(`${INTERNAL_API_URL}/auth/get-session`, {
+        method: "GET",
+        headers: {
+          Cookie: cookieHeader,
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      });
 
-    const text = await response.text();
-    console.log(`[middleware] ${pathname} | status=${response.status} | body=${text.slice(0, 200)}`);
-
-    if (response.ok && text) {
-      try {
-        const session = JSON.parse(text);
+      if (response.ok) {
+        const session = await response.json();
         isAuthenticated = !!(session?.user?.id || session?.data?.user?.id);
-      } catch {
-        isAuthenticated = false;
+      } else {
+        // Backend error: fall back to cookie check
+        isAuthenticated = hasSessionCookie(request);
       }
+    } catch {
+      // Network error: fall back to cookie check
+      isAuthenticated = hasSessionCookie(request);
     }
-  } catch (err) {
-    console.error(`[middleware] get-session fetch failed:`, err);
-    // Backend unreachable: let through to avoid locking out users
-    isAuthenticated = true;
+  } else {
+    // No internal URL configured: trust cookie presence
+    isAuthenticated = hasSessionCookie(request);
   }
 
   const appUrl = getAppUrl(request);
