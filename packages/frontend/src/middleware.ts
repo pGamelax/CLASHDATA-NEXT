@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const publicRoutes = ["/", "/sign-in", "/sign-up"];
+const APP_URL = process.env.APP_URL || "https://clashdata.pro";
 
 function hasSessionCookie(request: NextRequest): boolean {
   const cookies = request.headers.get("cookie") || "";
@@ -17,17 +18,13 @@ export function middleware(request: NextRequest) {
   const isAuthenticated = hasSessionCookie(request);
 
   if ((pathname === "/sign-in" || pathname === "/sign-up") && isAuthenticated) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/organizations";
-    url.search = "";
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(`${APP_URL}/organizations`);
   }
 
   if (!isPublicRoute && !isAuthenticated) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/sign-in";
-    url.search = `?callbackUrl=${encodeURIComponent(pathname)}`;
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(
+      `${APP_URL}/sign-in?callbackUrl=${encodeURIComponent(pathname)}`
+    );
   }
 
   return NextResponse.next();
