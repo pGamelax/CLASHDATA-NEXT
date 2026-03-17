@@ -13,5 +13,7 @@
         header_up X-Real-IP        {remote_host}
         header_up X-Forwarded-Host {host}
         header_up X-Forwarded-Proto https
+        header_down Location http://localhost:3002 https://{http.request.host}
+        header_down Location https://localhost:3002 https://{http.request.host}
     }
 }
