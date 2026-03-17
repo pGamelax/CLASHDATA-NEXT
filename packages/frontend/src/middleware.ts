@@ -2,42 +2,47 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const publicRoutes = ["/", "/sign-in", "/sign-up"];
-const APP_URL = process.env.APP_URL || "https://clashdata.pro";
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.clashdata.pro";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublicRoute = publicRoutes.includes(pathname);
   const isProtectedRoute = !isPublicRoute;
 
-  let isAuthenticated = false;
+  let isAuthenticatedUser = false;
 
-  try {
-    const response = await fetch(`${API_URL}/auth/get-session`, {
-      method: "GET",
-      headers: {
-        Cookie: request.headers.get("cookie") || "",
-        "Content-Type": "application/json",
-      },
-      cache: "no-store",
-    });
+  if (isProtectedRoute || pathname === "/sign-in" || pathname === "/sign-up") {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+      const sessionUrl = `${apiUrl}/auth/get-session`;
+      
+      const response = await fetch(sessionUrl, {
+        method: "GET",
+        headers: {
+          Cookie: request.headers.get("cookie") || "",
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
 
-    if (response.ok) {
-      const session = await response.json();
-      isAuthenticated = !!(session?.user?.id || session?.data?.user?.id);
+      if (response.ok) {
+        const session = await response.json();
+        if (session && (session.user || session.data?.user)) {
+          isAuthenticatedUser = true;
+        }
+      }
+    } catch (error) {
+      isAuthenticatedUser = false;
     }
-  } catch {
-    isAuthenticated = false;
   }
 
-  if (isProtectedRoute && !isAuthenticated) {
-    return NextResponse.redirect(
-      `${APP_URL}/sign-in?callbackUrl=${encodeURIComponent(pathname)}`
-    );
+  if (isProtectedRoute && !isAuthenticatedUser) {
+    const signInUrl = new URL("/sign-in", request.url);
+    signInUrl.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(signInUrl);
   }
 
-  if ((pathname === "/sign-in" || pathname === "/sign-up") && isAuthenticated) {
-    return NextResponse.redirect(`${APP_URL}/organizations`);
+  if ((pathname === "/sign-in" || pathname === "/sign-up") && isAuthenticatedUser) {
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();
@@ -45,6 +50,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+
     "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
