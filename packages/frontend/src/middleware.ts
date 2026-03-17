@@ -12,25 +12,23 @@ export async function middleware(request: NextRequest) {
 
   if (isProtectedRoute || pathname === "/sign-in" || pathname === "/sign-up") {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-      const sessionUrl = `${apiUrl}/auth/get-session`;
-      
-      const response = await fetch(sessionUrl, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.clashdata.pro";
+      const response = await fetch(`${apiUrl}/auth/get-session`, {
         method: "GET",
         headers: {
           Cookie: request.headers.get("cookie") || "",
           "Content-Type": "application/json",
         },
-        credentials: "include",
+        cache: "no-store",
       });
 
       if (response.ok) {
         const session = await response.json();
-        if (session && (session.user || session.data?.user)) {
+        if (session?.user?.id || session?.data?.user?.id) {
           isAuthenticatedUser = true;
         }
       }
-    } catch (error) {
+    } catch {
       isAuthenticatedUser = false;
     }
   }
