@@ -22,10 +22,6 @@ export default async function OrganizationsPage() {
     .join("; ");
 
   const session = await getSession(cookieHeader);
-  
-  if (!session?.user) {
-    redirect("/sign-in?callbackUrl=" + encodeURIComponent("/organizations"));
-  }
 
   const organizations = await getOrganizations(cookieHeader);
   const orgsList = organizations?.data || organizations || [];

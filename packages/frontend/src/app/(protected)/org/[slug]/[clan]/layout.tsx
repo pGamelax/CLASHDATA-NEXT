@@ -18,11 +18,6 @@ export default async function ClanLayoutPage({
     .map((c) => `${c.name}=${c.value}`)
     .join("; ");
 
-  const session = await getSession(cookieHeader);
-  if (!session?.user) {
-    redirect(`/sign-in?callbackUrl=${encodeURIComponent(`/org/${slug}/${clan}`)}`);
-  }
-
   // Validates org, subscription status, and clan membership — redirects if any check fails
   await getValidatedClan(slug, clan, (s, c) => `/org/${s}/${c}`);
 
