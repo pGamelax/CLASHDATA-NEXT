@@ -84,6 +84,7 @@ model Organization {
   logo          String?
   metadata      Json?
   subscription  Subscription?
+  pixPayments   PixPayment[]
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   members       Member[]
@@ -157,14 +158,32 @@ model LegendLeagueLog {
   @@map("legend_league_log")
 }
 
-// Subscription models
-enum SubscriptionPlan {
-  MESTRE   // R$ 29,90 - 1 clan, 1 convite
-  CAMPEAO  // R$ 45,90 - 2 clans, 2 convites
-  TITA     // R$ 74,90 - 3 clans, 3 convites
-  LEGEND   // R$ 119,90 - 5 clans, 5 convites
+// Dynamic plan configuration
+model Plan {
+  id                   String   @id @default(cuid())
+  key                  String   @unique   // e.g. "MESTRE", "CAMPEAO", or any custom key
+  name                 String
+  description          String?
+  monthlyPrice         Int               // em centavos
+  quarterlyPrice       Int               // em centavos (com desconto)
+  yearlyPrice          Int               // em centavos (com desconto)
+  originalQuarterlyPrice Int?            // em centavos (sem desconto)
+  originalYearlyPrice    Int?            // em centavos (sem desconto)
+  maxClans             Int
+  maxInvites           Int
+  icon                 String   @default("shield")  // nome do ícone (shield, crown, zap, star...)
+  color                String   @default("blue")    // tema de cor (blue, yellow, purple, green...)
+  features             String[]
+  isPopular            Boolean  @default(false)
+  isActive             Boolean  @default(true)
+  sortOrder            Int      @default(0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("plan")
 }
 
+// Subscription models
 enum SubscriptionStatus {
   TRIAL       // Free trial de 3 dias
   ACTIVE      // Assinatura ativa e paga
@@ -176,21 +195,55 @@ model Subscription {
   id                String             @id @default(cuid())
   organizationId    String             @unique
   organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  plan              SubscriptionPlan
+  plan              String
   status            SubscriptionStatus @default(TRIAL)
+  period            String?            @default("monthly") // monthly, quarterly, yearly
   trialEndsAt       DateTime?          // Data de término do trial (3 dias após criação)
   currentPeriodEnd  DateTime?          // Data de término do período atual
   cancelAtPeriodEnd Boolean            @default(false)
-  paymentProvider   String?            @default("stripe") // Provider de pagamento
-  paymentProviderId String?            // ID da subscription no Stripe (sub_xxx)
-  stripeCustomerId  String?            // ID do customer no Stripe (cus_xxx)
+  paymentProvider   String?            @default("syncpay")
+  paymentProviderId String?
+  pixPayments       PixPayment[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
   @@index([organizationId])
   @@index([status])
-  @@index([stripeCustomerId])
   @@map("subscription")
+}
+
+enum PixPaymentStatus {
+  PENDING    // Aguardando pagamento
+  PAID       // Pago
+  EXPIRED    // QR code expirado sem pagamento
+  CANCELLED  // Cancelado
+}
+
+model PixPayment {
+  id              String           @id @default(cuid())
+  organizationId  String
+  subscriptionId  String
+  subscription    Subscription     @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  amount          Int              // em centavos
+  plan            String
+  period          String           // monthly, quarterly, yearly
+  status          PixPaymentStatus @default(PENDING)
+  syncpayId       String?          @unique // idTransaction no SyncPay
+  pixCode         String?          @db.Text // Código copia e cola
+  pixQrCodeBase64 String?          @db.Text // QR code em base64
+  pixExpiresAt    DateTime?        // Expiração do QR code (24h)
+  periodFrom      DateTime?        // Início do período coberto
+  periodTo        DateTime?        // Fim do período coberto
+  paidAt          DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([syncpayId])
+  @@map("pix_payment")
 }
 
 model SeasonEndDate {

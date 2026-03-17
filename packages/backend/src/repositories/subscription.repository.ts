@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma";
-import { SubscriptionPlan, SubscriptionStatus } from "../generated/prisma";
+import { SubscriptionStatus } from "../generated/prisma";
 
 export class SubscriptionRepository {
   async findByOrganizationId(organizationId: string) {
@@ -17,7 +17,7 @@ export class SubscriptionRepository {
 
   async create(data: {
     organizationId: string;
-    plan: SubscriptionPlan;
+    plan: string;
     status?: SubscriptionStatus;
     trialEndsAt?: Date;
     currentPeriodEnd?: Date;
@@ -35,14 +35,13 @@ export class SubscriptionRepository {
   async update(
     organizationId: string,
     data: {
-      plan?: SubscriptionPlan;
+      plan?: string;
       status?: SubscriptionStatus;
       trialEndsAt?: Date;
       currentPeriodEnd?: Date;
       cancelAtPeriodEnd?: boolean;
       paymentProvider?: string;
       paymentProviderId?: string;
-      stripeCustomerId?: string;
     }
   ) {
     return await prisma.subscription.update({

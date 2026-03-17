@@ -37,17 +37,13 @@ export const organizationsRoutes = new Elysia({ prefix: "/organizations" })
       body: t.Object({
         name: t.String(),
         slug: t.String(),
-        plan: t.Optional(t.Union([
-          t.Literal("MESTRE"),
-          t.Literal("CAMPEAO"),
-          t.Literal("TITA"),
-        ])),
+        plan: t.Optional(t.String()),
       }),
       detail: {
         tags: ["Organizations"],
         summary: "Criar organização",
         description:
-          "Cria uma nova organização. Admins podem criar sem plano. Usuários normais devem usar o checkout do Stripe.",
+          "Cria uma nova organização. Admins podem criar sem plano.",
       },
     }
   )

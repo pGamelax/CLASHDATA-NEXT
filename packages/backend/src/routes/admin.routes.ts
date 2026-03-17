@@ -1,7 +1,9 @@
 import { Elysia, t } from "elysia";
 import { AdminController } from "../controllers/admin.controller";
+import { AdminPlansController } from "../controllers/admin-plans.controller";
 
 const adminController = new AdminController();
+const adminPlansController = new AdminPlansController();
 
 export const adminRoutes = new Elysia({ prefix: "/admin" })
   .get(
@@ -201,5 +203,72 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         summary: "Reativar assinatura manual (admin)",
         description: "Reativa uma assinatura manual após pagamento. Apenas para administradores.",
       },
+    }
+  )
+
+  // ── Plan management ────────────────────────────────────────────
+  .get("/plans", async (context) => adminPlansController.getPlans(context), {
+    detail: { tags: ["Admin"], summary: "Listar todos os planos" },
+  })
+  .post("/plans/seed", async (context) => adminPlansController.seedPlans(context), {
+    detail: { tags: ["Admin"], summary: "Seed planos padrão" },
+  })
+  .post(
+    "/plans",
+    async (context) => adminPlansController.createPlan(context),
+    {
+      body: t.Object({
+        key: t.String(),
+        name: t.String(),
+        description: t.Optional(t.String()),
+        monthlyPrice: t.Number(),
+        quarterlyPrice: t.Number(),
+        yearlyPrice: t.Number(),
+        originalQuarterlyPrice: t.Optional(t.Nullable(t.Number())),
+        originalYearlyPrice: t.Optional(t.Nullable(t.Number())),
+        maxClans: t.Number(),
+        maxInvites: t.Number(),
+        icon: t.Optional(t.String()),
+        color: t.Optional(t.String()),
+        features: t.Optional(t.Array(t.String())),
+        isPopular: t.Optional(t.Boolean()),
+        isActive: t.Optional(t.Boolean()),
+        sortOrder: t.Optional(t.Number()),
+      }),
+      detail: { tags: ["Admin"], summary: "Criar plano" },
+    }
+  )
+  .put(
+    "/plans/:id",
+    async (context) => adminPlansController.updatePlan(context),
+    {
+      params: t.Object({ id: t.String() }),
+      body: t.Object({
+        key: t.Optional(t.String()),
+        name: t.Optional(t.String()),
+        description: t.Optional(t.String()),
+        monthlyPrice: t.Optional(t.Number()),
+        quarterlyPrice: t.Optional(t.Number()),
+        yearlyPrice: t.Optional(t.Number()),
+        originalQuarterlyPrice: t.Optional(t.Nullable(t.Number())),
+        originalYearlyPrice: t.Optional(t.Nullable(t.Number())),
+        maxClans: t.Optional(t.Number()),
+        maxInvites: t.Optional(t.Number()),
+        icon: t.Optional(t.String()),
+        color: t.Optional(t.String()),
+        features: t.Optional(t.Array(t.String())),
+        isPopular: t.Optional(t.Boolean()),
+        isActive: t.Optional(t.Boolean()),
+        sortOrder: t.Optional(t.Number()),
+      }),
+      detail: { tags: ["Admin"], summary: "Atualizar plano" },
+    }
+  )
+  .delete(
+    "/plans/:id",
+    async (context) => adminPlansController.deletePlan(context),
+    {
+      params: t.Object({ id: t.String() }),
+      detail: { tags: ["Admin"], summary: "Excluir plano" },
     }
   );

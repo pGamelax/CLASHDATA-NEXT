@@ -23,26 +23,11 @@ const envSchema = z.object({
   // Redis
   REDIS_URL: z.string().default("redis://localhost:6379"),
   
-  // Stripe
-  STRIPE_SECRET_KEY: z.string(),
-  STRIPE_PUBLISHABLE_KEY: z.string(),
-  STRIPE_WEBHOOK_SECRET: z.string(),
-
-  STRIPE_PRICE_TITA_MONTHLY: z.string(),
-  STRIPE_PRICE_TITA_QUARTERLY: z.string(),
-  STRIPE_PRICE_TITA_YEARLY: z.string(),
-
-  STRIPE_PRICE_MESTRE_MONTHLY: z.string(),
-  STRIPE_PRICE_MESTRE_QUARTERLY: z.string(),
-  STRIPE_PRICE_MESTRE_YEARLY: z.string(),
-
-  STRIPE_PRICE_CAMPEAO_MONTHLY: z.string(),
-  STRIPE_PRICE_CAMPEAO_QUARTERLY: z.string(),
-  STRIPE_PRICE_CAMPEAO_YEARLY: z.string(),
-
-  STRIPE_PRICE_LEGEND_MONTHLY: z.string(),
-  STRIPE_PRICE_LEGEND_QUARTERLY: z.string(),
-  STRIPE_PRICE_LEGEND_YEARLY: z.string(),
+  // SyncPay PIX
+  SYNCPAY_CLIENT_ID: z.string(),
+  SYNCPAY_CLIENT_SECRET: z.string(),
+  SYNCPAY_WEBHOOK_TOKEN: z.string().optional(),
+  SYNCPAY_WEBHOOK_URL: z.string().url().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

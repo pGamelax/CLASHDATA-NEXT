@@ -517,21 +517,6 @@ export class AdminController {
         return status(404, { message: "Subscription não encontrada" });
       }
 
-      // Cancela no Stripe se tiver paymentProviderId
-      if (subscription.paymentProviderId) {
-        try {
-          const { StripeService } = await import("../services/stripe.service");
-          const stripeService = new StripeService();
-          await stripeService.cancelSubscription(
-            subscription.paymentProviderId,
-            false // cancelAtPeriodEnd = false (cancela imediatamente)
-          );
-        } catch (error) {
-          console.error("Erro ao cancelar subscription no Stripe:", error);
-          // Continua mesmo se houver erro no Stripe
-        }
-      }
-
       // Cancela a subscription no banco
       const { SubscriptionRepository } = await import("../repositories/subscription.repository");
       const subscriptionRepository = new SubscriptionRepository();
@@ -579,21 +564,6 @@ export class AdminController {
 
       if (!organization) {
         return status(404, { message: "Organização não encontrada" });
-      }
-
-      // Cancela subscription no Stripe se existir
-      if (organization.subscription?.paymentProviderId) {
-        try {
-          const { StripeService } = await import("../services/stripe.service");
-          const stripeService = new StripeService();
-          await stripeService.cancelSubscription(
-            organization.subscription.paymentProviderId,
-            false
-          );
-        } catch (error) {
-          console.error("Erro ao cancelar subscription no Stripe:", error);
-          // Continua mesmo se houver erro no Stripe
-        }
       }
 
       // Deleta a organização (cascade deleta subscription, members, clans, invites)
@@ -881,13 +851,6 @@ export class AdminController {
         });
       }
 
-      // Valida o plano
-      if (!["MESTRE", "CAMPEAO", "TITA", "LEGEND"].includes(plan)) {
-        return status(400, {
-          message: "Plano inválido. Deve ser MESTRE, CAMPEAO, TITA ou LEGEND",
-        });
-      }
-
       // Valida dias até expiração
       if (daysUntilExpiry <= 0) {
         return status(400, {
@@ -939,7 +902,6 @@ export class AdminController {
       const currentPeriodEnd = new Date();
       currentPeriodEnd.setDate(currentPeriodEnd.getDate() + daysUntilExpiry);
 
-      // Cria a subscription manual (sem Stripe)
       const subscription = await prisma.subscription.create({
         data: {
           organizationId: organization.id,
@@ -947,8 +909,6 @@ export class AdminController {
           status: SubscriptionStatus.ACTIVE,
           currentPeriodEnd,
           paymentProvider: "manual",
-          paymentProviderId: null,
-          stripeCustomerId: null,
         },
         include: {
           organization: true,

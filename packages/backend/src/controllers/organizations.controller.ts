@@ -1,6 +1,5 @@
 import { OrganizationService } from "../services/organization.service";
 import { auth } from "../auth";
-import { SubscriptionPlan } from "../generated/prisma";
 
 type ElysiaContext = {
   params?: Record<string, string>;
@@ -27,23 +26,15 @@ export class OrganizationsController {
       const { name, slug, plan } = body as {
         name: string;
         slug: string;
-        plan?: SubscriptionPlan;
+        plan?: string;
       };
 
       // Se for admin, pode criar sem plano (sem subscription)
       const isAdmin = session.user.role === "admin";
       
       if (!isAdmin) {
-        // Valida o plano para usuários normais
-        if (!plan || !["MESTRE", "CAMPEAO", "TITA"].includes(plan)) {
-          return status(400, {
-            message: "Plano inválido. Deve ser MESTRE, CAMPEAO ou TITA",
-          });
-        }
-
-        // Usuários normais devem usar o fluxo do Stripe
-        return status(400, {
-          message: "Usuários normais devem criar organização através do checkout do Stripe",
+        return status(403, {
+          message: "Apenas administradores podem criar organizações diretamente",
         });
       }
 

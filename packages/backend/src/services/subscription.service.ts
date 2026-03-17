@@ -1,5 +1,5 @@
 import { SubscriptionRepository } from "../repositories/subscription.repository";
-import { SubscriptionPlan, SubscriptionStatus } from "../generated/prisma";
+import { SubscriptionStatus } from "../generated/prisma";
 
 export interface PlanLimits {
   maxClans: number;
@@ -7,27 +7,12 @@ export interface PlanLimits {
   price: number;
 }
 
-export const PLAN_LIMITS: Record<SubscriptionPlan, PlanLimits> = {
-  MESTRE: {
-    maxClans: 1,
-    maxInvites: 1,
-    price: 29.90,
-  },
-  CAMPEAO: {
-    maxClans: 2,
-    maxInvites: 2,
-    price: 45.90,
-  },
-  TITA: {
-    maxClans: 3,
-    maxInvites: 3,
-    price: 74.90,
-  },
-  LEGEND: {
-    maxClans: 5,
-    maxInvites: 5,
-    price: 119.90,
-  },
+/** Fallback hardcoded limits — used when DB is unavailable */
+export const PLAN_LIMITS_FALLBACK: Record<string, PlanLimits> = {
+  MESTRE:  { maxClans: 1, maxInvites: 1, price: 29.90 },
+  CAMPEAO: { maxClans: 2, maxInvites: 2, price: 45.90 },
+  TITA:    { maxClans: 3, maxInvites: 3, price: 74.90 },
+  LEGEND:  { maxClans: 5, maxInvites: 5, price: 119.90 },
 };
 
 const TRIAL_DAYS = 3;
@@ -35,8 +20,8 @@ const TRIAL_DAYS = 3;
 export class SubscriptionService {
   constructor(private subscriptionRepository: SubscriptionRepository) {}
 
-  getPlanLimits(plan: SubscriptionPlan): PlanLimits {
-    return PLAN_LIMITS[plan];
+  getPlanLimits(plan: string): PlanLimits {
+    return PLAN_LIMITS_FALLBACK[plan] ?? { maxClans: 1, maxInvites: 1, price: 0 };
   }
 
   /**
@@ -80,7 +65,7 @@ export class SubscriptionService {
    */
   async createTrialSubscription(
     organizationId: string,
-    plan: SubscriptionPlan
+    plan: string
   ) {
     const trialEndsAt = this.calculateTrialEndDate();
 

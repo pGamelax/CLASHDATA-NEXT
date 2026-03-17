@@ -687,51 +687,135 @@ export async function reactivateSubscription(organizationId: string, daysUntilEx
   });
 }
 
-export async function renewSubscription(organizationId: string) {
-  return apiFetch<any>("/stripe/renew-subscription", {
+// --- Plans ---
+
+export interface PlanConfig {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  monthlyPrice: number;
+  quarterlyPrice: number;
+  yearlyPrice: number;
+  originalQuarterlyPrice: number | null;
+  originalYearlyPrice: number | null;
+  maxClans: number;
+  maxInvites: number;
+  icon: string;
+  color: string;
+  features: string[];
+  isPopular: boolean;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export async function getPlans(): Promise<PlanConfig[]> {
+  try {
+    const data = await apiFetch<{ plans: PlanConfig[] }>("/subscriptions/plans");
+    return data.plans ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getAdminPlans(): Promise<PlanConfig[]> {
+  try {
+    const data = await apiFetch<{ plans: PlanConfig[] }>("/admin/plans");
+    return data.plans ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function createAdminPlan(data: Partial<PlanConfig>): Promise<PlanConfig> {
+  const res = await apiFetch<{ plan: PlanConfig }>("/admin/plans", {
     method: "POST",
-    body: JSON.stringify({ organizationId }),
+    body: JSON.stringify(data),
+  });
+  return res.plan;
+}
+
+export async function updateAdminPlan(id: string, data: Partial<PlanConfig>): Promise<PlanConfig> {
+  const res = await apiFetch<{ plan: PlanConfig }>(`/admin/plans/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+  return res.plan;
+}
+
+export async function deleteAdminPlan(id: string): Promise<void> {
+  await apiFetch(`/admin/plans/${id}`, { method: "DELETE" });
+}
+
+export async function seedAdminPlans(): Promise<{ seeded: boolean; count: number }> {
+  const res = await apiFetch<{ seeded: boolean; count: number }>("/admin/plans/seed", { method: "POST" });
+  return res;
+}
+
+// --- PIX / SyncPay ---
+
+export interface PixPaymentData {
+  pixId: string;
+  pixCode: string;        // copia e cola
+  pixQrCodeBase64: string;
+  pixExpiresAt: string;
+  amount: number;         // centavos
+  status?: string;
+  periodFrom?: string;
+  periodTo?: string;
+}
+
+export async function checkTrialStatus(): Promise<{ hasUsedTrial: boolean }> {
+  try {
+    return await apiFetch<{ hasUsedTrial: boolean }>("/pix/check-trial");
+  } catch {
+    return { hasUsedTrial: false };
+  }
+}
+
+export async function createOrgWithTrial(data: {
+  name: string;
+  plan: string;
+  period: string;
+}): Promise<{
+  hasUsedTrial: boolean;
+  organization: { id: string; slug: string; name: string };
+  subscription: { id: string; status: string; trialEndsAt?: string };
+  pix: PixPaymentData | null;
+}> {
+  return apiFetch<any>("/pix/create-org", {
+    method: "POST",
+    body: JSON.stringify(data),
   });
 }
 
-export async function createPortalSession(organizationId: string): Promise<{ url: string }> {
-  return apiFetch<{ url: string }>("/stripe/create-portal-session", {
+export async function createPixPayment(data: {
+  organizationId: string;
+  plan: string;
+  period: string;
+}): Promise<{ pix: PixPaymentData }> {
+  return apiFetch<any>("/pix/create-payment", {
     method: "POST",
-    body: JSON.stringify({ organizationId }),
+    body: JSON.stringify(data),
   });
 }
 
-export async function createUpgradeCheckoutSession(
-  organizationId: string,
-  newPlan: string,
-  newPeriod: string
-): Promise<{ url?: string }> {
-  return apiFetch<{ url?: string }>("/stripe/create-upgrade-checkout-session", {
-    method: "POST",
-    body: JSON.stringify({ organizationId, newPlan, newPeriod }),
-  });
-}
-
-export async function changeSubscriptionPlan(
-  organizationId: string,
-  newPlan: string,
-  newPeriod: string
-): Promise<void> {
-  await apiFetch<any>("/stripe/change-subscription-plan", {
-    method: "POST",
-    body: JSON.stringify({ organizationId, newPlan, newPeriod }),
-  });
+export async function getPixStatus(organizationId: string): Promise<{
+  pix: PixPaymentData | null;
+}> {
+  return apiFetch<any>(`/pix/status/${organizationId}`);
 }
 
 export interface Subscription {
   id: string;
   plan: "MESTRE" | "CAMPEAO" | "TITA" | "LEGEND";
   status: "TRIAL" | "ACTIVE" | "CANCELLED" | "EXPIRED";
+  period?: string;
   trialEndsAt?: string;
   currentPeriodEnd?: string;
   cancelAtPeriodEnd: boolean;
   isActive: boolean;
-  stripeCustomerId?: string | null;
+  paymentProvider?: string | null;
   limits: { maxClans: number; maxInvites: number };
   usage: {
     clans: { current: number; max: number; canAdd: boolean };

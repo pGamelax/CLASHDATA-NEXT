@@ -17,19 +17,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Building2, Search, Plus, Edit, Trash2, XCircle, RotateCcw,
-  Loader2, RefreshCw, AlertCircle, Users, Shield, Crown, Star, Zap, Clock,
+  Loader2, RefreshCw, AlertCircle, Users, Shield, Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { createOrganizationWithManualSubscription, reactivateSubscription } from "@/lib/api";
+import { createOrganizationWithManualSubscription, reactivateSubscription, getAdminPlans, type PlanConfig } from "@/lib/api";
+import { getPlanIcon, getPlanColors } from "@/lib/plan-presets";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-
-const PLAN_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  LEGEND:  { label: "Legend",  color: "text-purple-400", icon: Crown  },
-  TITA:    { label: "Titã",    color: "text-blue-400",   icon: Star   },
-  CAMPEAO: { label: "Campeão", color: "text-green-400",  icon: Zap    },
-  MESTRE:  { label: "Mestre",  color: "text-yellow-400", icon: Shield },
-};
 
 const STATUS_CONFIG: Record<string, { label: string; badgeCn: string; dotColor: string }> = {
   ACTIVE:    { label: "Ativa",     badgeCn: "bg-green-500/15 text-green-400 border-green-500/30",  dotColor: "bg-green-500" },
@@ -66,6 +60,7 @@ const BLANK_CREATE = { name: "", slug: "", ownerEmail: "", plan: "MESTRE", daysU
 
 export function AdminOrganizationsPage() {
   const [orgs, setOrgs] = useState<any[]>([]);
+  const [plans, setPlans] = useState<PlanConfig[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -99,10 +94,14 @@ export function AdminOrganizationsPage() {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       setError(null);
-      const res = await fetch(`${API_URL}/admin/organizations`, { credentials: "include" });
+      const [res, fetchedPlans] = await Promise.all([
+        fetch(`${API_URL}/admin/organizations`, { credentials: "include" }),
+        getAdminPlans(),
+      ]);
       if (!res.ok) throw new Error("Falha ao carregar organizações");
       const data = await res.json();
       setOrgs(data.data || []);
+      setPlans(fetchedPlans);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -266,8 +265,8 @@ export function AdminOrganizationsPage() {
                     <Select value={createForm.plan} onValueChange={(v) => setCreateForm({ ...createForm, plan: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {Object.entries(PLAN_CONFIG).map(([k, v]) => (
-                          <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                        {plans.map((p) => (
+                          <SelectItem key={p.key} value={p.key}>{p.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -324,8 +323,9 @@ export function AdminOrganizationsPage() {
             {filtered.map((org) => {
               const sub = org.subscription;
               const statusCfg = sub ? STATUS_CONFIG[sub.status] : null;
-              const planCfg = sub ? PLAN_CONFIG[sub.plan] : null;
-              const PlanIcon = planCfg?.icon || Building2;
+              const planData = sub ? plans.find((p) => p.key === sub.plan) : null;
+              const PlanIcon = planData ? getPlanIcon(planData.icon) : Building2;
+              const planColors = planData ? getPlanColors(planData.color) : null;
               const owner = org.members?.find((m: any) => m.role === "owner");
               const expiryDate = sub?.currentPeriodEnd || sub?.trialEndsAt || null;
               const days = daysUntil(expiryDate);
@@ -365,9 +365,10 @@ export function AdminOrganizationsPage() {
                   </div>
 
                   {/* Plan */}
-                  {planCfg ? (
-                    <div className={cn("hidden sm:flex items-center gap-1 text-[11px] font-semibold shrink-0", planCfg.color)}>
-                      <PlanIcon className="h-3 w-3" />{planCfg.label}
+                  {sub?.plan ? (
+                    <div className={cn("hidden sm:flex items-center gap-1 text-[11px] font-semibold shrink-0", planColors?.icon ?? "text-muted-foreground")}>
+                      <PlanIcon className="h-3 w-3" />
+                      {planData?.name ?? sub.plan}
                     </div>
                   ) : (
                     <span className="hidden sm:block text-[11px] text-muted-foreground shrink-0">sem plano</span>

@@ -11,6 +11,7 @@ import {
   CreditCard,
   Users,
   CalendarClock,
+  PackageOpen,
 } from "lucide-react";
 
 interface AdminLayoutProps {
@@ -23,6 +24,7 @@ const adminNavItems = [
   { title: "Organizações",  href: "/admin/organizations",  icon: Building2 },
   { title: "Assinaturas",   href: "/admin/subscriptions",  icon: CreditCard },
   { title: "Usuários",      href: "/admin/users",          icon: Users },
+  { title: "Planos",        href: "/admin/plans",          icon: PackageOpen },
   { title: "Temporadas",    href: "/admin/season-dates",   icon: CalendarClock },
 ];
 

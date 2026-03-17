@@ -1,3 +1,4 @@
+import { auth } from "../auth";
 import { SeasonSnapshotRepository } from "../repositories/season-snapshot.repository";
 import {
   scheduleSeasonSnapshot,
@@ -7,12 +8,23 @@ import {
 
 const repository = new SeasonSnapshotRepository();
 
+async function requireAdmin({ request, set }: any) {
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (!session?.user) {
+    set.status = 401;
+    return { error: "Não autenticado" };
+  }
+  if (session.user.role !== "admin") {
+    set.status = 403;
+    return { error: "Acesso negado" };
+  }
+  return null;
+}
+
 export class SeasonEndDateController {
-  async create({ body, session, set }: any) {
-    if (session?.user?.role !== "admin") {
-      set.status = 403;
-      return { error: "Acesso negado" };
-    }
+  async create({ body, request, set }: any) {
+    const denied = await requireAdmin({ request, set });
+    if (denied) return denied;
 
     const { date, label } = body as { date: string; label?: string };
 
@@ -28,21 +40,17 @@ export class SeasonEndDateController {
     return { data: { ...seasonDate, jobId } };
   }
 
-  async list({ session, set }: any) {
-    if (session?.user?.role !== "admin") {
-      set.status = 403;
-      return { error: "Acesso negado" };
-    }
+  async list({ request, set }: any) {
+    const denied = await requireAdmin({ request, set });
+    if (denied) return denied;
 
     const dates = await repository.getAllSeasonEndDates();
     return { data: dates };
   }
 
-  async remove({ params, session, set }: any) {
-    if (session?.user?.role !== "admin") {
-      set.status = 403;
-      return { error: "Acesso negado" };
-    }
+  async remove({ params, request, set }: any) {
+    const denied = await requireAdmin({ request, set });
+    if (denied) return denied;
 
     const existing = await repository.getSeasonEndDateById(params.id);
     if (!existing) {
@@ -59,11 +67,9 @@ export class SeasonEndDateController {
   }
 
   // Admin: trigger immediately (for testing or manual override)
-  async triggerNow({ params, session, set }: any) {
-    if (session?.user?.role !== "admin") {
-      set.status = 403;
-      return { error: "Acesso negado" };
-    }
+  async triggerNow({ params, request, set }: any) {
+    const denied = await requireAdmin({ request, set });
+    if (denied) return denied;
 
     const existing = await repository.getSeasonEndDateById(params.id);
     if (!existing) {

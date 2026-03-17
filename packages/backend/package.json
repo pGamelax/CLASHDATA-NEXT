@@ -7,7 +7,8 @@
     "build": "bun build src/index.ts --outdir ./dist --target bun",
     "db:generate": "bunx --bun prisma generate --schema=./prisma/schema.prisma",
     "db:push": "bunx --bun prisma db push",
-    "db:migrate": "bunx --bun prisma migrate dev"
+    "db:migrate": "bunx --bun prisma migrate dev",
+    "db:seed": "bun run prisma/seed.ts"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.1.1",
@@ -24,12 +25,13 @@
     "elysia": "^1.1.20",
     "ioredis": "^5.3.2",
     "pg": "^8.18.0",
-    "stripe": "^20.3.0",
-    "zod": "^3.23.8"
+    "qrcode": "^1.5.4",
+"zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/node": "^20.14.12",
+    "@types/qrcode": "^1.5.6",
     "prisma": "^7.3.0"
   }
 }

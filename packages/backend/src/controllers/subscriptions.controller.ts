@@ -196,21 +196,6 @@ export class SubscriptionsController {
       const subscriptionRepository = new SubscriptionRepository();
       const existingSubscription = await subscriptionRepository.findByOrganizationId(organizationId);
       
-      // Cancela no Stripe se tiver paymentProviderId
-      if (existingSubscription?.paymentProviderId) {
-        try {
-          const { StripeService } = await import("../services/stripe.service");
-          const stripeService = new StripeService();
-          await stripeService.cancelSubscription(
-            existingSubscription.paymentProviderId,
-            false // cancelAtPeriodEnd = false (cancela imediatamente)
-          );
-        } catch (error) {
-          console.error("Erro ao cancelar subscription no Stripe:", error);
-          // Continua mesmo se houver erro no Stripe
-        }
-      }
-
       // Cancela a subscription no banco
       const subscription = await subscriptionRepository.cancel(organizationId);
 
@@ -229,41 +214,19 @@ export class SubscriptionsController {
   }
 
   /**
-   * Lista os planos disponíveis
+   * Lista os planos ativos (do banco de dados)
    */
   async getPlans(context: ElysiaContext) {
     const { status } = context;
     try {
-      const plans = [
-        {
-          id: "MESTRE",
-          name: "Mestre",
-          price: 29.9,
-          limits: this.subscriptionService.getPlanLimits("MESTRE"),
-        },
-        {
-          id: "CAMPEAO",
-          name: "Campeão",
-          price: 45.9,
-          limits: this.subscriptionService.getPlanLimits("CAMPEAO"),
-        },
-        {
-          id: "TITA",
-          name: "Titã",
-          price: 74.9,
-          limits: this.subscriptionService.getPlanLimits("TITA"),
-        },
-      ];
-
-      return {
-        success: true,
-        plans,
-        trialDays: 3,
-      };
+      const { prisma } = await import("../lib/prisma");
+      const plans = await prisma.plan.findMany({
+        where: { isActive: true },
+        orderBy: { sortOrder: "asc" },
+      });
+      return { success: true, plans, trialDays: 3 };
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Erro desconhecido";
-
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       console.error("Erro ao listar planos:", error);
       return status(500, { message });
     }

@@ -1,7 +1,7 @@
 import { OrganizationRepository } from "../repositories/organization.repository";
 import { SubscriptionService } from "./subscription.service";
 import { SubscriptionRepository } from "../repositories/subscription.repository";
-import { SubscriptionPlan, SubscriptionStatus } from "../generated/prisma";
+import { SubscriptionStatus } from "../generated/prisma";
 
 export class OrganizationService {
   constructor(
@@ -56,7 +56,7 @@ export class OrganizationService {
       name: string;
       slug: string;
       logo?: string | null;
-      plan: SubscriptionPlan;
+      plan: string;
     }
   ) {
     // Verifica se já existe organização com esse slug
@@ -294,7 +294,7 @@ export class OrganizationService {
     return await this.organizationRepository.update(organizationId, data);
   }
 
-  async deleteOrganization(organizationId: string, userId: string, skipStripeCancel: boolean = false) {
+  async deleteOrganization(organizationId: string, userId: string, _skipLegacy: boolean = false) {
     // Verifica se a organização existe
     const organization = await this.organizationRepository.findById(organizationId);
     if (!organization) {
@@ -317,24 +317,6 @@ export class OrganizationService {
     // Apenas owner ou admin podem deletar
     if (member.role !== "owner" && user?.role !== "admin") {
       throw new Error("Apenas o dono da organização pode deletar");
-    }
-
-    // Cancela a subscription no Stripe se existir (a menos que skipStripeCancel seja true)
-    if (!skipStripeCancel && organization.subscription?.paymentProviderId) {
-      try {
-        const { StripeService } = await import("./stripe.service");
-        const stripeService = new StripeService();
-        
-        // Cancela imediatamente a subscription no Stripe
-        await stripeService.cancelSubscription(
-          organization.subscription.paymentProviderId,
-          false // cancelAtPeriodEnd = false (cancela imediatamente)
-        );
-      } catch (error) {
-        // Log do erro mas continua com a deleção
-        console.error("Erro ao cancelar subscription no Stripe:", error);
-        // Não bloqueia a deleção se houver erro no Stripe
-      }
     }
 
     // Deleta a organização (cascata deleta membros, clans, invites, subscription)

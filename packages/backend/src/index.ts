@@ -7,12 +7,10 @@ import { betterAuthPlugin, OpenAPI } from "./http/plugins/betterAuthPlugin";
 import { clansRoutes } from "./routes/clans.routes";
 import { organizationsRoutes } from "./routes/organizations.routes";
 import { subscriptionsRoutes } from "./routes/subscriptions.routes";
-import { stripeRoutes, stripeWebhookRoute } from "./routes/stripe.routes";
+import { pixRoutes, pixWebhookRoute } from "./routes/pix.routes";
 import { adminRoutes } from "./routes/admin.routes";
 import { invitesRoutes } from "./routes/invites.routes";
 import { membersRoutes } from "./routes/members.routes";
-import { StripeController } from "./controllers/stripe.controller";
-import { StripeService } from "./services/stripe.service";
 import { SubscriptionRepository } from "./repositories/subscription.repository";
 import { OrganizationService } from "./services/organization.service";
 import { OrganizationRepository } from "./repositories/organization.repository";
@@ -37,8 +35,6 @@ const baseURL = env.BETTER_AUTH_BASE_URL ||
     : env.BETTER_AUTH_TRUSTED_ORIGIN);
 
 
-// Inicializa dependências do Stripe para processar webhooks
-const stripeService = new StripeService();
 const subscriptionRepository = new SubscriptionRepository();
 const organizationRepository = new OrganizationRepository();
 const subscriptionService = new SubscriptionService(subscriptionRepository);
@@ -46,46 +42,8 @@ const organizationService = new OrganizationService(
   organizationRepository,
   subscriptionService
 );
-const stripeController = new StripeController(
-  stripeService,
-  subscriptionRepository,
-  organizationService
-);
 
 const app = new Elysia()
-  .onRequest(async ({ request, set }) => {
-    // Intercepta requisições para /stripe/webhook ANTES de qualquer processamento
-    if (request.method === "POST" && new URL(request.url).pathname === "/stripe/webhook") {
-      try {
-        // Captura o body raw ANTES de qualquer processamento do Elysia
-        const rawBody = await request.text();
-        (set as any).rawBody = rawBody;
-        
-        if (rawBody) {
-          const signature = request.headers.get("stripe-signature");
-          
-          try {
-            const result = await stripeController.handleWebhook({
-              request,
-              body: rawBody,
-              status: (code: number, data?: any) => ({ status: code, data }),
-            } as any);
-            
-            (set as any).webhookProcessed = true;
-            (set as any).webhookResult = result || { received: true };
-          } catch (error) {
-            const message = error instanceof Error ? error.message : "Erro desconhecido";
-            (set as any).webhookProcessed = true;
-            (set as any).webhookResult = { received: true, error: message };
-          }
-        }
-      } catch (error) {
-        (set as any).rawBody = "";
-        (set as any).webhookProcessed = true;
-        (set as any).webhookResult = { received: true, error: "Failed to read body" };
-      }
-    }
-  })
   .use(
     cors({
       origin: originArray.length === 1 ? originArray[0] : originArray,
@@ -108,8 +66,8 @@ const app = new Elysia()
   .use(subscriptionsRoutes)
   .use(invitesRoutes)
   .use(membersRoutes)
-  .use(stripeWebhookRoute) // Webhook deve ser montado ANTES para capturar body raw
-  .use(stripeRoutes)
+  .use(pixWebhookRoute)
+  .use(pixRoutes)
   .use(clansRoutes)
   .use(warsRoutes)
   .use(cwlRoutes)

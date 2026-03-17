@@ -20,7 +20,7 @@ export const PLAN_MONTHLY_PRICE: Record<Plan, number> = {
   LEGEND: 119.9,
 };
 
-/** Prices in BRL cents per billing period (matches Stripe amounts) */
+/** Prices in BRL cents per billing period */
 export const PLAN_PRICES_CENTS: Record<
   Plan,
   Record<Period, { amount: number; originalAmount: number | null }>
