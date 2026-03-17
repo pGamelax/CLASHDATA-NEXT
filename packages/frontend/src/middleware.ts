@@ -20,8 +20,9 @@ export async function middleware(request: NextRequest) {
   const isPublicRoute = publicRoutes.includes(pathname);
   const isProtectedRoute = !isPublicRoute;
 
-  // Fast path: no cookies at all → not authenticated
   const cookieHeader = request.headers.get("cookie") || "";
+
+  // Fast path: no cookies → not authenticated
   if (isProtectedRoute && !cookieHeader) {
     const appUrl = getAppUrl(request);
     return NextResponse.redirect(
@@ -38,15 +39,24 @@ export async function middleware(request: NextRequest) {
         Cookie: cookieHeader,
         "Content-Type": "application/json",
       },
+      cache: "no-store",
     });
 
-    if (response.ok) {
-      const session = await response.json();
-      isAuthenticated = !!(session?.user || session?.data?.user);
+    const text = await response.text();
+    console.log(`[middleware] ${pathname} | status=${response.status} | body=${text.slice(0, 200)}`);
+
+    if (response.ok && text) {
+      try {
+        const session = JSON.parse(text);
+        isAuthenticated = !!(session?.user?.id || session?.data?.user?.id);
+      } catch {
+        isAuthenticated = false;
+      }
     }
-  } catch {
-    // Backend unreachable: allow through to avoid locking out users
-    isAuthenticated = isPublicRoute ? false : true;
+  } catch (err) {
+    console.error(`[middleware] get-session fetch failed:`, err);
+    // Backend unreachable: let through to avoid locking out users
+    isAuthenticated = true;
   }
 
   const appUrl = getAppUrl(request);
