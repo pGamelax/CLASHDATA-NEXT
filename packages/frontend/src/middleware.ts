@@ -3,16 +3,6 @@ import type { NextRequest } from "next/server";
 
 const publicRoutes = ["/", "/sign-in", "/sign-up"];
 
-function getAppUrl(request: NextRequest): string {
-  if (process.env.APP_URL) return process.env.APP_URL;
-  const host =
-    request.headers.get("x-forwarded-host") ||
-    request.headers.get("host") ||
-    "clashdata.pro";
-  const proto = request.headers.get("x-forwarded-proto") || "https";
-  return `${proto}://${host}`;
-}
-
 function hasSessionCookie(request: NextRequest): boolean {
   const cookies = request.headers.get("cookie") || "";
   return (
@@ -25,18 +15,19 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublicRoute = publicRoutes.includes(pathname);
   const isAuthenticated = hasSessionCookie(request);
-  const appUrl = getAppUrl(request);
 
-  // Redirect authenticated users away from auth pages (not from landing)
   if ((pathname === "/sign-in" || pathname === "/sign-up") && isAuthenticated) {
-    return NextResponse.redirect(new URL("/organizations", appUrl));
+    const url = request.nextUrl.clone();
+    url.pathname = "/organizations";
+    url.search = "";
+    return NextResponse.redirect(url);
   }
 
-  // Protect private routes
   if (!isPublicRoute && !isAuthenticated) {
-    return NextResponse.redirect(
-      new URL(`/sign-in?callbackUrl=${encodeURIComponent(pathname)}`, appUrl)
-    );
+    const url = request.nextUrl.clone();
+    url.pathname = "/sign-in";
+    url.search = `?callbackUrl=${encodeURIComponent(pathname)}`;
+    return NextResponse.redirect(url);
   }
 
   return NextResponse.next();
