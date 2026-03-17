@@ -4,9 +4,7 @@ import type { NextRequest } from "next/server";
 const publicRoutes = ["/", "/sign-in", "/sign-up"];
 
 function getAppUrl(request: NextRequest): string {
-  // Prefer explicit env var (set in Dokploy as APP_URL=https://clashdata.pro)
   if (process.env.APP_URL) return process.env.APP_URL;
-  // Fallback: reconstruct from forwarded headers
   const host =
     request.headers.get("x-forwarded-host") ||
     request.headers.get("host") ||
@@ -15,41 +13,21 @@ function getAppUrl(request: NextRequest): string {
   return `${proto}://${host}`;
 }
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublicRoute = publicRoutes.includes(pathname);
   const isProtectedRoute = !isPublicRoute;
 
-  let isAuthenticatedUser = false;
+  // Check session cookie presence — actual validation happens in API calls
+  const sessionCookie =
+    request.cookies.get("better-auth.session_token") ||
+    request.cookies.get("__Secure-better-auth.session_token");
 
-  if (isProtectedRoute || pathname === "/sign-in" || pathname === "/sign-up") {
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003";
-      const sessionUrl = `${apiUrl}/auth/get-session`;
-
-      const response = await fetch(sessionUrl, {
-        method: "GET",
-        headers: {
-          Cookie: request.headers.get("cookie") || "",
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-      });
-
-      if (response.ok) {
-        const session = await response.json();
-        if (session && (session.user || session.data?.user)) {
-          isAuthenticatedUser = true;
-        }
-      }
-    } catch {
-      isAuthenticatedUser = false;
-    }
-  }
+  const isAuthenticated = !!sessionCookie?.value;
 
   const appUrl = getAppUrl(request);
 
-  if (isProtectedRoute && !isAuthenticatedUser) {
+  if (isProtectedRoute && !isAuthenticated) {
     const signInUrl = new URL(
       `/sign-in?callbackUrl=${encodeURIComponent(pathname)}`,
       appUrl
@@ -57,7 +35,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(signInUrl);
   }
 
-  if ((pathname === "/sign-in" || pathname === "/sign-up") && isAuthenticatedUser) {
+  if ((pathname === "/sign-in" || pathname === "/sign-up") && isAuthenticated) {
     return NextResponse.redirect(new URL("/", appUrl));
   }
 
