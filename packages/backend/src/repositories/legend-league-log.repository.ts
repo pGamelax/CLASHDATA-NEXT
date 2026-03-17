@@ -21,6 +21,13 @@ export class LegendLeagueLogRepository {
     });
   }
 
+  async findByPlayerIds(playerIds: string[]) {
+    return await prisma.legendLeagueLog.findMany({
+      where: { playerId: { in: playerIds } },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
   async findRecentLogs(limit: number = 100) {
     return await prisma.legendLeagueLog.findMany({
       take: limit,

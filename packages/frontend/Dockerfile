@@ -1,61 +1,64 @@
-# Stage 1: Base (Instalação de dependências com cache)
-FROM oven/bun:1 AS base
+# ─────────────────────────────────────────────────────────────────────────────
+# Build context: repo root (.)
+# Dokploy config:  Dockerfile path → packages/frontend/Dockerfile
+#                  Build context   → . (root)
+#
+# Runtime: Caddy (port 80) → reverse proxy → Next.js standalone (port 3001)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Stage 1: Install dependencies ────────────────────────────────────────────
+FROM oven/bun:1 AS deps
 WORKDIR /app
 
-# Copia apenas os arquivos de dependências primeiro (para cache)
-# Em monorepo, precisa copiar todos os package.json dos workspaces
-COPY package.json bun.lock ./
+COPY package.json bun.lock* ./
 COPY packages/frontend/package.json ./packages/frontend/
-COPY packages/backend/package.json ./packages/backend/
+COPY packages/backend/package.json  ./packages/backend/
 
-# Instala dependências (cacheado se package.json não mudar)
-# Se frozen-lockfile falhar, tenta sem (para lidar com lockfile desatualizado)
-RUN bun install --frozen-lockfile || bun install
+RUN bun install --frozen-lockfile
 
-# Stage 2: Builder (Build da aplicação)
-FROM base AS builder
+# ── Stage 2: Build Next.js ────────────────────────────────────────────────────
+FROM deps AS builder
 WORKDIR /app
 
-# Copia o código fonte do frontend
 COPY packages/frontend ./packages/frontend
 
-# Build da aplicação Next.js
+# NEXT_PUBLIC_API_URL must be provided at build time — it is baked into the
+# client bundle. Set it in Dokploy → Build → Build Args.
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_TELEMETRY_DISABLED=1
+
 WORKDIR /app/packages/frontend
 RUN bun run build
 
-# Stage 3: Production (Runtime otimizado)
-FROM oven/bun:1-slim AS runner
+# ── Stage 3: Production — Node.js + Caddy ─────────────────────────────────────
+FROM node:20-alpine AS runner
+
+# Install Caddy from the official Alpine package
+RUN apk add --no-cache caddy
+
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Copia os node_modules do stage base (já instalados e otimizados)
-# Isso evita reinstalar e resolve problemas de lockfile
-COPY --from=base /app/node_modules ./node_modules
-COPY --from=base /app/packages/frontend/node_modules ./packages/frontend/node_modules
+# ── Next.js standalone ────────────────────────────────────────────────────────
+# The monorepo standalone archive mirrors the repo structure, so server.js
+# ends up at packages/frontend/server.js after the COPY below.
+COPY --from=builder /app/packages/frontend/.next/standalone     ./
+COPY --from=builder /app/packages/frontend/.next/static         ./packages/frontend/.next/static
+COPY --from=builder /app/packages/frontend/public               ./packages/frontend/public
 
-# Copia os package.json para referência (necessário para alguns módulos)
-COPY package.json bun.lock ./
-COPY packages/frontend/package.json ./packages/frontend/
+# ── Caddy config ──────────────────────────────────────────────────────────────
+COPY packages/frontend/Caddyfile /etc/caddy/Caddyfile
 
-# Copia a aplicação buildada do stage builder
-COPY --from=builder /app/packages/frontend/.next/standalone ./packages/frontend/
-COPY --from=builder /app/packages/frontend/.next/static ./packages/frontend/.next/static
-# Copia a pasta public (incluindo imagens do townhall)
-COPY --from=builder /app/packages/frontend/public ./packages/frontend/public
+# ── Start script ─────────────────────────────────────────────────────────────
+# 1. Start Next.js standalone server in the background (port 3001)
+# 2. Start Caddy in the foreground (port 80 → proxies to 3001)
+RUN printf '#!/bin/sh\nset -e\ncd /app/packages/frontend\nPORT=3001 HOSTNAME=127.0.0.1 node server.js &\nexec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile\n' \
+    > /start.sh && chmod +x /start.sh
 
-# Expose port
-EXPOSE 3001
+# Caddy port (Dokploy maps this to your domain)
+EXPOSE 80
 
-ENV PORT=3001
-ENV HOSTNAME="0.0.0.0"
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD bun run --silent -e "fetch('http://localhost:3001').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
-
-WORKDIR /app/packages/frontend
-
-# Use Bun to run Next.js standalone server
-CMD ["bun", "run", "server.js"]
+CMD ["/start.sh"]

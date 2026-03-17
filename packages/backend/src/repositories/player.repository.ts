@@ -11,6 +11,12 @@ export class PlayerRepository {
     return await prisma.player.findMany();
   }
 
+  async findManyByTags(tags: string[]) {
+    return await prisma.player.findMany({
+      where: { tag: { in: tags } },
+    });
+  }
+
   async create(data: {
     tag: string;
     name: string;

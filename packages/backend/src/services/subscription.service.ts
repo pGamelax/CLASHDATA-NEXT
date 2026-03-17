@@ -23,6 +23,11 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanLimits> = {
     maxInvites: 3,
     price: 74.90,
   },
+  LEGEND: {
+    maxClans: 5,
+    maxInvites: 5,
+    price: 119.90,
+  },
 };
 
 const TRIAL_DAYS = 3;

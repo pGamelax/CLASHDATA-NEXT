@@ -88,17 +88,83 @@ export class AdminController {
       // Clans totais
       const totalClans = await prisma.clan.count();
 
+      // Usuários nos últimos 7 dias
+      const usersLast7Days = await prisma.user.count({
+        where: {
+          createdAt: {
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+          },
+        },
+      });
+
+      // Usuários recentes (últimos 8)
+      const recentUsers = await prisma.user.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 8,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          banned: true,
+          createdAt: true,
+        },
+      });
+
+      // Assinaturas expirando em 7 dias
+      const expiringSoonList = await prisma.subscription.findMany({
+        where: {
+          status: SubscriptionStatus.ACTIVE,
+          currentPeriodEnd: {
+            lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            gte: new Date(),
+          },
+        },
+        include: {
+          organization: { select: { id: true, name: true, slug: true } },
+        },
+        orderBy: { currentPeriodEnd: "asc" },
+      });
+
+      // Organizações recentes (últimas 5)
+      const recentOrganizations = await prisma.organization.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        include: {
+          subscription: { select: { plan: true, status: true } },
+        },
+      });
+
+      // Clans por organização (top 5 orgs com mais clans)
+      const clansByOrg = await prisma.clan.groupBy({
+        by: ["organizationId"],
+        _count: { id: true },
+        orderBy: { _count: { id: "desc" } },
+        take: 5,
+      });
+
       return {
         success: true,
         stats: {
           users: {
             total: totalUsers,
             thisMonth: usersThisMonth,
+            last7Days: usersLast7Days,
+            recent: recentUsers,
           },
           organizations: {
             total: totalOrganizations,
             thisMonth: orgsThisMonth,
             withoutSubscription: orgsWithoutSubscription,
+            recent: recentOrganizations.map((o) => ({
+              id: o.id,
+              name: o.name,
+              slug: o.slug,
+              createdAt: o.createdAt,
+              subscription: o.subscription
+                ? { plan: o.subscription.plan, status: o.subscription.status }
+                : null,
+            })),
           },
           subscriptions: {
             total: totalSubscriptions,
@@ -109,6 +175,12 @@ export class AdminController {
             byPlan: subscriptionsByPlan.map((item) => ({
               plan: item.plan,
               count: item._count.plan,
+            })),
+            expiringSoon: expiringSoonList.map((s) => ({
+              id: s.id,
+              plan: s.plan,
+              currentPeriodEnd: s.currentPeriodEnd,
+              organization: s.organization,
             })),
           },
           clans: {

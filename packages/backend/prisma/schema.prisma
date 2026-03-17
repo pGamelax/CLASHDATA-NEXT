@@ -193,6 +193,37 @@ model Subscription {
   @@map("subscription")
 }
 
+model SeasonEndDate {
+  id          String           @id @default(cuid())
+  date        String           // "2026-03-19" format
+  label       String?          // "Março 2026"
+  status      String           @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED
+  jobId       String?          // BullMQ job ID
+  capturedAt  DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  snapshots   SeasonSnapshot[]
+
+  @@index([date])
+  @@map("season_end_date")
+}
+
+model SeasonSnapshot {
+  id              String        @id @default(cuid())
+  seasonEndDateId String
+  seasonEndDate   SeasonEndDate @relation(fields: [seasonEndDateId], references: [id], onDelete: Cascade)
+  clanTag         String
+  clanName        String
+  organizationId  String
+  players         Json          // Array of { rank, name, tag, trophies, role, expLevel }
+  capturedAt      DateTime      @default(now())
+
+  @@unique([seasonEndDateId, clanTag])
+  @@index([clanTag])
+  @@index([seasonEndDateId])
+  @@map("season_snapshot")
+}
+
 model Invite {
   id             String       @id @default(cuid())
   organizationId String

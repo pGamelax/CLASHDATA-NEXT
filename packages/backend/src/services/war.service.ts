@@ -94,16 +94,16 @@ export class WarService {
     clanTag: string,
     months: Array<{ year: number; month: number }>
   ): Promise<WarData[]> {
-    const allWars: WarData[] = [];
+    const results = await Promise.allSettled(
+      months.map(({ year, month }) => this.getWarsByMonth(clanTag, year, month))
+    );
 
-    // Busca guerras para cada mês
-    for (const { year, month } of months) {
-      try {
-        const wars = await this.getWarsByMonth(clanTag, year, month);
-        allWars.push(...wars);
-      } catch (error) {
-        console.error(`Erro ao buscar guerras para ${year}/${month}:`, error);
-        // Continua para os próximos meses mesmo se um falhar
+    const allWars: WarData[] = [];
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        allWars.push(...result.value);
+      } else {
+        console.error("Erro ao buscar guerras para um mês:", result.reason);
       }
     }
 

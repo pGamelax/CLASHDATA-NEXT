@@ -6,6 +6,7 @@ export interface PlayerPushStats {
   tag: string;
   name: string;
   currentTrophies: number;
+  globalRank: number | null;
   totalAttack: number;
   totalDefense: number;
   attackCount: number;
@@ -28,68 +29,84 @@ export class PlayerPushLogsService {
   ) {}
 
   async getPlayersByClanTag(clanTag: string): Promise<PlayerPushStats[]> {
-    // Buscar membros do clan via API da Supercell
+    // 1. Fetch clan members
     const membersData = await this.clashOfClansService.getClanMembers(clanTag);
     const members = membersData.items || [];
 
-    // Filtrar apenas jogadores na Legend League
-    const legendLeagueMembers = members.filter(
+    // 2. Filter Legend League only
+    const legendMembers = members.filter(
       (member: any) => member.leagueTier?.name === "Legend League"
     );
+    if (legendMembers.length === 0) return [];
 
-    if (legendLeagueMembers.length === 0) {
-      return [];
-    }
+    // 3. Bulk-fetch players from DB + fetch player details from CoC API in parallel
+    const memberTags = legendMembers.map((m: any) => m.tag);
+    const [players, playerDetailsResults] = await Promise.all([
+      this.playerRepository.findManyByTags(memberTags),
+      Promise.allSettled(
+        legendMembers.map((m: any) => this.clashOfClansService.getPlayerByTag(m.tag))
+      ),
+    ]);
 
-    // Buscar todos os players no banco de dados de uma vez
-    const allPlayers = await this.playerRepository.findAll();
+    // 4. Build players map
     const playersMap = new Map<string, any>();
-    for (const player of allPlayers) {
+    for (const player of players) {
       playersMap.set(player.tag, player);
     }
 
-    // Buscar logs de todos os players que estão no clan
-    const stats: PlayerPushStats[] = [];
-
-    for (const member of legendLeagueMembers) {
-      const player = playersMap.get(member.tag);
-      
-      // Se o player não existe no banco, pula (não tem logs ainda)
-      if (!player) {
-        continue;
+    // 5. Extract globalRank per player tag
+    const globalRankMap = new Map<string, number | null>();
+    legendMembers.forEach((m: any, i: number) => {
+      const result = playerDetailsResults[i];
+      if (result.status === "fulfilled") {
+        globalRankMap.set(m.tag, result.value.legendStatistics?.currentSeason?.rank ?? null);
+      } else {
+        globalRankMap.set(m.tag, null);
       }
+    });
 
-      // Buscar todos os logs deste player (independente do clanTag do log)
-      const logs = await this.legendLeagueLogRepository.findByPlayerId(player.id);
+    // 7. Bulk-fetch all logs at once
+    const playerIds = players.map((p) => p.id);
+    const allLogs =
+      playerIds.length > 0
+        ? await this.legendLeagueLogRepository.findByPlayerIds(playerIds)
+        : [];
 
-      // Calcular totais
+    // 8. Group logs by playerId
+    const logsByPlayerId = new Map<string, typeof allLogs>();
+    for (const log of allLogs) {
+      const list = logsByPlayerId.get(log.playerId) ?? [];
+      list.push(log);
+      logsByPlayerId.set(log.playerId, list);
+    }
+
+    // 9. Build stats
+    const stats: PlayerPushStats[] = [];
+    for (const member of legendMembers) {
+      const player = playersMap.get(member.tag);
+      if (!player) continue;
+
+      const logs = logsByPlayerId.get(player.id) ?? [];
       let totalAttack = 0;
       let totalDefense = 0;
-      const attackLogs: any[] = [];
-      const defenseLogs: any[] = [];
+      let attackCount = 0;
+      let defenseCount = 0;
 
       for (const log of logs) {
-        if (log.type === "attack") {
-          totalAttack += log.trophiesChange;
-          attackLogs.push(log);
-        } else if (log.type === "defense") {
-          totalDefense += log.trophiesChange;
-          defenseLogs.push(log);
-        }
+        if (log.type === "attack") { totalAttack += log.trophiesChange; attackCount++; }
+        else if (log.type === "defense") { totalDefense += log.trophiesChange; defenseCount++; }
       }
-
-      // Usar os troféus atuais do membro da API (mais atualizado)
-      const currentTrophies = member.trophies || player.trophies;
 
       stats.push({
         tag: player.tag,
         name: player.name,
-        currentTrophies,
+        currentTrophies: member.trophies || player.trophies,
+        globalRank: globalRankMap.get(member.tag) ?? null,
         totalAttack,
         totalDefense,
-        attackCount: attackLogs.length,
-        defenseCount: defenseLogs.length,
-        logs: logs.map(log => ({
+        attackCount,
+        defenseCount,
+        logs: logs.map((log) => ({
           id: log.id,
           type: log.type,
           trophiesChange: log.trophiesChange,
@@ -100,7 +117,6 @@ export class PlayerPushLogsService {
       });
     }
 
-    // Ordenar por troféus atuais (maior primeiro)
     return stats.sort((a, b) => b.currentTrophies - a.currentTrophies);
   }
 }

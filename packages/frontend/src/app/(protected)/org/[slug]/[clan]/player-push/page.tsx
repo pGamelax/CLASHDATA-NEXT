@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { getPlayerPushLogs } from "@/lib/api";
 import { PlayerPushContent } from "@/components/PlayerPushContent";
 import { generateClanMetadata, getOrganizationAndClan } from "@/lib/metadata";
@@ -30,11 +31,15 @@ export default async function PlayerPushPage({
     slug,
     clan,
     (slug, clanSlug) => `/org/${slug}/${clanSlug}/player-push`
-  );
+  );
+
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore.toString();
+
   let initialPlayerPushLogs: any[] = [];
   try {
     const clanTag = selectedClan.clanTag.replace("#", "");
-    initialPlayerPushLogs = await getPlayerPushLogs(clanTag);
+    initialPlayerPushLogs = await getPlayerPushLogs(clanTag, cookieHeader);
   } catch (error) {
     console.error("Erro ao buscar logs de player push:", error);
   }

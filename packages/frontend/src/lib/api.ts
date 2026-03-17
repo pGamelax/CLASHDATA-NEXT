@@ -1,83 +1,40 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
-export async function fetchClanData(tag: string, cookies?: string, useCache: boolean = true) {
-  const cleanTag = tag.startsWith("#") ? tag.replace("#", "") : tag;
-  
-  if (useCache && typeof window !== "undefined") {
-    const { getCachedClanData, setCachedClanData } = await import("./clan-cache");
-    const cached = getCachedClanData(cleanTag);
-    if (cached) {
-      return cached;
-    }
-  }
+import { getCachedClanData, setCachedClanData } from "./clan-cache";
+import { getCachedWarData, setCachedWarData } from "./war-cache";
+import { getCachedCWLData, setCachedCWLData } from "./cwl-cache";
 
-  const response = await fetch(`${API_URL}/clans/search/${encodeURIComponent(cleanTag)}`, {
-    headers: cookies
-      ? {
-          Cookie: cookies,
-        }
-      : undefined,
-    credentials: "include",
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao buscar clan" }));
-    throw new Error(error.message || "Erro ao buscar clan");
-  }
-
-  const data = await response.json();
-
-  if (useCache && typeof window !== "undefined") {
-    const { setCachedClanData } = await import("./clan-cache");
-    setCachedClanData(cleanTag, data);
-  }
-
-  return data;
+function stripHash(tag: string): string {
+  return tag.startsWith("#") ? tag.slice(1) : tag;
 }
 
-export async function getSession(cookieHeader?: string) {
-  const response = await fetch(`${API_URL}/auth/get-session`, {
-    headers: cookieHeader
-      ? {
-          Cookie: cookieHeader,
-          "Content-Type": "application/json",
-        }
-      : {
-          "Content-Type": "application/json",
-        },
+async function apiFetch<T>(
+  path: string,
+  options: RequestInit & { cookies?: string } = {}
+): Promise<T> {
+  const { cookies, ...fetchOptions } = options;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(cookies ? { Cookie: cookies } : {}),
+    ...(fetchOptions.headers as Record<string, string> ?? {}),
+  };
+
+  const response = await fetch(`${API_URL}${path}`, {
+    ...fetchOptions,
+    headers,
     credentials: "include",
     cache: "no-store",
   });
 
   if (!response.ok) {
-    return null;
+    const error = await response.json().catch(() => ({ message: "Erro na requisição" }));
+    throw new Error(error.message || "Erro na requisição");
   }
 
   return response.json();
 }
 
-export async function getOrganizations(cookieHeader?: string) {
-  const response = await fetch(`${API_URL}/organizations/list`, {
-    headers: cookieHeader
-      ? {
-          Cookie: cookieHeader,
-          "Content-Type": "application/json",
-        }
-      : {
-          "Content-Type": "application/json",
-        },
-    credentials: "include",
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    return null;
-  }
-
-  const result = await response.json();
-  return result.data || result;
-}
+// ---- Types ----
 
 export interface PlayerStats {
   tag: string;
@@ -89,7 +46,7 @@ export interface PlayerStats {
   averageDestruction: number;
   bayesianScore: number;
   warsParticipated: number;
-  perfectAttacks: number; // Ataques com 3 estrelas e 100% de destruição
+  perfectAttacks: number;
   attacks: Array<{
     warEndTime: string;
     stars: number;
@@ -110,8 +67,8 @@ export interface CWLPlayerStats {
   averageStars: number;
   averageDestruction: number;
   bayesianScore: number;
-  warsParticipated: number; // Número de guerras participadas (não temporadas)
-  perfectAttacks: number; // Ataques com 3 estrelas e 100% de destruição
+  warsParticipated: number;
+  perfectAttacks: number;
   attacks: Array<{
     season: string;
     stars: number;
@@ -121,171 +78,6 @@ export interface CWLPlayerStats {
     order: number;
     duration: number;
   }>;
-}
-
-export async function getWarRanking(
-  clanTag: string,
-  months: Array<{ year: number; month: number }>,
-  useCache: boolean = true
-): Promise<PlayerStats[]> {
-  const cleanTag = clanTag.startsWith("#") ? clanTag.replace("#", "") : clanTag;
-  const monthsKey = months
-    .map((m) => `${m.year}-${m.month}`)
-    .sort()
-    .join(",");
-  const cacheKey = `${cleanTag}_${monthsKey}`;
-
-  if (useCache && typeof window !== "undefined") {
-    const { getCachedWarData, setCachedWarData } = await import("./war-cache");
-    const cached = getCachedWarData(cacheKey);
-    if (cached) {
-      return cached;
-    }
-  }
-
-  const monthsParam = months
-    .map((m) => `${m.year}-${m.month}`)
-    .join(",");
-
-  const url = `${API_URL}/wars/ranking/${encodeURIComponent(cleanTag)}?months=${encodeURIComponent(monthsParam)}`;
-
-  const response = await fetch(url, {
-    credentials: "include",
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao buscar ranking" }));
-    throw new Error(error.message || "Erro ao buscar ranking");
-  }
-
-  const result = await response.json();
-  const data = result.data || [];
-
-  if (useCache && typeof window !== "undefined") {
-    const { setCachedWarData } = await import("./war-cache");
-    setCachedWarData(cacheKey, data);
-  }
-
-  return data;
-}
-
-export async function getClansByOrganization(
-  organizationId: string,
-  cookieHeader?: string
-) {
-  const response = await fetch(
-    `${API_URL}/clans/organization/${encodeURIComponent(organizationId)}`,
-    {
-      headers: cookieHeader
-        ? {
-            Cookie: cookieHeader,
-            "Content-Type": "application/json",
-          }
-        : {
-            "Content-Type": "application/json",
-          },
-      credentials: "include",
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    return null;
-  }
-
-  return response.json();
-}
-
-export async function createClan(
-  organizationId: string,
-  clanTag: string,
-  clanData: any,
-  cookieHeader?: string
-) {
-  const response = await fetch(`${API_URL}/clans/create`, {
-    method: "POST",
-    headers: cookieHeader
-      ? {
-          Cookie: cookieHeader,
-          "Content-Type": "application/json",
-        }
-      : {
-          "Content-Type": "application/json",
-        },
-    credentials: "include",
-    body: JSON.stringify({
-      organizationId,
-      clanTag,
-      clanData,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao criar clan" }));
-    throw new Error(error.message || "Erro ao criar clan");
-  }
-
-  return response.json();
-}
-
-export async function getCWLRanking(
-  clanTag: string,
-  months: Array<{ year: number; month: number }>,
-  useCache: boolean = true
-): Promise<CWLPlayerStats[]> {
-  const cleanTag = clanTag.startsWith("#") ? clanTag.replace("#", "") : clanTag;
-  const seasonsKey = months
-    .map((m) => `${m.year}-${String(m.month).padStart(2, "0")}`)
-    .sort()
-    .join(",");
-  const cacheKey = `${cleanTag}_${seasonsKey}`;
-
-  if (useCache && typeof window !== "undefined") {
-    const { getCachedCWLData, setCachedCWLData } = await import("./cwl-cache");
-    const cached = getCachedCWLData(cacheKey);
-    if (cached) {
-      return cached;
-    }
-  }
-
-  const seasonsParam = months
-    .map((m) => `${m.year}-${m.month}`)
-    .join(",");
-
-  const url = `${API_URL}/cwl/ranking/${encodeURIComponent(cleanTag)}?seasons=${encodeURIComponent(seasonsParam)}`;
-
-  const response = await fetch(url, {
-    credentials: "include",
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao buscar ranking de CWL" }));
-    throw new Error(error.message || "Erro ao buscar ranking de CWL");
-  }
-
-  const result = await response.json();
-  let data = result.data || [];
-
-  data = data.map((player: any) => {
-    if (player.seasonsParticipated !== undefined && player.seasonsParticipated !== null) {
-      player.warsParticipated = player.seasonsParticipated;
-      delete player.seasonsParticipated;
-    }
-    
-    if (player.warsParticipated === undefined || player.warsParticipated === null) {
-      player.warsParticipated = player.totalAttacks || 0;
-    }
-    return player;
-  });
-
-  if (useCache && typeof window !== "undefined") {
-    const { setCachedCWLData } = await import("./cwl-cache");
-    setCachedCWLData(cacheKey, data);
-  }
-
-  return data;
 }
 
 export interface CurrentWarAnalysis {
@@ -300,11 +92,7 @@ export interface CurrentWarAnalysis {
     clan?: {
       tag: string;
       name: string;
-      badgeUrls: {
-        small: string;
-        medium: string;
-        large: string;
-      };
+      badgeUrls: { small: string; medium: string; large: string };
       clanLevel: number;
       attacks: number;
       stars: number;
@@ -314,11 +102,7 @@ export interface CurrentWarAnalysis {
     opponent?: {
       tag: string;
       name: string;
-      badgeUrls: {
-        small: string;
-        medium: string;
-        large: string;
-      };
+      badgeUrls: { small: string; medium: string; large: string };
       clanLevel: number;
       attacks: number;
       stars: number;
@@ -391,20 +175,10 @@ export interface CurrentCWLAnalysis {
       tag: string;
       name: string;
       clanLevel: number;
-      badgeUrls: {
-        small: string;
-        medium: string;
-        large: string;
-      };
-      members: Array<{
-        tag: string;
-        name: string;
-        townHallLevel: number;
-      }>;
+      badgeUrls: { small: string; medium: string; large: string };
+      members: Array<{ tag: string; name: string; townHallLevel: number }>;
     }>;
-    rounds: Array<{
-      warTags: string[];
-    }>;
+    rounds: Array<{ warTags: string[] }>;
   };
   currentRound?: number;
   currentWar?: {
@@ -417,11 +191,7 @@ export interface CurrentCWLAnalysis {
     clan: {
       tag: string;
       name: string;
-      badgeUrls: {
-        small: string;
-        medium: string;
-        large: string;
-      };
+      badgeUrls: { small: string; medium: string; large: string };
       clanLevel: number;
       attacks: number;
       stars: number;
@@ -453,11 +223,7 @@ export interface CurrentCWLAnalysis {
     opponent: {
       tag: string;
       name: string;
-      badgeUrls: {
-        small: string;
-        medium: string;
-        large: string;
-      };
+      badgeUrls: { small: string; medium: string; large: string };
       clanLevel: number;
       attacks: number;
       stars: number;
@@ -493,11 +259,7 @@ export interface CurrentCWLAnalysis {
       tag: string;
       name: string;
       clanLevel: number;
-      badgeUrls: {
-        small: string;
-        medium: string;
-        large: string;
-      };
+      badgeUrls: { small: string; medium: string; large: string };
     };
     wins: number;
     losses: number;
@@ -512,80 +274,9 @@ export interface ClanTownHalls {
     tag: string;
     name: string;
     clanLevel: number;
-    badgeUrls: {
-      small: string;
-      medium: string;
-      large: string;
-    };
+    badgeUrls: { small: string; medium: string; large: string };
   };
   townHalls: Record<string, number>;
-}
-
-export async function getCurrentCWL(clanTag: string): Promise<CurrentCWLAnalysis> {
-  const cleanTag = clanTag.startsWith("#") ? clanTag.replace("#", "") : clanTag;
-  
-  const response = await fetch(`${API_URL}/current-cwl/${encodeURIComponent(cleanTag)}`, {
-    credentials: "include",
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao buscar CWL atual" }));
-    throw new Error(error.message || "Erro ao buscar CWL atual");
-  }
-
-  return response.json();
-}
-
-export async function getCWLWar(warTag: string): Promise<CurrentCWLAnalysis["currentWar"]> {
-  const cleanTag = warTag.startsWith("#") ? warTag.replace("#", "") : warTag;
-  
-  const response = await fetch(`${API_URL}/current-cwl/war/${encodeURIComponent(cleanTag)}`, {
-    credentials: "include",
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao buscar guerra CWL" }));
-    throw new Error(error.message || "Erro ao buscar guerra CWL");
-  }
-
-  return response.json();
-}
-
-export async function getClansTownHalls(clanTag: string): Promise<ClanTownHalls[]> {
-  const cleanTag = clanTag.startsWith("#") ? clanTag.replace("#", "") : clanTag;
-  
-  const response = await fetch(`${API_URL}/current-cwl/${encodeURIComponent(cleanTag)}/townhalls`, {
-    credentials: "include",
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao buscar Town Halls dos clãs" }));
-    throw new Error(error.message || "Erro ao buscar Town Halls dos clãs");
-  }
-
-  return response.json();
-}
-
-export async function getCurrentWar(clanTag: string): Promise<CurrentWarAnalysis> {
-  const cleanTag = clanTag.startsWith("#") ? clanTag.replace("#", "") : clanTag;
-
-  const url = `${API_URL}/current-war/${encodeURIComponent(cleanTag)}`;
-
-  const response = await fetch(url, {
-    credentials: "include",
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao buscar guerra atual" }));
-    throw new Error(error.message || "Erro ao buscar guerra atual");
-  }
-
-  const result = await response.json();
-  return result.data;
 }
 
 export interface PlayerPushLog {
@@ -601,30 +292,12 @@ export interface PlayerPushStats {
   tag: string;
   name: string;
   currentTrophies: number;
+  globalRank: number | null;
   totalAttack: number;
   totalDefense: number;
   attackCount: number;
   defenseCount: number;
   logs: PlayerPushLog[];
-}
-
-export async function getPlayerPushLogs(clanTag: string): Promise<PlayerPushStats[]> {
-  const cleanTag = clanTag.startsWith("#") ? clanTag.replace("#", "") : clanTag;
-
-  const url = `${API_URL}/player-push/clan/${encodeURIComponent(cleanTag)}`;
-
-  const response = await fetch(url, {
-    credentials: "include",
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao buscar logs de player push" }));
-    throw new Error(error.message || "Erro ao buscar logs de player push");
-  }
-
-  const result = await response.json();
-  return result.data || [];
 }
 
 export interface Invite {
@@ -636,293 +309,8 @@ export interface Invite {
   expiresAt?: string;
   createdAt: string;
   updatedAt: string;
-  user?: {
-    id: string;
-    name: string | null;
-    email: string;
-    image: string | null;
-  };
-  organization?: {
-    id: string;
-    name: string;
-    slug: string;
-    logo: string | null;
-  };
-}
-
-export async function sendInvite(organizationId: string, userId: string) {
-  const response = await fetch(`${API_URL}/invites/send`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify({ organizationId, userId }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao enviar convite" }));
-    throw new Error(error.message || "Erro ao enviar convite");
-  }
-
-  return response.json();
-}
-
-export async function acceptInvite(inviteId: string) {
-  const response = await fetch(`${API_URL}/invites/${inviteId}/accept`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao aceitar convite" }));
-    throw new Error(error.message || "Erro ao aceitar convite");
-  }
-
-  return response.json();
-}
-
-export async function rejectInvite(inviteId: string) {
-  const response = await fetch(`${API_URL}/invites/${inviteId}/reject`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao rejeitar convite" }));
-    throw new Error(error.message || "Erro ao rejeitar convite");
-  }
-
-  return response.json();
-}
-
-export async function cancelInvite(inviteId: string) {
-  const response = await fetch(`${API_URL}/invites/${inviteId}`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao cancelar convite" }));
-    throw new Error(error.message || "Erro ao cancelar convite");
-  }
-
-  return response.json();
-}
-
-export async function getInvitesByOrganization(organizationId: string): Promise<Invite[]> {
-  const response = await fetch(`${API_URL}/invites/organization/${organizationId}`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao buscar convites" }));
-    throw new Error(error.message || "Erro ao buscar convites");
-  }
-
-  const result = await response.json();
-  return result.data || [];
-}
-
-export async function getPendingInvites(): Promise<Invite[]> {
-  const response = await fetch(`${API_URL}/invites/pending`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao buscar convites pendentes" }));
-    throw new Error(error.message || "Erro ao buscar convites pendentes");
-  }
-
-  const result = await response.json();
-  return result.data || [];
-}
-
-export async function searchUsersByEmail(email: string) {
-  const response = await fetch(`${API_URL}/invites/search-users`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify({ email }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao buscar usuários" }));
-    throw new Error(error.message || "Erro ao buscar usuários");
-  }
-
-  const result = await response.json();
-  return result.data || [];
-}
-
-export async function removeMember(organizationId: string, userId: string) {
-  const response = await fetch(`${API_URL}/members/organization/${organizationId}`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify({ userId }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao remover membro" }));
-    throw new Error(error.message || "Erro ao remover membro");
-  }
-
-  return response.json();
-}
-
-export async function updateOrganization(organizationId: string, data: { name?: string; slug?: string }) {
-  const response = await fetch(`${API_URL}/organizations/${organizationId}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao atualizar organização" }));
-    throw new Error(error.message || "Erro ao atualizar organização");
-  }
-
-  return response.json();
-}
-
-export async function deleteOrganization(organizationId: string) {
-  const response = await fetch(`${API_URL}/organizations/${organizationId}`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao deletar organização" }));
-    throw new Error(error.message || "Erro ao deletar organização");
-  }
-
-  return response.json();
-}
-
-export async function removeClan(clanId: string) {
-  const response = await fetch(`${API_URL}/clans/${clanId}`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao remover clan" }));
-    throw new Error(error.message || "Erro ao remover clan");
-  }
-
-  return response.json();
-}
-
-export async function getSubscription(organizationId: string, cookieHeader?: string) {
-  const response = await fetch(`${API_URL}/subscriptions/organization/${organizationId}`, {
-    headers: cookieHeader
-      ? {
-          Cookie: cookieHeader,
-          "Content-Type": "application/json",
-        }
-      : {
-          "Content-Type": "application/json",
-        },
-    credentials: "include",
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    return null;
-  }
-
-  return response.json();
-}
-
-export async function createOrganizationWithManualSubscription(data: {
-  name: string;
-  slug: string;
-  ownerEmail: string;
-  plan: string;
-  daysUntilExpiry: number;
-}) {
-  const response = await fetch(`${API_URL}/admin/organizations/create-with-subscription`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao criar organização" }));
-    throw new Error(error.message || "Erro ao criar organização");
-  }
-
-  return response.json();
-}
-
-export async function reactivateSubscription(organizationId: string, daysUntilExpiry: number) {
-  const response = await fetch(`${API_URL}/admin/organizations/${organizationId}/reactivate-subscription`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify({ daysUntilExpiry }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao reativar assinatura" }));
-    throw new Error(error.message || "Erro ao reativar assinatura");
-  }
-
-  return response.json();
-}
-
-export async function renewSubscription(organizationId: string) {
-  const response = await fetch(`${API_URL}/stripe/renew-subscription`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify({ organizationId }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao renovar assinatura" }));
-    throw new Error(error.message || "Erro ao renovar assinatura");
-  }
-
-  return response.json();
+  user?: { id: string; name: string | null; email: string; image: string | null };
+  organization?: { id: string; name: string; slug: string; logo: string | null };
 }
 
 export interface PlayerWarHistory {
@@ -945,7 +333,7 @@ export interface PlayerWarHistory {
   result: "win" | "loss" | "tie";
 }
 
-export interface PlayerStats {
+export interface PlayerDetails {
   player: any;
   warHistory: PlayerWarHistory[];
   cwlHistory: PlayerWarHistory[];
@@ -984,37 +372,384 @@ export interface PlayerStats {
   };
 }
 
-export async function getPlayer(playerTag: string, cookies?: string): Promise<PlayerStats> {
-  const cleanTag = playerTag.startsWith("#") ? playerTag.replace("#", "") : playerTag;
-  const response = await fetch(`${API_URL}/player/${encodeURIComponent(cleanTag)}`, {
-    headers: cookies ? { Cookie: cookies } : undefined,
-    credentials: "include",
-    cache: "no-store",
-  });
+// ---- API Functions ----
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao buscar jogador" }));
-    throw new Error(error.message || "Erro ao buscar jogador");
+export async function fetchClanData(tag: string, cookies?: string, useCache = true) {
+  const cleanTag = stripHash(tag);
+
+  if (useCache) {
+    const cached = getCachedClanData(cleanTag);
+    if (cached) return cached;
   }
 
-  const responseData = await response.json();
-  const data = responseData.data || responseData;
-  
+  const data = await apiFetch<any>(`/clans/search/${encodeURIComponent(cleanTag)}`, { cookies });
+
+  if (useCache) setCachedClanData(cleanTag, data);
+
   return data;
 }
 
-export async function getPlayerBasic(playerTag: string): Promise<any> {
-  const cleanTag = playerTag.startsWith("#") ? playerTag.replace("#", "") : playerTag;
-  const response = await fetch(`${API_URL}/player/${encodeURIComponent(cleanTag)}/basic`, {
-    credentials: "include",
-    cache: "no-store",
-  });
+export async function getSession(cookieHeader?: string) {
+  try {
+    return await apiFetch<any>("/auth/get-session", { cookies: cookieHeader });
+  } catch {
+    return null;
+  }
+}
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Erro ao buscar jogador" }));
-    throw new Error(error.message || "Erro ao buscar jogador");
+export async function getOrganizations(cookieHeader?: string) {
+  try {
+    const result = await apiFetch<any>("/organizations/list", { cookies: cookieHeader });
+    return result?.data || result;
+  } catch {
+    return null;
+  }
+}
+
+export async function getWarRanking(
+  clanTag: string,
+  months: Array<{ year: number; month: number }>,
+  useCache = true,
+  cookies?: string
+): Promise<PlayerStats[]> {
+  const cleanTag = stripHash(clanTag);
+  const monthsKey = months.map((m) => `${m.year}-${m.month}`).sort().join(",");
+  const cacheKey = `${cleanTag}_${monthsKey}`;
+
+  if (useCache) {
+    const cached = getCachedWarData(cacheKey);
+    if (cached) return cached;
   }
 
-  const data = await response.json();
+  const monthsParam = months.map((m) => `${m.year}-${m.month}`).join(",");
+  const result = await apiFetch<{ data: PlayerStats[] }>(
+    `/wars/ranking/${encodeURIComponent(cleanTag)}?months=${encodeURIComponent(monthsParam)}`,
+    { cookies }
+  );
+  const data = result.data || [];
+
+  if (useCache) setCachedWarData(cacheKey, data);
+
+  return data;
+}
+
+export async function getClansByOrganization(organizationId: string, cookieHeader?: string) {
+  try {
+    return await apiFetch<any>(
+      `/clans/organization/${encodeURIComponent(organizationId)}`,
+      { cookies: cookieHeader }
+    );
+  } catch {
+    return null;
+  }
+}
+
+export async function createClan(
+  organizationId: string,
+  clanTag: string,
+  clanData: any,
+  cookieHeader?: string
+) {
+  return apiFetch<any>("/clans/create", {
+    method: "POST",
+    body: JSON.stringify({ organizationId, clanTag, clanData }),
+    cookies: cookieHeader,
+  });
+}
+
+export async function getCWLRanking(
+  clanTag: string,
+  months: Array<{ year: number; month: number }>,
+  useCache = true,
+  cookies?: string
+): Promise<CWLPlayerStats[]> {
+  const cleanTag = stripHash(clanTag);
+  const seasonsKey = months
+    .map((m) => `${m.year}-${String(m.month).padStart(2, "0")}`)
+    .sort()
+    .join(",");
+  const cacheKey = `${cleanTag}_${seasonsKey}`;
+
+  if (useCache) {
+    const cached = getCachedCWLData(cacheKey);
+    if (cached) return cached;
+  }
+
+  const seasonsParam = months.map((m) => `${m.year}-${m.month}`).join(",");
+  const result = await apiFetch<{ data: CWLPlayerStats[] }>(
+    `/cwl/ranking/${encodeURIComponent(cleanTag)}?seasons=${encodeURIComponent(seasonsParam)}`,
+    { cookies }
+  );
+  let data = result.data || [];
+
+  data = data.map((player) => {
+    if ((player as any).seasonsParticipated != null) {
+      player.warsParticipated = (player as any).seasonsParticipated;
+      delete (player as any).seasonsParticipated;
+    }
+    if (player.warsParticipated == null) {
+      player.warsParticipated = player.totalAttacks || 0;
+    }
+    return player;
+  });
+
+  if (useCache) setCachedCWLData(cacheKey, data);
+
+  return data;
+}
+
+export async function getCurrentCWL(clanTag: string): Promise<CurrentCWLAnalysis> {
+  const cleanTag = stripHash(clanTag);
+  return apiFetch<CurrentCWLAnalysis>(`/current-cwl/${encodeURIComponent(cleanTag)}`);
+}
+
+export async function getCWLWar(warTag: string): Promise<CurrentCWLAnalysis["currentWar"]> {
+  const cleanTag = stripHash(warTag);
+  return apiFetch<CurrentCWLAnalysis["currentWar"]>(`/current-cwl/war/${encodeURIComponent(cleanTag)}`);
+}
+
+export async function getClansTownHalls(clanTag: string): Promise<ClanTownHalls[]> {
+  const cleanTag = stripHash(clanTag);
+  return apiFetch<ClanTownHalls[]>(`/current-cwl/${encodeURIComponent(cleanTag)}/townhalls`);
+}
+
+export async function getCurrentWar(clanTag: string, cookies?: string): Promise<CurrentWarAnalysis> {
+  const cleanTag = stripHash(clanTag);
+  const result = await apiFetch<{ data: CurrentWarAnalysis }>(`/current-war/${encodeURIComponent(cleanTag)}`, { cookies });
+  return result.data;
+}
+
+export async function getPlayerPushLogs(clanTag: string, cookies?: string): Promise<PlayerPushStats[]> {
+  const cleanTag = stripHash(clanTag);
+  const result = await apiFetch<{ data: PlayerPushStats[] }>(
+    `/player-push/clan/${encodeURIComponent(cleanTag)}`,
+    { cookies }
+  );
+  return result.data || [];
+}
+
+// ── Season End Dates ──────────────────────────────────────────────────────────
+
+export interface SeasonEndDate {
+  id: string;
+  date: string;
+  label?: string | null;
+  status: string; // PENDING | RUNNING | COMPLETED | FAILED
+  jobId?: string | null;
+  capturedAt?: string | null;
+  createdAt: string;
+  _count?: { snapshots: number };
+}
+
+export interface SeasonSnapshotPlayer {
+  rank: number;
+  name: string;
+  tag: string;
+  trophies: number;
+  role?: string;
+  expLevel?: number;
+}
+
+export interface SeasonSnapshot {
+  id: string;
+  seasonEndDateId: string;
+  clanTag: string;
+  clanName: string;
+  organizationId: string;
+  players: SeasonSnapshotPlayer[];
+  capturedAt: string;
+  seasonEndDate: SeasonEndDate;
+}
+
+export async function getSeasonEndDates(cookies?: string): Promise<SeasonEndDate[]> {
+  const result = await apiFetch<{ data: SeasonEndDate[] }>("/admin/season-dates", { cookies });
+  return result.data || [];
+}
+
+export async function createSeasonEndDate(date: string, label?: string): Promise<SeasonEndDate> {
+  const result = await apiFetch<{ data: SeasonEndDate }>("/admin/season-dates", {
+    method: "POST",
+    body: JSON.stringify({ date, label }),
+  });
+  return result.data;
+}
+
+export async function deleteSeasonEndDate(id: string): Promise<void> {
+  await apiFetch(`/admin/season-dates/${id}`, { method: "DELETE" });
+}
+
+export async function triggerSeasonSnapshot(id: string): Promise<void> {
+  await apiFetch(`/admin/season-dates/${id}/trigger`, { method: "POST" });
+}
+
+export async function getSeasonSnapshotsByClan(
+  clanTag: string,
+  cookies?: string
+): Promise<SeasonSnapshot[]> {
+  const cleanTag = stripHash(clanTag);
+  const result = await apiFetch<{ data: SeasonSnapshot[] }>(
+    `/season-snapshots/clan/${encodeURIComponent(cleanTag)}`,
+    { cookies }
+  );
+  return result.data || [];
+}
+
+export async function sendInvite(organizationId: string, userId: string) {
+  return apiFetch<any>("/invites/send", {
+    method: "POST",
+    body: JSON.stringify({ organizationId, userId }),
+  });
+}
+
+export async function acceptInvite(inviteId: string) {
+  return apiFetch<any>(`/invites/${inviteId}/accept`, { method: "POST" });
+}
+
+export async function rejectInvite(inviteId: string) {
+  return apiFetch<any>(`/invites/${inviteId}/reject`, { method: "POST" });
+}
+
+export async function cancelInvite(inviteId: string) {
+  return apiFetch<any>(`/invites/${inviteId}`, { method: "DELETE" });
+}
+
+export async function getInvitesByOrganization(organizationId: string): Promise<Invite[]> {
+  const result = await apiFetch<{ data: Invite[] }>(`/invites/organization/${organizationId}`);
+  return result.data || [];
+}
+
+export async function getPendingInvites(): Promise<Invite[]> {
+  const result = await apiFetch<{ data: Invite[] }>("/invites/pending");
+  return result.data || [];
+}
+
+export async function searchUsersByEmail(email: string) {
+  const result = await apiFetch<{ data: any[] }>("/invites/search-users", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+  return result.data || [];
+}
+
+export async function removeMember(organizationId: string, userId: string) {
+  return apiFetch<any>(`/members/organization/${organizationId}`, {
+    method: "DELETE",
+    body: JSON.stringify({ userId }),
+  });
+}
+
+export async function updateOrganization(
+  organizationId: string,
+  data: { name?: string; slug?: string }
+) {
+  return apiFetch<any>(`/organizations/${organizationId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteOrganization(organizationId: string) {
+  return apiFetch<any>(`/organizations/${organizationId}`, { method: "DELETE" });
+}
+
+export async function removeClan(clanId: string) {
+  return apiFetch<any>(`/clans/${clanId}`, { method: "DELETE" });
+}
+
+export async function getSubscription(organizationId: string, cookieHeader?: string) {
+  try {
+    return await apiFetch<any>(
+      `/subscriptions/organization/${organizationId}`,
+      { cookies: cookieHeader }
+    );
+  } catch {
+    return null;
+  }
+}
+
+export async function createOrganizationWithManualSubscription(data: {
+  name: string;
+  slug: string;
+  ownerEmail: string;
+  plan: string;
+  daysUntilExpiry: number;
+}) {
+  return apiFetch<any>("/admin/organizations/create-with-subscription", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function reactivateSubscription(organizationId: string, daysUntilExpiry: number) {
+  return apiFetch<any>(`/admin/organizations/${organizationId}/reactivate-subscription`, {
+    method: "POST",
+    body: JSON.stringify({ daysUntilExpiry }),
+  });
+}
+
+export async function renewSubscription(organizationId: string) {
+  return apiFetch<any>("/stripe/renew-subscription", {
+    method: "POST",
+    body: JSON.stringify({ organizationId }),
+  });
+}
+
+export async function createPortalSession(organizationId: string): Promise<{ url: string }> {
+  return apiFetch<{ url: string }>("/stripe/create-portal-session", {
+    method: "POST",
+    body: JSON.stringify({ organizationId }),
+  });
+}
+
+export async function createUpgradeCheckoutSession(
+  organizationId: string,
+  newPlan: string,
+  newPeriod: string
+): Promise<{ url?: string }> {
+  return apiFetch<{ url?: string }>("/stripe/create-upgrade-checkout-session", {
+    method: "POST",
+    body: JSON.stringify({ organizationId, newPlan, newPeriod }),
+  });
+}
+
+export async function changeSubscriptionPlan(
+  organizationId: string,
+  newPlan: string,
+  newPeriod: string
+): Promise<void> {
+  await apiFetch<any>("/stripe/change-subscription-plan", {
+    method: "POST",
+    body: JSON.stringify({ organizationId, newPlan, newPeriod }),
+  });
+}
+
+export interface Subscription {
+  id: string;
+  plan: "MESTRE" | "CAMPEAO" | "TITA" | "LEGEND";
+  status: "TRIAL" | "ACTIVE" | "CANCELLED" | "EXPIRED";
+  trialEndsAt?: string;
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd: boolean;
+  isActive: boolean;
+  stripeCustomerId?: string | null;
+  limits: { maxClans: number; maxInvites: number };
+  usage: {
+    clans: { current: number; max: number; canAdd: boolean };
+    invites: { current: number; max: number; canAdd: boolean };
+  };
+}
+
+export async function getPlayer(playerTag: string, cookies?: string): Promise<PlayerDetails> {
+  const cleanTag = stripHash(playerTag);
+  const responseData = await apiFetch<{ data?: PlayerDetails } | PlayerDetails>(
+    `/player/${encodeURIComponent(cleanTag)}`,
+    { cookies }
+  );
+  return (responseData as any).data || responseData;
+}
+
+export async function getPlayerBasic(playerTag: string): Promise<any> {
+  const cleanTag = stripHash(playerTag);
+  const data = await apiFetch<{ data: any }>(`/player/${encodeURIComponent(cleanTag)}/basic`);
   return data.data;
 }

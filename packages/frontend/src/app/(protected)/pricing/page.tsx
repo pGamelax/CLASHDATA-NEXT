@@ -4,162 +4,105 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Check,
-  Crown,
-  Trophy,
-  Zap,
   Sparkles,
   ArrowRight,
   Shield,
   Users,
   TrendingUp,
   BarChart3,
-  Wine,
+  Trophy,
+  Zap,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useSession } from "@/auth";
+import {
+  PLAN_ORDER,
+  PLAN_NAMES,
+  PLAN_PRICES_CENTS,
+  PLAN_FEATURES,
+  PLAN_ICONS,
+  PLAN_COLORS,
+  PLAN_LIMITS,
+  PERIOD_NAMES,
+  PERIOD_DISCOUNTS,
+  PERIOD_LABELS,
+  POPULAR_PLAN,
+  formatBRL,
+  type Period,
+} from "@/lib/plans";
+import { cn } from "@/lib/utils";
 
-type PaymentPeriod = "monthly" | "quarterly" | "yearly";
-const PLAN_PRICES = {
-  MESTRE: {
-    monthly: { amount: 2990, originalAmount: null },
-    quarterly: { amount: 8073, originalAmount: 8970 },
-    yearly: { amount: 28704, originalAmount: 35880 },
-  },
-  CAMPEAO: {
-    monthly: { amount: 4590, originalAmount: null },
-    quarterly: { amount: 12393, originalAmount: 13770 },
-    yearly: { amount: 44064, originalAmount: 55080 },
-  },
-  TITA: {
-    monthly: { amount: 7490, originalAmount: null },
-    quarterly: { amount: 20223, originalAmount: 22470 },
-    yearly: { amount: 71904, originalAmount: 89880 },
-  },
-  LEGEND: {
-    monthly: { amount: 11990, originalAmount: null },
-    quarterly: { amount: 32373, originalAmount: 35970 },
-    yearly: { amount: 115104, originalAmount: 143880 },
-  },
-};
+const PERIODS: Period[] = ["monthly", "quarterly", "yearly"];
 
-const PLAN_DETAILS = {
-  MESTRE: {
-    name: "Mestre",
-    icon: Crown,
-    iconColor: "text-yellow-500",
-    gradient: "from-yellow-500/20 to-yellow-500/5",
-    borderColor: "border-yellow-500/30",
-    maxClans: 1,
-    maxInvites: 1,
-    features: [
-      "1 Clan",
-      "1 Convite",
-      "Dashboard Completo",
-      "Rankings de Guerras",
-      "Estatísticas Avançadas",
-      "Suporte por Email",
-    ],
-  },
-  CAMPEAO: {
-    name: "Campeão",
-    icon: Trophy,
-    iconColor: "text-blue-500",
-    gradient: "from-blue-500/20 to-blue-500/5",
-    borderColor: "border-blue-500/30",
-    maxClans: 2,
-    maxInvites: 2,
+const ALL_FEATURES = [
+  { icon: Shield, title: "Dashboard Completo", desc: "Visão geral de todas as estatísticas" },
+  { icon: BarChart3, title: "Analytics Avançado", desc: "Estatísticas detalhadas e métricas" },
+  { icon: Trophy, title: "Rankings", desc: "Rankings de guerras e CWL" },
+  { icon: Zap, title: "Guerra Atual", desc: "Acompanhe guerras em tempo real" },
+  { icon: TrendingUp, title: "Previsões", desc: "Sistema de previsão inteligente" },
+  { icon: Users, title: "Gestão de Membros", desc: "Gerencie membros e convites" },
+];
 
-    features: [
-      "2 Clans",
-      "2 Convites",
-      "Dashboard Completo",
-      "Rankings de Guerras",
-      "Estatísticas Avançadas",
-      "Previsões Inteligentes",
-      "Suporte Prioritário",
-    ],
+const FAQS = [
+  {
+    q: "Posso mudar de plano depois?",
+    a: "Sim! Você pode fazer upgrade ou downgrade a qualquer momento pelo painel de assinatura.",
   },
-  TITA: {
-    name: "Titã",
-    icon: Zap,
-    iconColor: "text-purple-500",
-    gradient: "from-purple-500/20 to-purple-500/5",
-    borderColor: "border-purple-500/30",
-    maxClans: 3,
-    maxInvites: 3,
-    popular: true,
-    features: [
-      "3 Clans",
-      "3 Convites",
-      "Dashboard Completo",
-      "Rankings de Guerras",
-      "Estatísticas Avançadas",
-      "Previsões Inteligentes",
-      "Analytics Avançado",
-      "Suporte 24/7",
-    ],
+  {
+    q: "O que acontece após o trial de 3 dias?",
+    a: "Após o trial, sua assinatura é cobrada automaticamente. Você pode cancelar antes disso sem custos.",
   },
-  LEGEND: {
-    name: "Legend",
-    icon: Wine,
-    iconColor: "text-green-500",
-    gradient: "from-green-500/20 to-green-500/5",
-    borderColor: "border-green-500/30",
-    maxClans: 4,
-    maxInvites: 4,
-    features: [
-      "5 Clans",
-      "5 Convites",
-      "Dashboard Completo",
-      "Rankings de Guerras",
-      "Estatísticas Avançadas",
-      "Previsões Inteligentes",
-      "Analytics Avançado",
-      "Suporte 24/7",
-    ],
+  {
+    q: "Posso cancelar a qualquer momento?",
+    a: "Sim, sem taxas ou multas. Você mantém acesso até o fim do período pago.",
   },
-};
+];
 
-function formatPrice(amount: number): string {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 2,
-  }).format(amount / 100);
-}
-
-function calculateDiscount(original: number, current: number): number {
-  return Math.round(((original - current) / original) * 100);
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border rounded-xl overflow-hidden bg-card">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left font-semibold text-sm hover:bg-muted/50 transition-colors"
+      >
+        {q}
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200",
+            open && "rotate-180"
+          )}
+        />
+      </button>
+      {open && (
+        <div className="px-5 pb-4 border-t">
+          <p className="pt-3 text-sm text-muted-foreground">{a}</p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function PricingPage() {
   const router = useRouter();
-  const { data: session } = useSession();
-  const [selectedPeriod, setSelectedPeriod] =
-    useState<PaymentPeriod>("monthly");
-
-  const handleSelectPlan = (plan: "MESTRE" | "CAMPEAO" | "TITA" | "LEGEND") => {
-    localStorage.setItem("selectedPlan", plan);
-    localStorage.setItem("selectedPeriod", selectedPeriod);
-    router.push(`/org/new?plan=${plan}&period=${selectedPeriod}`);
-  };
+  const [selectedPeriod, setSelectedPeriod] = useState<Period>("monthly");
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-primary/5 to-background">
-      <div className="container mx-auto px-4 py-12 sm:py-16 lg:py-20">
-        {}
+    <div className="min-h-screen bg-linear-to-b from-background via-primary/5 to-background">
+      <div className="container mx-auto px-4 py-12 sm:py-16 lg:py-20 max-w-7xl">
+
+        {/* Hero */}
         <div className="text-center mb-12 sm:mb-16">
-          <div className="inline-flex items-center gap-2 rounded-full border-2 border-primary/20 bg-primary/5 backdrop-blur-sm px-4 py-2 text-sm mb-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm mb-6">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span className="font-semibold">
-              Escolha o plano perfeito para você
-            </span>
+            <span className="font-semibold">Escolha o plano perfeito para você</span>
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
             Planos que{" "}
-            <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               crescem
             </span>{" "}
             com você
@@ -168,174 +111,133 @@ export default function PricingPage() {
             Comece com 3 dias grátis. Sem compromisso. Cancele quando quiser.
           </p>
 
-          {}
-          <div className="flex justify-center mb-8 px-4">
-            <div className="inline-flex rounded-xl border-2 border-border bg-card p-1 sm:p-1.5 shadow-lg overflow-x-auto scrollbar-hide max-w-full">
-              <button
-                type="button"
-                onClick={() => setSelectedPeriod("monthly")}
-                className={`px-3 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap shrink-0 ${
-                  selectedPeriod === "monthly"
-                    ? "bg-primary text-primary-foreground shadow-md"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Mensal
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedPeriod("quarterly")}
-                className={`px-3 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap shrink-0 ${
-                  selectedPeriod === "quarterly"
-                    ? "bg-primary text-primary-foreground shadow-md"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Trimestral
-                <Badge
-                  variant="secondary"
-                  className="ml-1 sm:ml-2 bg-green-500/10 text-green-600 dark:text-green-400 text-[9px] sm:text-[10px]"
+          {/* Period toggle */}
+          <div className="flex justify-center">
+            <div className="inline-flex rounded-xl border bg-card p-1 gap-1 shadow-sm">
+              {PERIODS.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setSelectedPeriod(p)}
+                  className={cn(
+                    "px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap",
+                    selectedPeriod === p
+                      ? "bg-primary text-primary-foreground shadow-md"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
                 >
-                  10% OFF
-                </Badge>
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedPeriod("yearly")}
-                className={`px-3 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap shrink-0 ${
-                  selectedPeriod === "yearly"
-                    ? "bg-primary text-primary-foreground shadow-md"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Anual
-                <Badge
-                  variant="secondary"
-                  className="ml-1 sm:ml-2 bg-green-500/10 text-green-600 dark:text-green-400 text-[9px] sm:text-[10px]"
-                >
-                  20% OFF
-                </Badge>
-              </button>
+                  {PERIOD_NAMES[p]}
+                  {PERIOD_DISCOUNTS[p] && (
+                    <Badge
+                      variant="secondary"
+                      className="ml-1.5 bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] px-1.5"
+                    >
+                      {PERIOD_DISCOUNTS[p]}
+                    </Badge>
+                  )}
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
-        {}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 lg:gap-8 max-w-7xl mx-auto mb-12">
-          {(["MESTRE", "CAMPEAO", "TITA", "LEGEND"] as const).map((plan) => {
-            const details = PLAN_DETAILS[plan];
-            const prices = PLAN_PRICES[plan];
-            const price = prices[selectedPeriod];
-            const Icon = details.icon;
-            const isPopular = "popular" in details && details.popular === true;
-            const planMonthlyPrice =
-              price.amount /
-              (selectedPeriod === "monthly"
-                ? 1
-                : selectedPeriod === "quarterly"
-                  ? 3
-                  : 12);
+        {/* Plan cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+          {PLAN_ORDER.map((plan) => {
+            const Icon = PLAN_ICONS[plan];
+            const colors = PLAN_COLORS[plan];
+            const price = PLAN_PRICES_CENTS[plan][selectedPeriod];
+            const limits = PLAN_LIMITS[plan];
+            const features = PLAN_FEATURES[plan];
+            const isPopular = plan === POPULAR_PLAN;
+            const months = selectedPeriod === "monthly" ? 1 : selectedPeriod === "quarterly" ? 3 : 12;
+            const monthlyEquiv = price.amount / months;
 
             return (
               <Card
                 key={plan}
-                className={`relative border-2 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 ${
+                className={cn(
+                  "relative flex flex-col border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1",
                   isPopular
-                    ? "border-primary shadow-xl scale-105 bg-gradient-to-br from-primary/10 via-primary/5 to-background"
+                    ? "border-primary shadow-lg scale-[1.02] bg-linear-to-b from-primary/5 to-background"
                     : "border-border hover:border-primary/50"
-                }`}
+                )}
               >
                 {isPopular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
-                    <Badge className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-4 py-1.5 text-xs font-bold shadow-lg">
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
+                    <Badge className="bg-primary text-primary-foreground px-4 py-1 text-xs font-bold shadow">
                       MAIS POPULAR
                     </Badge>
                   </div>
                 )}
 
                 <CardHeader className="text-center pb-4 pt-8">
-                  <div className="flex justify-center mb-4">
+                  <div className="flex justify-center mb-3">
                     <div
-                      className={`p-4 rounded-2xl bg-gradient-to-br ${details.gradient} border-2 ${details.borderColor} shadow-lg`}
+                      className={cn(
+                        "p-3 rounded-2xl bg-linear-to-br border-2",
+                        colors.gradient,
+                        colors.border
+                      )}
                     >
-                      <Icon className={`h-10 w-10 ${details.iconColor}`} />
+                      <Icon className={cn("h-8 w-8", colors.icon)} />
                     </div>
                   </div>
-                  <CardTitle className="text-3xl font-bold mb-2">
-                    {details.name}
-                  </CardTitle>
+
+                  <CardTitle className="text-2xl font-bold mb-1">{PLAN_NAMES[plan]}</CardTitle>
+
+                  <p className="text-xs text-muted-foreground mb-3">
+                    {limits.maxClans} {limits.maxClans === 1 ? "clã" : "clãs"} ·{" "}
+                    {limits.maxInvites} {limits.maxInvites === 1 ? "convite" : "convites"}
+                  </p>
 
                   {price.originalAmount && (
-                    <div className="flex items-center justify-center gap-2 mb-3">
-                      <span className="text-sm text-muted-foreground line-through">
-                        {formatPrice(price.originalAmount)}
-                      </span>
-                      <Badge
-                        variant="secondary"
-                        className="bg-green-500/10 text-green-600 dark:text-green-400 font-semibold"
-                      >
-                        {calculateDiscount(price.originalAmount, price.amount)}%
-                        OFF
-                      </Badge>
-                    </div>
+                    <p className="text-sm text-muted-foreground line-through mb-1">
+                      {formatBRL(price.originalAmount)}
+                    </p>
                   )}
 
-                  <div className="mb-2">
-                    <span className="text-4xl font-bold">
-                      {formatPrice(price.amount)}
-                    </span>
-                    <span className="text-muted-foreground text-lg ml-2">
-                      /
-                      {selectedPeriod === "monthly"
-                        ? "mês"
-                        : selectedPeriod === "quarterly"
-                          ? "trimestre"
-                          : "ano"}
+                  <div className="mb-1">
+                    <span className="text-3xl font-bold">{formatBRL(price.amount)}</span>
+                    <span className="text-muted-foreground text-sm ml-1">
+                      /{PERIOD_LABELS[selectedPeriod]}
                     </span>
                   </div>
 
                   {selectedPeriod !== "monthly" && (
-                    <p className="text-sm text-muted-foreground">
-                      {formatPrice(planMonthlyPrice)}/mês equivalente
+                    <p className="text-xs text-muted-foreground">
+                      {formatBRL(monthlyEquiv)}/mês equivalente
                     </p>
                   )}
 
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <p className="text-sm text-muted-foreground mb-1">
-                      3 dias grátis
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Cancele quando quiser
-                    </p>
+                  <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
+                    3 dias grátis · Cancele quando quiser
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-6">
+                <CardContent className="flex flex-col flex-1 gap-4 pt-0">
                   <Button
-                    onClick={() => handleSelectPlan(plan)}
-                    className={`w-full h-12 text-base font-semibold shadow-lg hover:shadow-xl transition-all ${
-                      isPopular
-                        ? "bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
-                        : ""
-                    }`}
+                    onClick={() =>
+                      router.push(`/org/new?plan=${plan}&period=${selectedPeriod}`)
+                    }
+                    className="w-full font-semibold"
                     size="lg"
+                    variant={isPopular ? "default" : "outline"}
                   >
                     Começar Agora
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
 
-                  <div className="space-y-3 pt-4 border-t border-border">
-                    <p className="text-sm font-semibold text-foreground mb-3">
-                      Tudo incluído:
+                  <div className="space-y-2.5 pt-2 border-t">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      Incluído:
                     </p>
-                    {details.features.map((feature, index) => (
-                      <div key={index} className="flex items-start gap-3">
-                        <div className="p-1 rounded-full bg-green-500/10 mt-0.5 shrink-0">
-                          <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    {features.map((feature) => (
+                      <div key={feature} className="flex items-start gap-2 text-sm">
+                        <div className="p-0.5 rounded-full bg-green-500/10 mt-0.5 shrink-0">
+                          <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
                         </div>
-                        <span className="text-sm text-muted-foreground">
-                          {feature}
-                        </span>
+                        <span className="text-muted-foreground">{feature}</span>
                       </div>
                     ))}
                   </div>
@@ -345,96 +247,38 @@ export default function PricingPage() {
           })}
         </div>
 
-        {}
-        <div className="max-w-4xl mx-auto">
+        {/* Features included in all plans */}
+        <div className="mb-16">
           <div className="text-center mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-2">
-              Recursos incluídos em todos os planos
-            </h2>
-            <p className="text-muted-foreground">
-              Tudo que você precisa para gerenciar seu clã
-            </p>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2">Recursos em todos os planos</h2>
+            <p className="text-muted-foreground">Tudo que você precisa para gerenciar seus clãs</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              {
-                icon: Shield,
-                title: "Dashboard Completo",
-                desc: "Visão geral de todas as estatísticas",
-              },
-              {
-                icon: BarChart3,
-                title: "Analytics Avançado",
-                desc: "Estatísticas detalhadas e métricas",
-              },
-              {
-                icon: Trophy,
-                title: "Rankings",
-                desc: "Rankings de guerras e CWL",
-              },
-              {
-                icon: Zap,
-                title: "Guerra Atual",
-                desc: "Acompanhe guerras em tempo real",
-              },
-              {
-                icon: TrendingUp,
-                title: "Previsões",
-                desc: "Sistema de previsão inteligente",
-              },
-              {
-                icon: Users,
-                title: "Gestão de Membros",
-                desc: "Gerencie membros e convites",
-              },
-            ].map((feature, index) => (
+            {ALL_FEATURES.map(({ icon: FIcon, title, desc }) => (
               <div
-                key={index}
-                className="p-4 rounded-xl border border-border bg-card hover:border-primary/50 transition-colors"
+                key={title}
+                className="p-4 rounded-xl border bg-card hover:border-primary/50 transition-colors"
               >
                 <div className="p-2 rounded-lg bg-primary/10 w-fit mb-3">
-                  <feature.icon className="h-5 w-5 text-primary" />
+                  <FIcon className="h-5 w-5 text-primary" />
                 </div>
-                <h3 className="font-semibold mb-1">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground">{feature.desc}</p>
+                <h3 className="font-semibold mb-1">{title}</h3>
+                <p className="text-sm text-muted-foreground">{desc}</p>
               </div>
             ))}
           </div>
         </div>
 
-        {}
-        <div className="max-w-3xl mx-auto mt-16">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-2">
-              Perguntas Frequentes
-            </h2>
-          </div>
-          <div className="space-y-4">
-            {[
-              {
-                q: "Posso mudar de plano depois?",
-                a: "Sim! Você pode fazer upgrade ou downgrade do seu plano a qualquer momento.",
-              },
-              {
-                q: "O que acontece após o trial de 3 dias?",
-                a: "Após o período de trial, sua assinatura será cobrada automaticamente. Você pode cancelar a qualquer momento.",
-              },
-              {
-                q: "Posso cancelar a qualquer momento?",
-                a: "Sim, você pode cancelar sua assinatura a qualquer momento sem taxas ou multas.",
-              },
-            ].map((faq, index) => (
-              <Card key={index} className="border-2">
-                <CardHeader>
-                  <CardTitle className="text-lg">{faq.q}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">{faq.a}</p>
-                </CardContent>
-              </Card>
+        {/* FAQ */}
+        <div className="max-w-2xl mx-auto">
+          <h2 className="text-2xl font-bold text-center mb-6">Perguntas Frequentes</h2>
+          <div className="space-y-3">
+            {FAQS.map(({ q, a }) => (
+              <FaqItem key={q} q={q} a={a} />
             ))}
           </div>
         </div>
+
       </div>
     </div>
   );

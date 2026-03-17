@@ -7,7 +7,6 @@ dist
 .env.local
 .env.*.local
 .DS_Store
-*.md
 .git
 .gitignore
 .vscode

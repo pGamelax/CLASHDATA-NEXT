@@ -1,76 +1,52 @@
 "use client";
 
-import { Star, Swords } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import type { CWLPlayerStats } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
-interface ExpandedRowContentProps {
+interface Props {
   player: CWLPlayerStats;
 }
 
-export function ExpandedRowContent({ player }: ExpandedRowContentProps) {
-  const sortedAttacks = [...player.attacks].sort((a, b) => {
-    return b.season.localeCompare(a.season);
-  });
+function formatSeason(season: string): string {
+  const [year, month] = season.split("-");
+  const date = new Date(Number(year), Number(month) - 1, 1);
+  const mon = date.toLocaleString("pt-BR", { month: "short" }).replace(".", "");
+  return `${mon.charAt(0).toUpperCase() + mon.slice(1)}/${String(year).slice(2)}`;
+}
+
+export function ExpandedRowContent({ player }: Props) {
+  const sorted = [...player.attacks].sort((a, b) => b.season.localeCompare(a.season));
+
+  if (sorted.length === 0) {
+    return (
+      <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+        Nenhum ataque registrado
+      </div>
+    );
+  }
 
   return (
-    <div className="p-3 sm:p-6 bg-muted/10 overflow-y-auto max-h-96">
-      <div className="flex items-center gap-2 mb-3 sm:mb-4">
-        <Swords className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
-        <h4 className="font-semibold text-xs sm:text-sm text-foreground">
-          Ataques Feitos
-        </h4>
-      </div>
-      {sortedAttacks.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
-          {sortedAttacks.map((attack, index) => {
-            const [year, month] = attack.season.split("-");
-            const monthNumber = parseInt(month, 10);
-            const monthName = new Date(2000, monthNumber - 1, 1).toLocaleDateString("pt-BR", {
-              month: "long",
-            });
-            const formattedSeason = `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${year}`;
-            const opponentClanName = attack.opponentClanName || "Clan Desconhecido";
-            const isPerfect = attack.stars === 3 && attack.destructionPercentage === 100;
-            
-            return (
-              <div
-                key={`${attack.season}-${attack.defenderTag}-${index}`}
-                className="relative bg-card/50 border border-border/50 rounded-lg p-2 sm:p-3 hover:bg-card hover:border-border transition-all"
-              >
-                {}
-                <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2">
-                  <Badge 
-                    variant="secondary" 
-                    className={`text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 ${
-                      isPerfect 
-                        ? "bg-primary/20 text-primary border-primary/30" 
-                        : "bg-orange-500/20 text-orange-300 border-orange-500/30"
-                    }`}
-                  >
-                    {attack.destructionPercentage.toFixed(0)}% {attack.stars}★
-                  </Badge>
-                </div>
-                
-                {}
-                <div className="pr-16 sm:pr-20">
-                  <div className="font-medium text-xs sm:text-sm mb-1 sm:mb-1.5 line-clamp-1">
-                    {opponentClanName}
-                  </div>
-                  <div className="text-[10px] sm:text-xs text-muted-foreground">
-                    {formattedSeason}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="text-center py-6 sm:py-8 text-xs sm:text-sm text-muted-foreground">
-          Nenhum ataque registrado
-        </div>
-      )}
+    <div className="px-4 py-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
+      {sorted.map((attack, i) => {
+        const perfect = attack.stars === 3 && attack.destructionPercentage === 100;
+        return (
+          <div
+            key={`${attack.season}-${attack.defenderTag}-${i}`}
+            className="grid grid-cols-[1fr_auto] items-center gap-2 px-3 py-2 rounded-lg bg-background border"
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-medium truncate">{attack.opponentClanName}</p>
+              <p className="text-xs text-muted-foreground">{formatSeason(attack.season)}</p>
+            </div>
+            <div className="text-right shrink-0">
+              <p className={cn("text-sm font-bold", perfect && "text-primary")}>
+                {attack.stars === 0 ? "0⭐" : "⭐".repeat(attack.stars)}
+              </p>
+              <p className="text-xs text-muted-foreground">{attack.destructionPercentage.toFixed(0)}%</p>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
-

@@ -147,6 +147,21 @@ export class ClashOfClansService {
     return membersData;
   }
 
+  async getLegendRankings(locationId: number | string): Promise<any> {
+    const response = await fetch(
+      `${this.baseUrl}/rankings/${locationId}/legends?limit=200`,
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    );
+    if (!response.ok) return { items: [] };
+    const text = await response.text();
+    if (!text || text.trim() === "") return { items: [] };
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { items: [] };
+    }
+  }
+
   async getPlayerByTag(tag: string): Promise<any> {
     const cleanTag = tag.startsWith("#") ? tag : `#${tag}`;
     const encodedTag = encodeURIComponent(cleanTag);

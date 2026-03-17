@@ -25,6 +25,8 @@ import { playerPushLogsRoutes } from "./routes/player-push-logs.routes";
 import { playerRoutes } from "./routes/player.routes";
 import { setupPlayerPushJob, playerPushWorker } from "./jobs/player-push.job";
 import { setupSubscriptionExpiryJob, subscriptionExpiryWorker } from "./jobs/subscription-expiry.job";
+import { seasonEndDateRoutes } from "./routes/season-end-date.routes";
+import { seasonSnapshotWorker } from "./jobs/season-snapshot.job";
 
 const corsOrigin = env.CORS_ORIGIN || env.BETTER_AUTH_TRUSTED_ORIGIN;
 const originArray = Array.isArray(corsOrigin) ? corsOrigin : [corsOrigin];
@@ -115,6 +117,7 @@ const app = new Elysia()
   .use(currentCWLRoutes)
   .use(playerPushLogsRoutes)
   .use(playerRoutes)
+  .use(seasonEndDateRoutes)
   .get("/health", () => ({
     status: "healthy",
     timestamp: new Date().toISOString(),
@@ -145,6 +148,14 @@ playerPushWorker.on("error", (error) => {
 
 subscriptionExpiryWorker.on("failed", (job, err) => {
   console.error(`Job de expiração ${job?.id} falhou:`, err.message);
+});
+
+seasonSnapshotWorker.on("completed", (job) => {
+  console.log(`[SeasonSnapshot] Job ${job.id} concluído.`);
+});
+
+seasonSnapshotWorker.on("failed", (job, err) => {
+  console.error(`[SeasonSnapshot] Job ${job?.id} falhou:`, err.message);
 });
 
 export type App = typeof app;

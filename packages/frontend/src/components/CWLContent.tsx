@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { getCWLRanking, type CWLPlayerStats } from "@/lib/api";
-import { DataTable } from "@/components/ui/data-table";
-import { columns } from "./CWLContent/columns";
-import { ExpandedRowContent } from "./CWLContent/ExpandedRowContent";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
-import { MonthFilter } from "./WarsContent/MonthFilter";
+import { RankingList } from "@/components/RankingList";
+import { MonthFilter } from "@/components/WarsContent/MonthFilter";
+import { ExpandedRowContent } from "@/components/CWLContent/ExpandedRowContent";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, RefreshCw, Swords } from "lucide-react";
 
 interface CWLContentProps {
   initialRanking: CWLPlayerStats[];
@@ -16,180 +17,138 @@ interface CWLContentProps {
   clan?: any;
 }
 
-export function CWLContent({
-  initialRanking,
-  organization,
-  organizations,
-  clan,
-}: CWLContentProps) {
+function getAvailableMonths() {
+  const now = new Date();
+  return Array.from({ length: 12 }, (_, i) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    return {
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      label: date.toLocaleString("pt-BR", { month: "long", year: "numeric" }),
+    };
+  });
+}
+
+const availableMonths = getAvailableMonths();
+
+function monthsLabel(selectedMonths: Array<{ year: number; month: number }>): string {
+  if (selectedMonths.length === 0) return "—";
+  return selectedMonths
+    .map(({ year, month }) => {
+      const date = new Date(year, month - 1, 1);
+      const mon = date.toLocaleString("pt-BR", { month: "short" }).replace(".", "");
+      return `${mon.charAt(0).toUpperCase() + mon.slice(1)}/${String(year).slice(2)}`;
+    })
+    .join(", ");
+}
+
+export function CWLContent({ initialRanking, organization, organizations, clan }: CWLContentProps) {
   const [ranking, setRanking] = useState<CWLPlayerStats[]>(initialRanking);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedMonths, setSelectedMonths] = useState<Array<{ year: number; month: number }>>([]);
-  const [selectedOrg, setSelectedOrg] = useState(organization);
-  const [selectedClan, setSelectedClan] = useState(clan);
-  useEffect(() => {
-    if (organization && organization.id !== selectedOrg?.id) {
-      setSelectedOrg(organization);
-    }
-    if (clan && clan.clanTag !== selectedClan?.clanTag) {
-      setSelectedClan(clan);
-    } else if (!clan && selectedClan) {
-      setSelectedClan(null);
-    }
-  }, [organization?.id, clan?.clanTag]); // Usa apenas IDs para evitar loops
-  const getAvailableMonths = () => {
-    const months: Array<{ year: number; month: number; label: string }> = [];
+  const [error, setError] = useState<string | null>(null);
+  const [selectedMonths, setSelectedMonths] = useState<Array<{ year: number; month: number }>>(() => {
     const now = new Date();
-    
-    for (let i = 0; i < 12; i++) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const year = date.getFullYear();
-      const month = date.getMonth() + 1;
-      const monthName = date.toLocaleString("pt-BR", { month: "long", year: "numeric" });
-      months.push({ year, month, label: monthName });
-    }
-    
-    return months;
-  };
+    return [{ year: now.getFullYear(), month: now.getMonth() + 1 }];
+  });
+  const [selectedOrg, setSelectedOrg] = useState(organization);
+  const [selectedClan, setSelectedClan] = useState(clan);
 
-  const availableMonths = getAvailableMonths();
-  const loadRanking = useCallback(async () => {
+  useEffect(() => {
+    if (organization?.id !== selectedOrg?.id) setSelectedOrg(organization);
+    if (clan?.clanTag !== selectedClan?.clanTag) setSelectedClan(clan ?? null);
+  }, [organization?.id, clan?.clanTag]);
+
+  const loadRanking = useCallback(async () => {
     const clanTag = selectedClan?.clanTag;
-    
     if (!clanTag || selectedMonths.length === 0) {
       setRanking([]);
       return;
     }
-
     setIsLoading(true);
+    setError(null);
     try {
-      const cleanTag = clanTag.replace("#", "");
-      const data = await getCWLRanking(cleanTag, selectedMonths, true);
-      const normalizedData = data.map((player: any) => {
-        if (player.seasonsParticipated !== undefined && player.seasonsParticipated !== null) {
-          player.warsParticipated = player.seasonsParticipated;
-        }
-        return {
-          ...player,
-          warsParticipated: player.warsParticipated ?? player.totalAttacks ?? 0,
-        };
-      });
-      setRanking(normalizedData);
-    } catch (error) {
+      const data = await getCWLRanking(clanTag.replace("#", ""), selectedMonths, true);
+      setRanking(data);
+    } catch (err: any) {
+      setError(err.message || "Erro ao carregar ranking");
       setRanking([]);
     } finally {
       setIsLoading(false);
     }
-  }, [selectedClan, selectedMonths]);
-  useEffect(() => {
-    if (selectedMonths.length === 0 && selectedClan?.clanTag) {
-      const now = new Date();
-      setSelectedMonths([{ year: now.getFullYear(), month: now.getMonth() + 1 }]);
-    }
-  }, [selectedClan, selectedMonths.length]);
+  }, [selectedClan?.clanTag, selectedMonths]);
+
   useEffect(() => {
     if (selectedMonths.length > 0 && selectedClan?.clanTag) {
       loadRanking();
-    }
-  }, [selectedMonths.length, selectedClan?.clanTag]); // Remove loadRanking da dependência para evitar loop
+    }
+  }, [selectedMonths, selectedClan?.clanTag]);
+
   useEffect(() => {
-    const handleOrganizationChange = (event: Event) => {
-      const customEvent = event as CustomEvent<{ organizationId: string }>;
-      const { organizationId } = customEvent.detail;
-      
+    const handler = (e: Event) => {
+      const { organizationId } = (e as CustomEvent<{ organizationId: string }>).detail;
       if (organizationId && organizationId !== selectedOrg?.id) {
         const org = organizations.find((o: any) => o.id === organizationId);
         if (org) {
-          setSelectedOrg(org);
+          setSelectedOrg(org);
           const now = new Date();
           setSelectedMonths([{ year: now.getFullYear(), month: now.getMonth() + 1 }]);
         }
       }
     };
-
-    window.addEventListener("organizationChanged", handleOrganizationChange);
-    return () => {
-      window.removeEventListener("organizationChanged", handleOrganizationChange);
-    };
+    window.addEventListener("organizationChanged", handler);
+    return () => window.removeEventListener("organizationChanged", handler);
   }, [organizations, selectedOrg?.id]);
 
-  const handleMonthsChange = (months: Array<{ year: number; month: number }>) => {
-    setSelectedMonths(months);
-  };
-  if (!selectedClan?.clanTag) {
-    return (
-      <div className="container mx-auto  px-4 py-4 max-w-7xl">
-        <Card className="border-2 text-center">
-          <CardHeader>
-            <CardTitle className="text-xl sm:text-2xl">Clan não encontrado</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
-              Não foi possível encontrar o clan selecionado.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto  px-4 py-4 max-w-7xl">
-      <div className="mb-4 sm:mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Ranking de CWL</h1>
-        <p className="text-xs sm:text-sm text-muted-foreground">
-          Classificação dos melhores jogadores nas temporadas de CWL
+    <div className="container mx-auto px-4 py-6 max-w-7xl space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Ranking de CWL</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Desempenho dos jogadores nas temporadas de CWL
         </p>
       </div>
 
-      {}
       <MonthFilter
         availableMonths={availableMonths}
         selectedMonths={selectedMonths}
-        onMonthsChange={handleMonthsChange}
+        onMonthsChange={setSelectedMonths}
       />
 
-      {}
       {isLoading ? (
-        <Card className="border-2">
-          <CardContent className="p-8 sm:p-12 text-center">
-            <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin mx-auto mb-4 text-primary" />
-            <p className="text-xs sm:text-sm text-muted-foreground">Carregando ranking...</p>
+        <div className="space-y-2">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 rounded-xl" />
+          ))}
+        </div>
+      ) : error ? (
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardContent className="py-10 text-center space-y-3">
+            <AlertCircle className="h-7 w-7 mx-auto text-destructive" />
+            <p className="text-sm text-destructive">{error}</p>
+            <Button variant="outline" size="sm" onClick={loadRanking}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Tentar novamente
+            </Button>
           </CardContent>
         </Card>
-      ) : ranking.length > 0 ? (
-        <Card className="border-2">
-          <CardContent className="p-2 sm:p-6">
-            <DataTable
-              columns={columns}
-              data={ranking.map((player) => ({
-                ...player,
-                renderExpandedContent: (player: CWLPlayerStats) => (
-                  <ExpandedRowContent player={player} />
-                ),
-              }))}
-              searchPlaceholder="Filtrar por nome ou tag..."
-              searchKeys={["name", "tag"]}
-              pageSize={10}
-            />
-          </CardContent>
-        </Card>
-      ) : selectedMonths.length > 0 ? (
-        <Card className="border-2 text-center">
-          <CardContent className="p-8 sm:p-12">
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Nenhum dado encontrado para as temporadas selecionadas.
-            </p>
-          </CardContent>
-        </Card>
+      ) : selectedMonths.length === 0 ? (
+        <div className="text-center py-16 text-sm text-muted-foreground">
+          Selecione ao menos um mês para ver o ranking.
+        </div>
+      ) : ranking.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
+          <Swords className="h-8 w-8 opacity-30" />
+          <p className="text-sm">Nenhum dado encontrado para o período selecionado.</p>
+        </div>
       ) : (
-        <Card className="border-2 text-center">
-          <CardContent className="p-8 sm:p-12">
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Selecione pelo menos uma temporada para visualizar o ranking.
-            </p>
-          </CardContent>
-        </Card>
+        <RankingList
+          data={ranking}
+          clanName={selectedClan?.name ?? "Clã"}
+          title="Ranking de CWL"
+          selectedMonthsLabel={monthsLabel(selectedMonths)}
+          renderExpanded={(player) => <ExpandedRowContent player={player as CWLPlayerStats} />}
+        />
       )}
     </div>
   );
 }
-

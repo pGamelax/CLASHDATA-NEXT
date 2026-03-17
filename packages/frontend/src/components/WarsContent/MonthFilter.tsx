@@ -1,15 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface MonthFilterProps {
   availableMonths: Array<{ year: number; month: number; label: string }>;
@@ -17,12 +8,14 @@ interface MonthFilterProps {
   onMonthsChange: (months: Array<{ year: number; month: number }>) => void;
 }
 
-export function MonthFilter({
-  availableMonths,
-  selectedMonths,
-  onMonthsChange,
-}: MonthFilterProps) {
-  const handleMonthToggle = (year: number, month: number) => {
+function shortLabel(year: number, month: number): string {
+  const date = new Date(year, month - 1, 1);
+  const mon = date.toLocaleString("pt-BR", { month: "short" }).replace(".", "");
+  return `${mon.charAt(0).toUpperCase() + mon.slice(1)}/${String(year).slice(2)}`;
+}
+
+export function MonthFilter({ availableMonths, selectedMonths, onMonthsChange }: MonthFilterProps) {
+  const toggle = (year: number, month: number) => {
     const exists = selectedMonths.some((m) => m.year === year && m.month === month);
     if (exists) {
       onMonthsChange(selectedMonths.filter((m) => !(m.year === year && m.month === month)));
@@ -31,70 +24,28 @@ export function MonthFilter({
     }
   };
 
-  const removeMonth = (year: number, month: number) => {
-    onMonthsChange(selectedMonths.filter((m) => !(m.year === year && m.month === month)));
-  };
-
   return (
-    <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 flex-wrap">
-      <Select
-        value=""
-        onValueChange={(value) => {
-          if (value) {
-            const [year, month] = value.split("-").map(Number);
-            handleMonthToggle(year, month);
-          }
-        }}
-      >
-        <SelectTrigger className="w-full sm:w-[200px] text-xs sm:text-sm">
-          <SelectValue placeholder="Adicionar mês..." />
-        </SelectTrigger>
-        <SelectContent>
-          {availableMonths.map(({ year, month, label }) => {
-            const isSelected = selectedMonths.some(
-              (m) => m.year === year && m.month === month
-            );
-            return (
-              <SelectItem
-                key={`${year}-${month}`}
-                value={`${year}-${month}`}
-                disabled={isSelected}
-                className="text-xs sm:text-sm"
-              >
-                {label}
-              </SelectItem>
-            );
-          })}
-        </SelectContent>
-      </Select>
-
-      {selectedMonths.length > 0 && (
-        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-          {selectedMonths.map(({ year, month }) => {
-            const monthData = availableMonths.find(
-              (m) => m.year === year && m.month === month
-            );
-            return (
-              <Badge
-                key={`${year}-${month}`}
-                variant="secondary"
-                className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs flex items-center gap-1 sm:gap-1.5"
-              >
-                <span className="truncate max-w-[120px] sm:max-w-none">{monthData?.label || `${year}-${month}`}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-3 w-3 p-0 hover:bg-destructive/20 flex-shrink-0"
-                  onClick={() => removeMonth(year, month)}
-                >
-                  <X className="h-2.5 w-2.5" />
-                </Button>
-              </Badge>
-            );
-          })}
-        </div>
-      )}
+    <div className="space-y-2 mb-5">
+      <p className="text-xs font-medium text-muted-foreground">Período</p>
+      <div className="flex gap-2 overflow-x-auto sm:flex-wrap sm:overflow-x-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        {availableMonths.map(({ year, month }) => {
+          const selected = selectedMonths.some((m) => m.year === year && m.month === month);
+          return (
+            <button
+              key={`${year}-${month}`}
+              onClick={() => toggle(year, month)}
+              className={cn(
+                "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
+                selected
+                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                  : "bg-background text-muted-foreground border-border hover:border-primary/60 hover:text-foreground"
+              )}
+            >
+              {shortLabel(year, month)}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
-
