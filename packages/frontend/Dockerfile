@@ -16,14 +16,15 @@ COPY . .
 
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-ARG APP_URL
-ENV APP_URL=${APP_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN bun run build
 
 # ── Stage 3: Production ───────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
+
+RUN apk add --no-cache caddy
+
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -33,6 +34,12 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static     ./.next/static
 COPY --from=builder /app/public           ./public
 
+COPY Caddyfile /etc/caddy/Caddyfile
+
+# Wait for Next.js then start Caddy in foreground
+RUN printf '#!/bin/sh\nset -e\nPORT=3001 HOSTNAME=127.0.0.1 node server.js &\nuntil nc -z 127.0.0.1 3001 2>/dev/null; do sleep 0.2; done\nexec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile\n' \
+    > /start.sh && chmod +x /start.sh
+
 EXPOSE 3002
 
-CMD ["sh", "-c", "PORT=3002 HOSTNAME=0.0.0.0 node server.js"]
+CMD ["/start.sh"]

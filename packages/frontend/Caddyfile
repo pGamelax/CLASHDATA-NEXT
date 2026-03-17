@@ -1,38 +1,13 @@
-# Caddy config for the CLASHDATA frontend container.
-# Listens on :80 — Dokploy / your reverse proxy handles TLS termination.
-# Proxies all requests to the Next.js standalone server on localhost:3001.
-
-:80 {
-    # gzip compression (br/zstd not available in Alpine caddy build)
+:3002 {
     encode gzip
 
-    # Security headers
     header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains"
-        X-Content-Type-Options    "nosniff"
-        X-Frame-Options           "SAMEORIGIN"
-        Referrer-Policy           "strict-origin-when-cross-origin"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options        "SAMEORIGIN"
+        Referrer-Policy        "strict-origin-when-cross-origin"
         -Server
     }
 
-    # Serve Next.js static assets directly from disk (bypasses Node)
-    # URL: /_next/static/* → disk: /app/.next/static/*
-    handle /_next/static/* {
-        root * /app/.next
-        uri strip_prefix /_next
-        file_server {
-            precompressed gzip
-        }
-        header Cache-Control "public, max-age=31536000, immutable"
-    }
-
-    # Serve public folder directly from disk
-    handle /favicon* {
-        root * /app/public
-        file_server
-    }
-
-    # All other traffic → Next.js server
     reverse_proxy localhost:3001 {
         header_up Host             {host}
         header_up X-Real-IP        {remote_host}
