@@ -1011,4 +1011,71 @@ export class AdminController {
       return status(500, { message });
     }
   }
+
+  /**
+   * Corrige a subscription de um usuário migrado da Stripe.
+   * Busca pelo email do owner e ajusta status + currentPeriodEnd.
+   */
+  async fixStripeSubscription(context: ElysiaContext) {
+    const { body, request, status } = context;
+    try {
+      const session = await auth.api.getSession({ headers: request.headers });
+      if (!session?.user) return status(401, { message: "Não autenticado" });
+      if (session.user.role !== "admin") return status(403, { message: "Acesso negado. Apenas administradores." });
+
+      const { ownerEmail, newStatus, activeUntil } = body as {
+        ownerEmail: string;
+        newStatus: "ACTIVE" | "EXPIRED" | "CANCELLED";
+        activeUntil?: string; // ISO date, obrigatório se newStatus = ACTIVE
+      };
+
+      if (newStatus === "ACTIVE" && !activeUntil)
+        return status(400, { message: "activeUntil é obrigatório para status ACTIVE" });
+
+      // Busca o usuário pelo email
+      const user = await prisma.user.findUnique({ where: { email: ownerEmail } });
+      if (!user) return status(404, { message: `Usuário não encontrado: ${ownerEmail}` });
+
+      // Busca a org onde ele é owner
+      const member = await prisma.member.findFirst({
+        where: { userId: user.id, role: "owner" },
+        include: { organization: { include: { subscription: true } } },
+      });
+
+      if (!member) return status(404, { message: `Nenhuma organização com owner ${ownerEmail}` });
+
+      const org = member.organization;
+      const sub = org.subscription;
+
+      if (!sub) return status(404, { message: `Organização "${org.name}" não tem subscription` });
+
+      const currentPeriodEnd = activeUntil ? new Date(activeUntil) : null;
+
+      const updated = await prisma.subscription.update({
+        where: { id: sub.id },
+        data: {
+          status: SubscriptionStatus[newStatus],
+          paymentProvider: "syncpay",
+          paymentProviderId: null,
+          currentPeriodEnd,
+          cancelAtPeriodEnd: false,
+        },
+      });
+
+      if (newStatus === "ACTIVE" && currentPeriodEnd) {
+        const { scheduleSubscriptionExpiryCheck } = await import("../jobs/subscription-expiry.job");
+        await scheduleSubscriptionExpiryCheck(org.id, currentPeriodEnd);
+      }
+
+      return {
+        success: true,
+        organization: { id: org.id, name: org.name, slug: org.slug },
+        subscription: { id: updated.id, status: updated.status, currentPeriodEnd: updated.currentPeriodEnd },
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      console.error("Erro ao corrigir subscription Stripe:", error);
+      return status(500, { message });
+    }
+  }
 }

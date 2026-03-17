@@ -206,6 +206,23 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
     }
   )
 
+  .post(
+    "/subscriptions/fix-stripe",
+    async (context) => await adminController.fixStripeSubscription(context),
+    {
+      body: t.Object({
+        ownerEmail: t.String(),
+        newStatus: t.Union([t.Literal("ACTIVE"), t.Literal("EXPIRED"), t.Literal("CANCELLED")]),
+        activeUntil: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ["Admin"],
+        summary: "Corrigir subscription migrada da Stripe",
+        description: "Busca a org pelo email do owner e ajusta status + currentPeriodEnd.",
+      },
+    }
+  )
+
   // ── Plan management ────────────────────────────────────────────
   .get("/plans", async (context) => adminPlansController.getPlans(context), {
     detail: { tags: ["Admin"], summary: "Listar todos os planos" },
