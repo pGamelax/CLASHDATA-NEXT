@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const publicRoutes = ["/", "/sign-in", "/sign-up"];
+const publicRoutes = ["/sign-in", "/sign-up"];
 
 function getAppUrl(request: NextRequest): string {
   if (process.env.APP_URL) return process.env.APP_URL;
@@ -24,19 +24,20 @@ function hasSessionCookie(request: NextRequest): boolean {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublicRoute = publicRoutes.includes(pathname);
-  const isProtectedRoute = !isPublicRoute;
+  const isProtectedRoute = !isPublicRoute && pathname !== "/";
 
   const isAuthenticated = hasSessionCookie(request);
   const appUrl = getAppUrl(request);
+
+  // Redirect authenticated users away from landing and auth pages
+  if ((pathname === "/" || pathname === "/sign-in" || pathname === "/sign-up") && isAuthenticated) {
+    return NextResponse.redirect(new URL("/organizations", appUrl));
+  }
 
   if (isProtectedRoute && !isAuthenticated) {
     return NextResponse.redirect(
       new URL(`/sign-in?callbackUrl=${encodeURIComponent(pathname)}`, appUrl)
     );
-  }
-
-  if ((pathname === "/sign-in" || pathname === "/sign-up") && isAuthenticated) {
-    return NextResponse.redirect(new URL("/", appUrl));
   }
 
   return NextResponse.next();
