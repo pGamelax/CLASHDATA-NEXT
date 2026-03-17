@@ -10,16 +10,9 @@ function getAppUrl(request: NextRequest): string {
   const host =
     request.headers.get("x-forwarded-host") ||
     request.headers.get("host") ||
-    "localhost:3001";
+    "clashdata.pro";
   const proto = request.headers.get("x-forwarded-proto") || "https";
   return `${proto}://${host}`;
-}
-
-function hasSesionCookie(request: NextRequest): boolean {
-  return !!(
-    request.cookies.get("better-auth.session_token") ||
-    request.cookies.get("__Secure-better-auth.session_token")
-  );
 }
 
 export async function middleware(request: NextRequest) {
@@ -27,34 +20,33 @@ export async function middleware(request: NextRequest) {
   const isPublicRoute = publicRoutes.includes(pathname);
   const isProtectedRoute = !isPublicRoute;
 
-  // Fast path: no cookie → definitely not authenticated
-  if (isProtectedRoute && !hasSesionCookie(request)) {
+  // Fast path: no cookies at all → not authenticated
+  const cookieHeader = request.headers.get("cookie") || "";
+  if (isProtectedRoute && !cookieHeader) {
     const appUrl = getAppUrl(request);
     return NextResponse.redirect(
       new URL(`/sign-in?callbackUrl=${encodeURIComponent(pathname)}`, appUrl)
     );
   }
 
-  // Validate session with backend
   let isAuthenticated = false;
-  if (hasSesionCookie(request)) {
-    try {
-      const response = await fetch(`${API_URL}/auth/get-session`, {
-        method: "GET",
-        headers: {
-          Cookie: request.headers.get("cookie") || "",
-          "Content-Type": "application/json",
-        },
-      });
 
-      if (response.ok) {
-        const session = await response.json();
-        isAuthenticated = !!(session?.user || session?.data?.user);
-      }
-    } catch {
-      // Network error: trust the cookie to avoid locking out users
-      isAuthenticated = hasSesionCookie(request);
+  try {
+    const response = await fetch(`${API_URL}/auth/get-session`, {
+      method: "GET",
+      headers: {
+        Cookie: cookieHeader,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (response.ok) {
+      const session = await response.json();
+      isAuthenticated = !!(session?.user || session?.data?.user);
     }
+  } catch {
+    // Backend unreachable: allow through to avoid locking out users
+    isAuthenticated = isPublicRoute ? false : true;
   }
 
   const appUrl = getAppUrl(request);
