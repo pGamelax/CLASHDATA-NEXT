@@ -52,8 +52,7 @@ function SignInForm() {
       },
       {
         onSuccess: () => {
-          router.push(redirectUrl);
-          router.refresh();
+          window.location.href = redirectUrl;
         },
         onError: (context) => {
           setServerError(context.error.message || "Erro ao fazer login");
