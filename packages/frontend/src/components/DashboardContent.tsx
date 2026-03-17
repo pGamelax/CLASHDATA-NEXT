@@ -167,7 +167,7 @@ export function DashboardContent() {
         </p>
       </div>
 
-      <ClanPanel initialData={clanData} organization={selectedOrg} />
+      <ClanPanel initialData={clanData} clanTag={selectedOrg?.metadata?.clanTag?.replace("#", "") || ""} />
     </div>
   );
 }
