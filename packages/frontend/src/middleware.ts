@@ -3,6 +3,18 @@ import type { NextRequest } from "next/server";
 
 const publicRoutes = ["/", "/sign-in", "/sign-up"];
 
+function getAppUrl(request: NextRequest): string {
+  // Prefer explicit env var (set in Dokploy as APP_URL=https://clashdata.pro)
+  if (process.env.APP_URL) return process.env.APP_URL;
+  // Fallback: reconstruct from forwarded headers
+  const host =
+    request.headers.get("x-forwarded-host") ||
+    request.headers.get("host") ||
+    "localhost:3001";
+  const proto = request.headers.get("x-forwarded-proto") || "https";
+  return `${proto}://${host}`;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublicRoute = publicRoutes.includes(pathname);
@@ -12,9 +24,9 @@ export async function middleware(request: NextRequest) {
 
   if (isProtectedRoute || pathname === "/sign-in" || pathname === "/sign-up") {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003";
       const sessionUrl = `${apiUrl}/auth/get-session`;
-      
+
       const response = await fetch(sessionUrl, {
         method: "GET",
         headers: {
@@ -30,23 +42,23 @@ export async function middleware(request: NextRequest) {
           isAuthenticatedUser = true;
         }
       }
-    } catch (error) {
+    } catch {
       isAuthenticatedUser = false;
     }
   }
 
+  const appUrl = getAppUrl(request);
+
   if (isProtectedRoute && !isAuthenticatedUser) {
-    const signInUrl = request.nextUrl.clone();
-    signInUrl.pathname = "/sign-in";
-    signInUrl.search = `?callbackUrl=${encodeURIComponent(pathname)}`;
+    const signInUrl = new URL(
+      `/sign-in?callbackUrl=${encodeURIComponent(pathname)}`,
+      appUrl
+    );
     return NextResponse.redirect(signInUrl);
   }
 
   if ((pathname === "/sign-in" || pathname === "/sign-up") && isAuthenticatedUser) {
-    const homeUrl = request.nextUrl.clone();
-    homeUrl.pathname = "/";
-    homeUrl.search = "";
-    return NextResponse.redirect(homeUrl);
+    return NextResponse.redirect(new URL("/", appUrl));
   }
 
   return NextResponse.next();
@@ -54,8 +66,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-
     "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
-
