@@ -35,4 +35,4 @@ COPY --from=builder /app/public           ./public
 
 EXPOSE 3002
 
-CMD ["sh", "-c", "PORT=3002 node server.js"]
+CMD ["sh", "-c", "PORT=3002 HOSTNAME=0.0.0.0 node server.js"]
