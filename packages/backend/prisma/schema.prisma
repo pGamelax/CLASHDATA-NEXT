@@ -201,6 +201,7 @@ model Subscription {
   trialEndsAt       DateTime?          // Data de término do trial (3 dias após criação)
   currentPeriodEnd  DateTime?          // Data de término do período atual
   cancelAtPeriodEnd Boolean            @default(false)
+  pendingPlan       String?            // Plano agendado para o fim do período (downgrade)
   paymentProvider   String?            @default("syncpay")
   paymentProviderId String?
   pixPayments       PixPayment[]
@@ -228,6 +229,7 @@ model PixPayment {
   plan            String
   period          String           // monthly, quarterly, yearly
   status          PixPaymentStatus @default(PENDING)
+  upgradeOnly     Boolean          @default(false) // Se true, só muda o plano (não o currentPeriodEnd)
   syncpayId       String?          @unique // idTransaction no SyncPay
   pixCode         String?          @db.Text // Código copia e cola
   pixQrCodeBase64 String?          @db.Text // QR code em base64

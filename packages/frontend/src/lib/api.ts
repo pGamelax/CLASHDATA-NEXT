@@ -794,8 +794,19 @@ export async function createPixPayment(data: {
   organizationId: string;
   plan: string;
   period: string;
+  upgradeOnly?: boolean;
 }): Promise<{ pix: PixPaymentData }> {
   return apiFetch<any>("/pix/create-payment", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function scheduleDowngrade(data: {
+  organizationId: string;
+  plan: string;
+}): Promise<{ success: boolean; pendingPlan: string; effectiveAt?: string }> {
+  return apiFetch<any>("/pix/downgrade", {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -809,12 +820,13 @@ export async function getPixStatus(organizationId: string): Promise<{
 
 export interface Subscription {
   id: string;
-  plan: "MESTRE" | "CAMPEAO" | "TITA" | "LEGEND";
+  plan: string;
   status: "TRIAL" | "ACTIVE" | "CANCELLED" | "EXPIRED";
   period?: string;
   trialEndsAt?: string;
   currentPeriodEnd?: string;
   cancelAtPeriodEnd: boolean;
+  pendingPlan?: string | null;
   isActive: boolean;
   paymentProvider?: string | null;
   limits: { maxClans: number; maxInvites: number };

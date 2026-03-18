@@ -81,11 +81,27 @@ export const pixRoutes = new Elysia({ prefix: "/pix" })
           t.Literal("quarterly"),
           t.Literal("yearly"),
         ]),
+        upgradeOnly: t.Optional(t.Boolean()),
       }),
       detail: {
         tags: ["PIX"],
         summary: "Gerar cobrança PIX",
-        description: "Gera nova cobrança PIX para ativar ou renovar assinatura.",
+        description: "Gera nova cobrança PIX para ativar ou renovar assinatura. Use upgradeOnly=true para cobrança proporcional de upgrade.",
+      },
+    }
+  )
+  .post(
+    "/downgrade",
+    async (context) => await pixController.scheduleDowngrade(context),
+    {
+      body: t.Object({
+        organizationId: t.String(),
+        plan: t.String(),
+      }),
+      detail: {
+        tags: ["PIX"],
+        summary: "Agendar downgrade",
+        description: "Agenda mudança de plano para o fim do período atual, sem cobrança imediata.",
       },
     }
   )

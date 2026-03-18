@@ -40,6 +40,7 @@ export class SubscriptionRepository {
       trialEndsAt?: Date;
       currentPeriodEnd?: Date;
       cancelAtPeriodEnd?: boolean;
+      pendingPlan?: string | null;
       paymentProvider?: string;
       paymentProviderId?: string;
     }
@@ -88,14 +89,16 @@ export class SubscriptionRepository {
   }
 
   async expire(organizationId: string) {
+    const sub = await prisma.subscription.findUnique({ where: { organizationId } });
+
     return await prisma.subscription.update({
       where: { organizationId },
       data: {
         status: SubscriptionStatus.EXPIRED,
+        // Aplica downgrade agendado, se houver
+        ...(sub?.pendingPlan ? { plan: sub.pendingPlan, pendingPlan: null } : {}),
       },
-      include: {
-        organization: true,
-      },
+      include: { organization: true },
     });
   }
 }

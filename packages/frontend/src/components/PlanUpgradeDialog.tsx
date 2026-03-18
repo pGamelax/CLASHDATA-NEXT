@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, CheckCircle2, ArrowUp, ArrowDown, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { createPixPayment, getPlans, type PixPaymentData, type PlanConfig } from "@/lib/api";
+import { createPixPayment, scheduleDowngrade, getPlans, type PixPaymentData, type PlanConfig } from "@/lib/api";
 import { PixPaymentModal } from "@/components/PixPaymentModal";
 import { getPlanIcon, getPlanColors } from "@/lib/plan-presets";
 import { formatBRL } from "@/lib/plans";
@@ -31,16 +31,20 @@ function getPlanPrice(plan: PlanConfig, period: Period) {
   return plan.yearlyPrice;
 }
 
+const PERIOD_DAYS: Record<Period, number> = { monthly: 30, quarterly: 90, yearly: 365 };
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   currentPlan: string;
+  currentPeriodEnd?: string;
+  currentPeriod?: string;
   organizationId: string;
   onSuccess?: () => void;
 }
 
 export function PlanUpgradeDialog({
-  open, onOpenChange, currentPlan, organizationId, onSuccess,
+  open, onOpenChange, currentPlan, currentPeriodEnd, currentPeriod, organizationId, onSuccess,
 }: Props) {
   const [plans, setPlans] = useState<PlanConfig[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string>(currentPlan);
@@ -50,17 +54,20 @@ export function PlanUpgradeDialog({
   const [error, setError] = useState<string | null>(null);
   const [pixData, setPixData] = useState<PixPaymentData | null>(null);
   const [showPixModal, setShowPixModal] = useState(false);
+  const [downgradeScheduled, setDowngradeScheduled] = useState(false);
 
   useEffect(() => {
     if (open) {
       setLoadingPlans(true);
+      setDowngradeScheduled(false);
       getPlans().then((p) => {
         setPlans(p);
         setLoadingPlans(false);
       });
       setSelectedPlan(currentPlan);
+      setSelectedPeriod((currentPeriod as Period) ?? "monthly");
     }
-  }, [open, currentPlan]);
+  }, [open, currentPlan, currentPeriod]);
 
   const currentPlanData = plans.find((p) => p.key === currentPlan);
   const selectedPlanData = plans.find((p) => p.key === selectedPlan);
@@ -71,20 +78,38 @@ export function PlanUpgradeDialog({
   const isUpgrade = !isSame && selectedOrder > currentOrder;
   const isDowngrade = !isSame && selectedOrder < currentOrder;
 
+  // Calcula proporcional do upgrade
+  const activePeriod = (currentPeriod as Period) ?? "monthly";
+  const proratedAmount = (() => {
+    if (!isUpgrade || !currentPlanData || !selectedPlanData) return null;
+    const currentPrice = getPlanPrice(currentPlanData, activePeriod);
+    const newPrice = getPlanPrice(selectedPlanData, activePeriod);
+    const remainingMs = currentPeriodEnd ? new Date(currentPeriodEnd).getTime() - Date.now() : 0;
+    const remainingDays = Math.max(0, Math.ceil(remainingMs / 86400000));
+    const totalDays = PERIOD_DAYS[activePeriod];
+    return Math.max(100, Math.ceil((newPrice - currentPrice) * remainingDays / totalDays));
+  })();
+
   const handleConfirm = async () => {
     if (isSame) return;
     setLoading(true);
     setError(null);
     try {
-      const result = await createPixPayment({
-        organizationId,
-        plan: selectedPlan,
-        period: selectedPeriod,
-      });
-      setPixData(result.pix);
-      setShowPixModal(true);
+      if (isDowngrade) {
+        await scheduleDowngrade({ organizationId, plan: selectedPlan });
+        setDowngradeScheduled(true);
+      } else {
+        const result = await createPixPayment({
+          organizationId,
+          plan: selectedPlan,
+          period: isUpgrade ? activePeriod : selectedPeriod,
+          upgradeOnly: isUpgrade,
+        });
+        setPixData(result.pix);
+        setShowPixModal(true);
+      }
     } catch (err: any) {
-      setError(err.message ?? "Erro ao gerar PIX");
+      setError(err.message ?? "Erro ao processar alteração de plano");
     } finally {
       setLoading(false);
     }
@@ -114,32 +139,53 @@ export function PlanUpgradeDialog({
             </div>
           )}
 
-          <div className="space-y-5">
-            {/* Period toggle */}
-            <div>
-              <p className="text-sm font-semibold mb-2">Período</p>
-              <div className="inline-flex rounded-lg border bg-muted p-1 gap-1">
-                {PERIODS.map((p) => (
-                  <button
-                    key={p.key}
-                    onClick={() => setSelectedPeriod(p.key)}
-                    className={cn(
-                      "px-4 py-1.5 rounded-md text-sm font-medium transition-colors",
-                      selectedPeriod === p.key
-                        ? "bg-background shadow text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {p.label}
-                    {p.discount && (
-                      <Badge variant="secondary" className="ml-1.5 text-[10px] px-1 py-0">
-                        {p.discount}
-                      </Badge>
-                    )}
-                  </button>
-                ))}
+          {downgradeScheduled ? (
+            <div className="py-6 text-center space-y-3">
+              <div className="flex justify-center">
+                <div className="p-3 rounded-full bg-green-500/10">
+                  <CheckCircle2 className="h-8 w-8 text-green-500" />
+                </div>
               </div>
+              <p className="font-semibold">Downgrade agendado</p>
+              <p className="text-sm text-muted-foreground">
+                Seu plano mudará para <strong>{selectedPlanData?.name}</strong> no fim do período atual
+                {currentPeriodEnd && (
+                  <> em <strong>{new Date(currentPeriodEnd).toLocaleDateString("pt-BR")}</strong></>
+                )}.
+              </p>
+              <Button className="mt-2" onClick={() => { onSuccess?.(); onOpenChange(false); }}>
+                Entendido
+              </Button>
             </div>
+          ) : (
+          <div className="space-y-5">
+            {/* Period toggle — oculto no upgrade (usa o período atual) */}
+            {!isUpgrade && (
+              <div>
+                <p className="text-sm font-semibold mb-2">Período</p>
+                <div className="inline-flex rounded-lg border bg-muted p-1 gap-1">
+                  {PERIODS.map((p) => (
+                    <button
+                      key={p.key}
+                      onClick={() => setSelectedPeriod(p.key)}
+                      className={cn(
+                        "px-4 py-1.5 rounded-md text-sm font-medium transition-colors",
+                        selectedPeriod === p.key
+                          ? "bg-background shadow text-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {p.label}
+                      {p.discount && (
+                        <Badge variant="secondary" className="ml-1.5 text-[10px] px-1 py-0">
+                          {p.discount}
+                        </Badge>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Plan cards */}
             <div>
@@ -153,7 +199,7 @@ export function PlanUpgradeDialog({
                   {plans.map((plan) => {
                     const Icon = getPlanIcon(plan.icon);
                     const colors = getPlanColors(plan.color);
-                    const price = getPlanPrice(plan, selectedPeriod);
+                    const price = getPlanPrice(plan, isUpgrade ? activePeriod : selectedPeriod);
                     const selected = selectedPlan === plan.key;
                     const isCurrent = plan.key === currentPlan;
 
@@ -182,7 +228,7 @@ export function PlanUpgradeDialog({
                         <p className="text-base font-bold mb-0.5">
                           {formatBRL(price)}
                           <span className="text-xs font-normal text-muted-foreground">
-                            /{PERIOD_LABELS[selectedPeriod]}
+                            /{PERIOD_LABELS[isUpgrade ? activePeriod : selectedPeriod]}
                           </span>
                         </p>
                         <div className="mt-2 space-y-1 text-xs text-muted-foreground">
@@ -202,23 +248,37 @@ export function PlanUpgradeDialog({
               )}
             </div>
 
-            {/* Change summary */}
+            {/* Resumo */}
             {!isSame && currentPlanData && selectedPlanData && (
               <div className="p-4 rounded-lg border bg-muted/50 text-sm space-y-2">
-                <p className="font-semibold">Resumo da alteração</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">
-                    {currentPlanData.name} → {selectedPlanData.name}
-                  </span>
+                  <span className="font-semibold">Resumo</span>
                   <Badge variant={isUpgrade ? "default" : "secondary"} className="gap-1">
                     {isUpgrade ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
                     {isUpgrade ? "Upgrade" : "Downgrade"}
                   </Badge>
                 </div>
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>{currentPlanData.name} → {selectedPlanData.name}</span>
+                </div>
+                {isUpgrade && proratedAmount !== null && (
+                  <div className="flex items-center justify-between pt-1 border-t">
+                    <span className="text-muted-foreground">Cobrado agora (proporcional)</span>
+                    <span className="font-bold text-foreground">{formatBRL(proratedAmount)}</span>
+                  </div>
+                )}
+                {isDowngrade && (
+                  <p className="text-muted-foreground pt-1 border-t">
+                    Sem cobrança agora. O plano muda no fim do período atual
+                    {currentPeriodEnd && <> em <strong className="text-foreground">{new Date(currentPeriodEnd).toLocaleDateString("pt-BR")}</strong></>}.
+                  </p>
+                )}
               </div>
             )}
           </div>
+          )}
 
+          {!downgradeScheduled && (
           <div className="flex justify-end gap-2 pt-2 border-t">
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancelar
@@ -227,14 +287,15 @@ export function PlanUpgradeDialog({
               {loading ? (
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processando...</>
               ) : isUpgrade ? (
-                <><ArrowUp className="h-4 w-4 mr-2" />Fazer Upgrade</>
+                <><ArrowUp className="h-4 w-4 mr-2" />Fazer Upgrade · {proratedAmount !== null ? formatBRL(proratedAmount) : ""}</>
               ) : isDowngrade ? (
-                <><ArrowDown className="h-4 w-4 mr-2" />Fazer Downgrade</>
+                <><ArrowDown className="h-4 w-4 mr-2" />Agendar Downgrade</>
               ) : (
                 "Confirmar"
               )}
             </Button>
           </div>
+          )}
         </DialogContent>
       </Dialog>
 

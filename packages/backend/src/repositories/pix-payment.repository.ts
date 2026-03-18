@@ -8,6 +8,7 @@ export class PixPaymentRepository {
     amount: number;
     plan: string;
     period: string;
+    upgradeOnly?: boolean;
     syncpayId?: string;
     pixCode?: string;
     pixQrCodeBase64?: string;

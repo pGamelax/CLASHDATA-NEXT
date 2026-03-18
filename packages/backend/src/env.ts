@@ -28,6 +28,18 @@ const envSchema = z.object({
   SYNCPAY_CLIENT_SECRET: z.string(),
   SYNCPAY_WEBHOOK_TOKEN: z.string().optional(),
   SYNCPAY_WEBHOOK_URL: z.string().url().optional(),
+
+  // Social Auth - Google
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+
+  // Social Auth - Discord
+  DISCORD_CLIENT_ID: z.string().optional(),
+  DISCORD_CLIENT_SECRET: z.string().optional(),
+
+  // Social Auth - Apple
+  APPLE_CLIENT_ID: z.string().optional(),
+  APPLE_CLIENT_SECRET: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

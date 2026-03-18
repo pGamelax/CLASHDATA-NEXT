@@ -379,6 +379,8 @@ export function SubscriptionContent({ organization, subscription }: Props) {
         open={showUpgradeDialog}
         onOpenChange={setShowUpgradeDialog}
         currentPlan={planKey}
+        currentPeriodEnd={subscription.currentPeriodEnd}
+        currentPeriod={subscription.period}
         organizationId={organization.id}
         onSuccess={() => window.location.reload()}
       />

@@ -8,6 +8,12 @@ import { auth } from "../auth";
 import { SubscriptionStatus, PixPaymentStatus } from "../generated/prisma";
 import { env } from "../env";
 
+const PERIOD_DAYS: Record<PaymentPeriod, number> = {
+  monthly: 30,
+  quarterly: 90,
+  yearly: 365,
+};
+
 /** Busca o preço do plano no DB; cai no hardcode como fallback */
 async function getPriceConfig(planKey: string, period: PaymentPeriod): Promise<{ amount: number; originalAmount?: number }> {
   const planRepo = new PlanRepository();
@@ -232,10 +238,11 @@ export class PixController {
       const session = await auth.api.getSession({ headers: request.headers });
       if (!session?.user) return status(401, { message: "Não autenticado" });
 
-      const { organizationId, plan, period } = body as {
+      const { organizationId, plan, period, upgradeOnly } = body as {
         organizationId: string;
         plan: string;
         period: PaymentPeriod;
+        upgradeOnly?: boolean;
       };
 
       // Verifica acesso
@@ -251,21 +258,45 @@ export class PixController {
       // Expira cobranças PIX antigas pendentes
       await this.pixPaymentRepository.expireOldPending(organizationId);
 
-      const priceConfig = await getPriceConfig(plan, period);
-
-      // Calcula período cobrado: começa quando o atual termina (ou agora se expirado)
       const now = new Date();
-      const periodFrom = subscription.currentPeriodEnd && subscription.currentPeriodEnd > now
-        ? new Date(subscription.currentPeriodEnd)
-        : now;
-      const periodTo = calcPeriodEnd(period, periodFrom);
+      let amount: number;
+      let periodFrom: Date;
+      let periodTo: Date;
+
+      if (upgradeOnly) {
+        // Cobrança proporcional do upgrade: cobra só a diferença dos dias restantes
+        const currentPeriod = (subscription.period ?? "monthly") as PaymentPeriod;
+        const currentPrice = (await getPriceConfig(subscription.plan, currentPeriod)).amount;
+        const newPrice = (await getPriceConfig(plan, currentPeriod)).amount;
+
+        if (newPrice <= currentPrice)
+          return status(400, { message: "Use o endpoint de downgrade para reduzir o plano" });
+
+        const remainingMs = subscription.currentPeriodEnd
+          ? subscription.currentPeriodEnd.getTime() - now.getTime()
+          : 0;
+        const remainingDays = Math.max(0, Math.ceil(remainingMs / 86400000));
+        const totalDays = PERIOD_DAYS[currentPeriod];
+
+        amount = Math.max(100, Math.ceil((newPrice - currentPrice) * remainingDays / totalDays));
+        periodFrom = now;
+        periodTo = subscription.currentPeriodEnd ?? calcPeriodEnd(currentPeriod, now);
+      } else {
+        // Renovação normal: valor cheio, período começa quando o atual termina
+        const priceConfig = await getPriceConfig(plan, period);
+        amount = priceConfig.amount;
+        periodFrom = subscription.currentPeriodEnd && subscription.currentPeriodEnd > now
+          ? new Date(subscription.currentPeriodEnd)
+          : now;
+        periodTo = calcPeriodEnd(period, periodFrom);
+      }
 
       const postbackUrl = `${WEBHOOK_BASE}/pix/webhook`;
 
       const charge = await this.syncPayService.createPixCharge({
-        amount: priceConfig.amount,
-        plan: plan,
-        period,
+        amount,
+        plan,
+        period: upgradeOnly ? ((subscription.period ?? "monthly") as PaymentPeriod) : period,
         organizationId,
         organizationName: subscription.organization?.name ?? "Organização",
         customerName: session.user.name || session.user.email || "Cliente",
@@ -279,9 +310,10 @@ export class PixController {
       const pixPayment = await this.pixPaymentRepository.create({
         organizationId,
         subscriptionId: subscription.id,
-        amount: priceConfig.amount,
-        plan: plan,
-        period,
+        amount,
+        plan,
+        period: upgradeOnly ? (subscription.period ?? "monthly") : period,
+        upgradeOnly: upgradeOnly ?? false,
         syncpayId: charge.id,
         pixCode: charge.pixCode,
         pixQrCodeBase64: charge.pixQrCodeBase64,
@@ -297,14 +329,50 @@ export class PixController {
           pixCode: charge.pixCode,
           pixQrCodeBase64: charge.pixQrCodeBase64,
           pixExpiresAt,
-          amount: priceConfig.amount,
+          amount,
           periodFrom,
           periodTo,
+          upgradeOnly: upgradeOnly ?? false,
         },
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro desconhecido";
       console.error("Erro ao criar cobrança PIX:", error);
+      return status(500, { message });
+    }
+  }
+
+  /**
+   * Agenda downgrade de plano para o fim do período atual — sem cobrança imediata
+   */
+  async scheduleDowngrade(context: ElysiaContext) {
+    const { body, request, status } = context;
+    try {
+      const session = await auth.api.getSession({ headers: request.headers });
+      if (!session?.user) return status(401, { message: "Não autenticado" });
+
+      const { organizationId, plan } = body as { organizationId: string; plan: string };
+
+      const access = await this.organizationService.canUserAccessOrganization(
+        session.user.id, organizationId
+      );
+      if (!access.canAccess || (access.role !== "owner" && session.user.role !== "admin"))
+        return status(403, { message: "Acesso negado" });
+
+      const subscription = await this.subscriptionRepository.findByOrganizationId(organizationId);
+      if (!subscription) return status(404, { message: "Assinatura não encontrada" });
+
+      await this.subscriptionRepository.update(organizationId, { pendingPlan: plan });
+
+      return {
+        success: true,
+        message: `Downgrade para "${plan}" agendado para ${subscription.currentPeriodEnd?.toISOString() ?? "o fim do período"}`,
+        pendingPlan: plan,
+        effectiveAt: subscription.currentPeriodEnd,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      console.error("Erro ao agendar downgrade:", error);
       return status(500, { message });
     }
   }
@@ -405,26 +473,24 @@ export class PixController {
     const pixPayment = await this.pixPaymentRepository.findById(pixPaymentId);
     if (!pixPayment || pixPayment.status === PixPaymentStatus.PAID) return;
 
-    // Marca o pagamento como pago
     await this.pixPaymentRepository.markAsPaid(pixPaymentId);
 
-    const periodTo = pixPayment.periodTo || calcPeriodEnd(pixPayment.period as PaymentPeriod);
-
-    // Ativa ou renova a assinatura
-    await this.subscriptionRepository.activate(
-      organizationId,
-      periodTo,
-      "syncpay",
-      syncpayId,
-    );
-
-    // Atualiza plano se necessário
-    await this.subscriptionRepository.update(organizationId, {
-      plan: pixPayment.plan,
-      paymentProvider: "syncpay",
-    });
-
-    console.log(`[PIX] Assinatura ativada para org ${organizationId} até ${periodTo.toISOString()}`);
+    if (pixPayment.upgradeOnly) {
+      // Upgrade: apenas muda o plano, mantém currentPeriodEnd intacto
+      await this.subscriptionRepository.update(organizationId, {
+        plan: pixPayment.plan,
+        paymentProvider: "syncpay",
+        pendingPlan: null,
+      });
+    } else {
+      // Renovação normal: ativa com novo período
+      const periodTo = pixPayment.periodTo || calcPeriodEnd(pixPayment.period as PaymentPeriod);
+      await this.subscriptionRepository.activate(organizationId, periodTo, "syncpay", syncpayId);
+      await this.subscriptionRepository.update(organizationId, {
+        plan: pixPayment.plan,
+        paymentProvider: "syncpay",
+      });
+    }
   }
 
 }
