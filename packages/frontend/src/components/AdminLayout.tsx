@@ -12,6 +12,7 @@ import {
   Users,
   CalendarClock,
   PackageOpen,
+  Megaphone,
 } from "lucide-react";
 
 interface AdminLayoutProps {
@@ -26,6 +27,7 @@ const adminNavItems = [
   { title: "Usuários",      href: "/admin/users",          icon: Users },
   { title: "Planos",        href: "/admin/plans",          icon: PackageOpen },
   { title: "Temporadas",    href: "/admin/season-dates",   icon: CalendarClock },
+  { title: "Anúncios",      href: "/admin/announcements",  icon: Megaphone },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {

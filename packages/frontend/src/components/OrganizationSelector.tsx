@@ -83,8 +83,28 @@ export function OrganizationSelector({
     }
   }, [currentOrganization?.id, clans]);
 
-  const handleOpenChange = (isOpen: boolean) => {
-    if (isOpen) setExpandedOrgId(currentOrganization?.id ?? null);
+  const handleOpenChange = async (isOpen: boolean) => {
+    if (isOpen && currentOrganization?.id) {
+      const orgId = currentOrganization.id;
+      setExpandedOrgId(orgId);
+      if (orgClansCache[orgId] === undefined) {
+        setLoadingOrgId(orgId);
+        try {
+          const res = await getClansByOrganization(orgId);
+          const data = res?.data ?? res ?? [];
+          setOrgClansCache((prev) => ({
+            ...prev,
+            [orgId]: Array.isArray(data) ? data : [],
+          }));
+        } catch {
+          setOrgClansCache((prev) => ({ ...prev, [orgId]: [] }));
+        } finally {
+          setLoadingOrgId(null);
+        }
+      }
+    } else if (!isOpen) {
+      setExpandedOrgId(null);
+    }
     setOpen(isOpen);
   };
 

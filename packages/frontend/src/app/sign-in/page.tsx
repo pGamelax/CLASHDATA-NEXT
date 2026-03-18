@@ -276,7 +276,7 @@ function SignInForm() {
             </form>
 
             <p className="mt-4 text-center text-xs text-muted-foreground">
-              <Link href="#" className="hover:text-foreground transition-colors">
+              <Link href="/forgot-password" className="hover:text-foreground transition-colors">
                 Esqueceu sua senha?
               </Link>
             </p>

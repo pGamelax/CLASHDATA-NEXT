@@ -279,6 +279,17 @@ model SeasonSnapshot {
   @@map("season_snapshot")
 }
 
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  content   String   @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("announcement")
+}
+
 model Invite {
   id             String       @id @default(cuid())
   organizationId String

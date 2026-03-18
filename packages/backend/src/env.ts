@@ -40,6 +40,10 @@ const envSchema = z.object({
   // Social Auth - Apple
   APPLE_CLIENT_ID: z.string().optional(),
   APPLE_CLIENT_SECRET: z.string().optional(),
+
+  // Resend (email)
+  RESEND_API_KEY: z.string(),
+  RESEND_FROM: z.string().default("CLASHDATA <noreply@clashdata.com.br>"),
 });
 
 export type Env = z.infer<typeof envSchema>;

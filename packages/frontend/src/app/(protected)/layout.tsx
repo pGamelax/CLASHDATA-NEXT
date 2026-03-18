@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { getSession } from "@/lib/api";
 import { ClientHeader } from "@/components/ClientHeader";
+import { AnnouncementModal } from "@/components/AnnouncementModal";
 import { redirect } from "next/navigation";
 
 export default async function ProtectedLayout({
@@ -21,6 +22,7 @@ export default async function ProtectedLayout({
   return (
     <div className="min-h-screen bg-background">
       <ClientHeader initialUser={session.user} />
+      <AnnouncementModal />
       <main>{children}</main>
     </div>
   );

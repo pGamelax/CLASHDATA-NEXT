@@ -1,9 +1,11 @@
 import { Elysia, t } from "elysia";
 import { AdminController } from "../controllers/admin.controller";
 import { AdminPlansController } from "../controllers/admin-plans.controller";
+import { AnnouncementController } from "../controllers/announcement.controller";
 
 const adminController = new AdminController();
 const adminPlansController = new AdminPlansController();
+const announcementController = new AnnouncementController();
 
 export const adminRoutes = new Elysia({ prefix: "/admin" })
   .get(
@@ -290,5 +292,42 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
     {
       params: t.Object({ id: t.String() }),
       detail: { tags: ["Admin"], summary: "Excluir plano" },
+    }
+  )
+
+  // ── Announcements ───────────────────────────────────────────────
+  .get("/announcements", async (context) => announcementController.getAll(context), {
+    detail: { tags: ["Admin"], summary: "Listar todos os anúncios" },
+  })
+  .post(
+    "/announcements",
+    async (context) => announcementController.create(context),
+    {
+      body: t.Object({
+        title: t.String(),
+        content: t.String(),
+      }),
+      detail: { tags: ["Admin"], summary: "Criar anúncio" },
+    }
+  )
+  .put(
+    "/announcements/:id",
+    async (context) => announcementController.update(context),
+    {
+      params: t.Object({ id: t.String() }),
+      body: t.Object({
+        title: t.Optional(t.String()),
+        content: t.Optional(t.String()),
+        isActive: t.Optional(t.Boolean()),
+      }),
+      detail: { tags: ["Admin"], summary: "Atualizar anúncio" },
+    }
+  )
+  .delete(
+    "/announcements/:id",
+    async (context) => announcementController.delete(context),
+    {
+      params: t.Object({ id: t.String() }),
+      detail: { tags: ["Admin"], summary: "Excluir anúncio" },
     }
   );
