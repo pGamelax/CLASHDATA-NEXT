@@ -109,7 +109,7 @@ export function AnnouncementModal() {
               onCheckedChange={(v) => setDontShow(!!v)}
               id="dont-show"
             />
-            <span className="text-xs text-muted-foreground" htmlFor="dont-show">
+            <span className="text-xs text-muted-foreground">
               Não mostrar novamente
             </span>
           </label>
