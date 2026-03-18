@@ -8,7 +8,7 @@
     "db:generate": "bunx --bun prisma generate --schema=./prisma/schema.prisma",
     "db:push": "bunx --bun prisma db push",
     "db:migrate": "bunx --bun prisma migrate dev",
-    "db:seed": "bun run prisma/seed.ts"
+    "db:studio": "bunx --bun prisma studio"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.1.1",

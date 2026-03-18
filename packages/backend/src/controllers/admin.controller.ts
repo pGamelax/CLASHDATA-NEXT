@@ -1018,7 +1018,7 @@ export class AdminController {
    * - Se não existe: cria a org + subscription e adiciona o user como owner.
    * Campos orgName, orgSlug e plan são obrigatórios apenas quando a org não existe.
    */
-  async fixStripeSubscription(context: ElysiaContext) {
+  async manageSubscription(context: ElysiaContext) {
     const { body, request, status } = context;
     try {
       const session = await auth.api.getSession({ headers: request.headers });

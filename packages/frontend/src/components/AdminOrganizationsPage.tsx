@@ -20,7 +20,7 @@ import {
   Loader2, RefreshCw, AlertCircle, Users, Shield, Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { createOrganizationWithManualSubscription, reactivateSubscription, getAdminPlans, type PlanConfig } from "@/lib/api";
+import { manageSubscription, reactivateSubscription, getAdminPlans, type PlanConfig } from "@/lib/api";
 import { getPlanIcon, getPlanColors } from "@/lib/plan-presets";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
@@ -56,7 +56,11 @@ function RowSkeleton() {
   );
 }
 
-const BLANK_CREATE = { name: "", slug: "", ownerEmail: "", plan: "MESTRE", daysUntilExpiry: 30 };
+function slugify(name: string) {
+  return name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+const BLANK_CREATE = { ownerEmail: "", orgName: "", orgSlug: "", plan: "MESTRE", newStatus: "ACTIVE" as "ACTIVE" | "EXPIRED", daysUntilExpiry: 30 };
 
 export function AdminOrganizationsPage() {
   const [orgs, setOrgs] = useState<any[]>([]);
@@ -116,7 +120,17 @@ export function AdminOrganizationsPage() {
     setCreating(true);
     setCreateError(null);
     try {
-      await createOrganizationWithManualSubscription(createForm);
+      const activeUntil = createForm.newStatus === "ACTIVE"
+        ? new Date(Date.now() + createForm.daysUntilExpiry * 86400000).toISOString()
+        : undefined;
+      await manageSubscription({
+        ownerEmail: createForm.ownerEmail,
+        newStatus: createForm.newStatus,
+        activeUntil,
+        orgName: createForm.orgName || undefined,
+        orgSlug: createForm.orgSlug || undefined,
+        plan: createForm.plan,
+      });
       await fetchOrgs();
       setCreateOpen(false);
       setCreateForm(BLANK_CREATE);
@@ -229,7 +243,7 @@ export function AdminOrganizationsPage() {
             <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
             Atualizar
           </Button>
-          <Dialog open={createOpen} onOpenChange={(v) => { setCreateOpen(v); if (!v) setCreateError(null); }}>
+          <Dialog open={createOpen} onOpenChange={(v) => { setCreateOpen(v); if (!v) { setCreateError(null); setCreateForm(BLANK_CREATE); } }}>
             <DialogTrigger asChild>
               <Button size="sm" className="gap-1.5">
                 <Plus className="h-4 w-4" />
@@ -239,7 +253,7 @@ export function AdminOrganizationsPage() {
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>Criar Organização</DialogTitle>
-                <DialogDescription>Cria com assinatura manual (sem Stripe)</DialogDescription>
+                <DialogDescription>Cria org e assinatura via PIX para um usuário existente.</DialogDescription>
               </DialogHeader>
               <div className="space-y-3 py-2">
                 {createError && (
@@ -247,18 +261,29 @@ export function AdminOrganizationsPage() {
                     <AlertCircle className="h-3.5 w-3.5 shrink-0" />{createError}
                   </div>
                 )}
-                {[
-                  { id: "cn", label: "Nome", key: "name", placeholder: "Ex: War Nation", type: "text" },
-                  { id: "cs", label: "Slug", key: "slug", placeholder: "ex: war-nation", type: "text" },
-                  { id: "ce", label: "Email do dono", key: "ownerEmail", placeholder: "usuario@email.com", type: "email" },
-                ].map(({ id, label, key, placeholder, type }) => (
-                  <div key={id} className="space-y-1.5">
-                    <Label htmlFor={id}>{label}</Label>
-                    <Input id={id} type={type} placeholder={placeholder}
-                      value={(createForm as any)[key]}
-                      onChange={(e) => setCreateForm({ ...createForm, [key]: e.target.value })} />
+                <div className="space-y-1.5">
+                  <Label htmlFor="ce">Email do dono</Label>
+                  <Input id="ce" type="email" placeholder="usuario@email.com"
+                    value={createForm.ownerEmail}
+                    onChange={(e) => setCreateForm({ ...createForm, ownerEmail: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="cn">Nome da org</Label>
+                    <Input id="cn" placeholder="Ex: War Nation"
+                      value={createForm.orgName}
+                      onChange={(e) => {
+                        const orgName = e.target.value;
+                        setCreateForm({ ...createForm, orgName, orgSlug: slugify(orgName) });
+                      }} />
                   </div>
-                ))}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="cs">Slug</Label>
+                    <Input id="cs" placeholder="war-nation"
+                      value={createForm.orgSlug}
+                      onChange={(e) => setCreateForm({ ...createForm, orgSlug: e.target.value })} />
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label>Plano</Label>
@@ -272,12 +297,24 @@ export function AdminOrganizationsPage() {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
+                    <Label>Status</Label>
+                    <Select value={createForm.newStatus} onValueChange={(v) => setCreateForm({ ...createForm, newStatus: v as "ACTIVE" | "EXPIRED" })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ACTIVE">Ativa</SelectItem>
+                        <SelectItem value="EXPIRED">Expirada</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {createForm.newStatus === "ACTIVE" && (
+                  <div className="space-y-1.5">
                     <Label htmlFor="cd">Dias até expirar</Label>
                     <Input id="cd" type="number" min="1"
                       value={createForm.daysUntilExpiry}
                       onChange={(e) => setCreateForm({ ...createForm, daysUntilExpiry: parseInt(e.target.value) || 30 })} />
                   </div>
-                </div>
+                )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
@@ -331,7 +368,7 @@ export function AdminOrganizationsPage() {
               const days = daysUntil(expiryDate);
               const isExpiringSoon = days !== null && days >= 0 && days <= 7 && sub?.status === "ACTIVE";
               const isManual = sub?.paymentProvider === "manual";
-              const canReactivate = isManual && (sub?.status === "EXPIRED" || sub?.status === "CANCELLED");
+              const canReactivate = sub?.status === "EXPIRED" || sub?.status === "CANCELLED";
 
               return (
                 <div key={org.id} className={cn(

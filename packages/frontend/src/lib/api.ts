@@ -667,14 +667,15 @@ export async function getSubscription(organizationId: string, cookieHeader?: str
   }
 }
 
-export async function createOrganizationWithManualSubscription(data: {
-  name: string;
-  slug: string;
+export async function manageSubscription(data: {
   ownerEmail: string;
-  plan: string;
-  daysUntilExpiry: number;
+  newStatus: "ACTIVE" | "EXPIRED" | "CANCELLED";
+  activeUntil?: string;
+  orgName?: string;
+  orgSlug?: string;
+  plan?: string;
 }) {
-  return apiFetch<any>("/admin/organizations/create-with-subscription", {
+  return apiFetch<any>("/admin/subscriptions/manage", {
     method: "POST",
     body: JSON.stringify(data),
   });

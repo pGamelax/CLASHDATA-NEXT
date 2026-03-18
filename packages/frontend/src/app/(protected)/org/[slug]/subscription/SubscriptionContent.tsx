@@ -311,39 +311,32 @@ export function SubscriptionContent({ organization, subscription }: Props) {
             </div>
 
             {/* Actions */}
-            {isManual ? (
-              <div className="flex items-center gap-2.5 p-3 rounded-lg border text-sm text-muted-foreground">
-                <Shield className="h-4 w-4 shrink-0" />
-                <span>Assinatura manual. Entre em contato com o administrador.</span>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2 pt-1">
-                <Button onClick={handleOpenPix} disabled={loadingPix} className="w-full">
-                  {loadingPix ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <QrCode className="h-4 w-4 mr-2" />
-                  )}
-                  {loadingPix
-                    ? "Gerando PIX..."
-                    : expired
-                    ? "Renovar via PIX"
-                    : "Pagar / Renovar via PIX"}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowUpgradeDialog(true)}
-                  disabled={loadingPix}
-                  className="w-full"
-                >
-                  {expired ? (
-                    <><ArrowUpRight className="h-4 w-4 mr-2" />Escolher Novo Plano</>
-                  ) : (
-                    <><Zap className="h-4 w-4 mr-2" />Trocar Plano</>
-                  )}
-                </Button>
-              </div>
-            )}
+            <div className="flex flex-col gap-2 pt-1">
+              <Button onClick={handleOpenPix} disabled={loadingPix} className="w-full">
+                {loadingPix ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <QrCode className="h-4 w-4 mr-2" />
+                )}
+                {loadingPix
+                  ? "Gerando PIX..."
+                  : expired
+                  ? "Renovar via PIX"
+                  : "Pagar / Renovar via PIX"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowUpgradeDialog(true)}
+                disabled={loadingPix}
+                className="w-full"
+              >
+                {expired ? (
+                  <><ArrowUpRight className="h-4 w-4 mr-2" />Escolher Novo Plano</>
+                ) : (
+                  <><Zap className="h-4 w-4 mr-2" />Trocar Plano</>
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

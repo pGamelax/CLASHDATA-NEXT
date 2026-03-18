@@ -207,8 +207,8 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
   )
 
   .post(
-    "/subscriptions/fix-stripe",
-    async (context) => await adminController.fixStripeSubscription(context),
+    "/subscriptions/manage",
+    async (context) => await adminController.manageSubscription(context),
     {
       body: t.Object({
         ownerEmail: t.String(),
@@ -220,8 +220,8 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
       }),
       detail: {
         tags: ["Admin"],
-        summary: "Corrigir subscription migrada da Stripe",
-        description: "Busca a org pelo email do owner e ajusta status + currentPeriodEnd.",
+        summary: "Criar ou gerenciar subscription manualmente",
+        description: "Cria a org (se não existir) e define status da subscription pelo email do owner.",
       },
     }
   )
