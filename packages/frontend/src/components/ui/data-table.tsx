@@ -113,19 +113,39 @@ export function DataTable<TData, TValue>({
       });
       if (!blob) return;
 
-      const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || 
-                             (navigator.maxTouchPoints > 0 && window.innerWidth < 1024);
+      const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+        (navigator.maxTouchPoints > 0 && window.innerWidth < 1024);
 
-      if (isMobileDevice && navigator.share) {
+      if (isMobileDevice) {
         const file = new File([blob], "ranking.png", { type: "image/png" });
-        await navigator.share({ files: [file], title: "Ranking" });
-      } else {
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], title: "Ranking" });
+          return;
+        }
+        // Fallback: download direto (Android sem suporte a file share)
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "ranking.png";
+        a.click();
+        URL.revokeObjectURL(url);
+        return;
+      }
+
+      try {
         const item = new ClipboardItem({ "image/png": blob });
         await navigator.clipboard.write([item]);
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2000);
+      } catch {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "ranking.png";
+        a.click();
+        URL.revokeObjectURL(url);
       }
-    } catch (err) {
+    } catch (err) {
     }
   };
   const PaginationControls = () => (

@@ -12,4 +12,6 @@ export const seasonEndDateRoutes = new Elysia()
   .delete("/admin/season-dates/:id", (ctx) => controller.remove(ctx))
   .post("/admin/season-dates/:id/trigger", (ctx) => controller.triggerNow(ctx))
   // Clan page route
-  .get("/season-snapshots/clan/:clanTag", (ctx) => controller.getSnapshotsByClan(ctx));
+  .get("/season-snapshots/clan/:clanTag", (ctx) => controller.getSnapshotsByClan(ctx))
+  // Public route (no auth) - just dates for filtering
+  .get("/season-dates", (ctx) => controller.listPublic(ctx));

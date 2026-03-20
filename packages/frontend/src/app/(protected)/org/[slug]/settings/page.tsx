@@ -19,5 +19,5 @@ export default async function SettingsPage({
 
   if (!isOwner) redirect(`/org/${slug}`);
 
-  return <SettingsContent organization={organization} />;
+  return <SettingsContent organization={organization} currentUserId={session?.user?.id ?? ""} />;
 }

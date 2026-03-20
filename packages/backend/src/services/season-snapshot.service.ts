@@ -29,6 +29,21 @@ export class SeasonSnapshotService {
               (a, b) => (b.trophies || 0) - (a.trophies || 0)
             );
 
+            // Fetch global rank for each member in parallel
+            const playerDetailsResults = await Promise.allSettled(
+              sorted.map((m) => this.clashOfClansService.getPlayerByTag(m.tag))
+            );
+            const globalRankMap = new Map<string, number | null>();
+            sorted.forEach((m, i) => {
+              const result = playerDetailsResults[i];
+              globalRankMap.set(
+                m.tag,
+                result.status === "fulfilled"
+                  ? (result.value.legendStatistics?.currentSeason?.rank ?? null)
+                  : null
+              );
+            });
+
             const players = sorted.map((member, index) => ({
               rank: index + 1,
               name: member.name,
@@ -36,6 +51,7 @@ export class SeasonSnapshotService {
               trophies: member.trophies || 0,
               role: member.role,
               expLevel: member.expLevel,
+              globalRank: globalRankMap.get(member.tag) ?? null,
             }));
 
             await this.snapshotRepository.upsertSnapshot({

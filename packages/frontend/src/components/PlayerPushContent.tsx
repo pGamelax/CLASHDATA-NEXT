@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef, ReactNode } from "react";
 import { toPng } from "html-to-image";
-import { getPlayerPushLogs, type PlayerPushStats } from "@/lib/api";
+import { getPlayerPushLogs, getPublicSeasonDates, type PlayerPushStats } from "@/lib/api";
 import { DayFilter } from "./PlayerPushContent/DayFilter";
 import { ExpandedRowContent } from "./PlayerPushContent/ExpandedRowContent";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -313,12 +313,31 @@ export function PlayerPushContent({
   const [copied, setCopied] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState(organization);
   const [selectedClan, setSelectedClan] = useState(clan);
+  const [seasonFrom, setSeasonFrom] = useState<Date | null>(null);
+  const [seasonTo, setSeasonTo] = useState<Date | null>(null);
   const imageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (organization?.id !== selectedOrg?.id) setSelectedOrg(organization);
     if (clan?.clanTag !== selectedClan?.clanTag) setSelectedClan(clan ?? null);
   }, [organization?.id, clan?.clanTag]);
+
+  // Fetch season end dates and compute current season range
+  useEffect(() => {
+    getPublicSeasonDates().then((dates) => {
+      if (dates.length === 0) return;
+      const today = new Date();
+      const sorted = [...dates].sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
+      const past = sorted.filter((d) => new Date(d.date + "T00:00:00Z") <= today);
+      const future = sorted.filter((d) => new Date(d.date + "T00:00:00Z") > today);
+      const prevSeason = past[past.length - 1] ?? null;
+      const nextSeason = future[0] ?? null;
+      setSeasonFrom(prevSeason ? new Date(prevSeason.date + "T00:00:00Z") : null);
+      setSeasonTo(nextSeason ? new Date(nextSeason.date + "T23:59:59Z") : null);
+    });
+  }, []);
 
   const loadLogs = useCallback(async () => {
     const clanTag = selectedClan?.clanTag;
@@ -352,10 +371,39 @@ export function PlayerPushContent({
     return () => window.removeEventListener("organizationChanged", handler);
   }, [organizations, selectedOrg?.id]);
 
+  // Filter each player's logs to the current season range
+  const seasonLogs = useMemo<PlayerPushStats[]>(() => {
+    if (!seasonFrom && !seasonTo) return logs;
+    return logs
+      .map((player) => {
+        const filtered = player.logs.filter((log) => {
+          const ts = new Date(log.createdAt).getTime();
+          if (seasonFrom && ts < seasonFrom.getTime()) return false;
+          if (seasonTo && ts > seasonTo.getTime()) return false;
+          return true;
+        });
+        if (filtered.length === 0) return null;
+        const attacks = filtered.filter((l) => l.type === "attack");
+        const defenses = filtered.filter((l) => l.type === "defense");
+        const last = [...filtered].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()).at(-1);
+        return {
+          ...player,
+          logs: filtered,
+          totalAttack: attacks.reduce((s, l) => s + l.trophiesChange, 0),
+          totalDefense: defenses.reduce((s, l) => s + l.trophiesChange, 0),
+          attackCount: attacks.length,
+          defenseCount: defenses.length,
+          currentTrophies: last?.currentTrophies ?? player.currentTrophies,
+        };
+      })
+      .filter((p): p is PlayerPushStats => p !== null)
+      .sort((a, b) => b.currentTrophies - a.currentTrophies);
+  }, [logs, seasonFrom, seasonTo]);
+
   const availableDays = useMemo(() => {
-    const allLogs = logs.flatMap((p) => p.logs);
+    const allLogs = seasonLogs.flatMap((p) => p.logs);
     return extractUniqueDays(allLogs);
-  }, [logs]);
+  }, [seasonLogs]);
 
   useEffect(() => {
     if (availableDays.length > 0) {
@@ -366,7 +414,7 @@ export function PlayerPushContent({
   }, [availableDays]);
 
   const displayedLogs = useMemo(() => {
-    let data = logs;
+    let data = seasonLogs;
 
     if (selectedDay) {
       data = data
@@ -509,7 +557,7 @@ export function PlayerPushContent({
 
           {search && (
             <p className="text-xs text-muted-foreground">
-              {displayedLogs.length} de {logs.length} jogadores
+              {displayedLogs.length} de {seasonLogs.length} jogadores
             </p>
           )}
 

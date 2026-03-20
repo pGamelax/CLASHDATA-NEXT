@@ -548,6 +548,7 @@ export interface SeasonSnapshotPlayer {
   trophies: number;
   role?: string;
   expLevel?: number;
+  globalRank?: number | null;
 }
 
 export interface SeasonSnapshot {
@@ -564,6 +565,15 @@ export interface SeasonSnapshot {
 export async function getSeasonEndDates(cookies?: string): Promise<SeasonEndDate[]> {
   const result = await apiFetch<{ data: SeasonEndDate[] }>("/admin/season-dates", { cookies });
   return result.data || [];
+}
+
+export async function getPublicSeasonDates(): Promise<{ id: string; date: string; label?: string | null }[]> {
+  try {
+    const result = await apiFetch<{ data: { id: string; date: string; label?: string | null }[] }>("/season-dates");
+    return result.data || [];
+  } catch {
+    return [];
+  }
 }
 
 export async function createSeasonEndDate(date: string, label?: string): Promise<SeasonEndDate> {

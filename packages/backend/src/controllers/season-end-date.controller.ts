@@ -48,6 +48,11 @@ export class SeasonEndDateController {
     return { data: dates };
   }
 
+  async listPublic(_ctx: any) {
+    const dates = await repository.getAllSeasonEndDates();
+    return { data: dates.map((d) => ({ id: d.id, date: d.date, label: d.label })) };
+  }
+
   async remove({ params, request, set }: any) {
     const denied = await requireAdmin({ request, set });
     if (denied) return denied;
