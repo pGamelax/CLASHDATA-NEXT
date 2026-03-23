@@ -448,7 +448,7 @@ export function PlayerPushContent({
     }
 
     return data;
-  }, [logs, selectedDay, search]);
+  }, [seasonLogs, selectedDay, search]);
 
   const handleCopy = async () => {
     if (!imageRef.current) return;
