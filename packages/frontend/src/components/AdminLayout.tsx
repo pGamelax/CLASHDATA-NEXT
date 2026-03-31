@@ -13,6 +13,7 @@ import {
   CalendarClock,
   PackageOpen,
   Megaphone,
+  DollarSign,
 } from "lucide-react";
 
 interface AdminLayoutProps {
@@ -28,6 +29,7 @@ const adminNavItems = [
   { title: "Planos",        href: "/admin/plans",          icon: PackageOpen },
   { title: "Temporadas",    href: "/admin/season-dates",   icon: CalendarClock },
   { title: "Anúncios",      href: "/admin/announcements",  icon: Megaphone },
+  { title: "Faturamento",   href: "/admin/faturamento",    icon: DollarSign },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {

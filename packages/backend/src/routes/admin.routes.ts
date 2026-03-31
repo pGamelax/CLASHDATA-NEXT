@@ -9,6 +9,17 @@ const announcementController = new AnnouncementController();
 
 export const adminRoutes = new Elysia({ prefix: "/admin" })
   .get(
+    "/billing",
+    async (context) => await adminController.getBillingStats(context),
+    {
+      detail: {
+        tags: ["Admin"],
+        summary: "Estatísticas de faturamento",
+        description: "Retorna análise financeira completa: receita, MRR, ARR, histórico mensal e pagamentos PIX.",
+      },
+    }
+  )
+  .get(
     "/stats",
     async (context) => await adminController.getDashboardStats(context),
     {

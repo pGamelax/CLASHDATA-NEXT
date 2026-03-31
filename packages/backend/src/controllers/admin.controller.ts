@@ -1012,6 +1012,189 @@ export class AdminController {
     }
   }
 
+  async getBillingStats(context: ElysiaContext) {
+    const { request, status } = context;
+    try {
+      const session = await auth.api.getSession({ headers: request.headers });
+      if (!session?.user) return status(401, { message: "Não autenticado" });
+      if (session.user.role !== "admin") return status(403, { message: "Acesso negado. Apenas administradores." });
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+
+      const [
+        totalRevenue,
+        thisMonthRevenue,
+        lastMonthRevenue,
+        thisYearRevenue,
+        recentPayments,
+        paymentsByStatus,
+        revenueByPlan,
+        revenueByPeriod,
+        last12MonthsPayments,
+        activeSubscriptions,
+        plans,
+      ] = await Promise.all([
+        prisma.pixPayment.aggregate({
+          where: { status: "PAID" },
+          _sum: { amount: true },
+          _count: true,
+        }),
+        prisma.pixPayment.aggregate({
+          where: { status: "PAID", paidAt: { gte: startOfMonth } },
+          _sum: { amount: true },
+          _count: true,
+        }),
+        prisma.pixPayment.aggregate({
+          where: { status: "PAID", paidAt: { gte: startOfLastMonth, lte: endOfLastMonth } },
+          _sum: { amount: true },
+          _count: true,
+        }),
+        prisma.pixPayment.aggregate({
+          where: { status: "PAID", paidAt: { gte: startOfYear } },
+          _sum: { amount: true },
+          _count: true,
+        }),
+        prisma.pixPayment.findMany({
+          where: { status: "PAID" },
+          orderBy: { paidAt: "desc" },
+          take: 10,
+          include: {
+            subscription: {
+              include: {
+                organization: { select: { id: true, name: true } },
+              },
+            },
+          },
+        }),
+        prisma.pixPayment.groupBy({
+          by: ["status"],
+          _sum: { amount: true },
+          _count: true,
+        }),
+        prisma.pixPayment.groupBy({
+          by: ["plan"],
+          where: { status: "PAID" },
+          _sum: { amount: true },
+          _count: true,
+        }),
+        prisma.pixPayment.groupBy({
+          by: ["period"],
+          where: { status: "PAID" },
+          _sum: { amount: true },
+          _count: true,
+        }),
+        prisma.pixPayment.findMany({
+          where: { status: "PAID", paidAt: { gte: twelveMonthsAgo } },
+          select: { amount: true, paidAt: true },
+          orderBy: { paidAt: "asc" },
+        }),
+        prisma.subscription.findMany({
+          where: { status: SubscriptionStatus.ACTIVE },
+          select: { plan: true, period: true },
+        }),
+        prisma.plan.findMany({
+          select: { key: true, monthlyPrice: true, quarterlyPrice: true, yearlyPrice: true },
+        }),
+      ]);
+
+      // Build monthly revenue history (last 12 months)
+      const monthlyMap = new Map<string, { amount: number; count: number }>();
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        monthlyMap.set(key, { amount: 0, count: 0 });
+      }
+      for (const payment of last12MonthsPayments) {
+        if (!payment.paidAt) continue;
+        const d = new Date(payment.paidAt);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        const entry = monthlyMap.get(key);
+        if (entry) {
+          entry.amount += payment.amount;
+          entry.count += 1;
+        }
+      }
+      const monthlyRevenue = Array.from(monthlyMap.entries()).map(([month, val]) => ({
+        month,
+        amount: val.amount,
+        count: val.count,
+      }));
+
+      // MRR calculation from active subscriptions
+      const FALLBACK_PRICES: Record<string, { monthlyPrice: number; quarterlyPrice: number; yearlyPrice: number }> = {
+        MESTRE:  { monthlyPrice: 2990,  quarterlyPrice: 8073,  yearlyPrice: 28704  },
+        CAMPEAO: { monthlyPrice: 4590,  quarterlyPrice: 12393, yearlyPrice: 44064  },
+        TITA:    { monthlyPrice: 7490,  quarterlyPrice: 20223, yearlyPrice: 71904  },
+        LEGEND:  { monthlyPrice: 11990, quarterlyPrice: 32373, yearlyPrice: 115104 },
+      };
+      const planPriceMap = new Map(plans.map((p) => [p.key, p]));
+
+      let mrr = 0;
+      for (const sub of activeSubscriptions) {
+        const prices = planPriceMap.get(sub.plan) ?? FALLBACK_PRICES[sub.plan];
+        if (!prices) continue;
+        const period = sub.period ?? "monthly";
+        if (period === "monthly") mrr += prices.monthlyPrice;
+        else if (period === "quarterly") mrr += Math.round(prices.quarterlyPrice / 3);
+        else if (period === "yearly") mrr += Math.round(prices.yearlyPrice / 12);
+      }
+
+      return {
+        success: true,
+        billing: {
+          revenue: {
+            total: totalRevenue._sum.amount ?? 0,
+            totalCount: totalRevenue._count,
+            thisMonth: thisMonthRevenue._sum.amount ?? 0,
+            thisMonthCount: thisMonthRevenue._count,
+            lastMonth: lastMonthRevenue._sum.amount ?? 0,
+            lastMonthCount: lastMonthRevenue._count,
+            thisYear: thisYearRevenue._sum.amount ?? 0,
+            thisYearCount: thisYearRevenue._count,
+          },
+          mrr,
+          arr: mrr * 12,
+          paymentsByStatus: paymentsByStatus.map((p) => ({
+            status: p.status,
+            count: p._count,
+            amount: p._sum.amount ?? 0,
+          })),
+          revenueByPlan: revenueByPlan.map((p) => ({
+            plan: p.plan,
+            count: p._count,
+            amount: p._sum.amount ?? 0,
+          })),
+          revenueByPeriod: revenueByPeriod.map((p) => ({
+            period: p.period,
+            count: p._count,
+            amount: p._sum.amount ?? 0,
+          })),
+          monthlyRevenue,
+          recentPayments: recentPayments.map((p) => ({
+            id: p.id,
+            amount: p.amount,
+            plan: p.plan,
+            period: p.period,
+            status: p.status,
+            paidAt: p.paidAt,
+            createdAt: p.createdAt,
+            organization: p.subscription?.organization ?? null,
+          })),
+          activeSubscriptionsCount: activeSubscriptions.length,
+        },
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      console.error("Erro ao buscar estatísticas de faturamento:", error);
+      return status(500, { message });
+    }
+  }
+
   /**
    * Migra um cliente da Stripe para o novo sistema.
    * - Se a org já existe: atualiza a subscription.
