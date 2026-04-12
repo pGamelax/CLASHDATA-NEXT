@@ -11,7 +11,8 @@
       "Bash(grep -v \"^.*//.*apiFetch\")",
       "Bash(page-helpers\")",
       "Bash(bunx shadcn@latest add sidebar)",
-      "Bash(bunx --bun shadcn@latest add sidebar --yes)"
+      "Bash(bunx --bun shadcn@latest add sidebar --yes)",
+      "WebFetch(domain:docs.buypix.me)"
     ],
     "additionalDirectories": [
       "c:\\Users\\pedro\\Documents\\CLASHDATA-NEXT\\packages\\frontend\\src\\app\\(protected)\\clan\\[tag]"

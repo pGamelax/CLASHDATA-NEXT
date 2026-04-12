@@ -191,7 +191,10 @@ export default function PricingPage() {
             <div
               ref={scrollRef}
               onScroll={handleScroll}
-              className="flex gap-5 overflow-x-auto scroll-smooth pt-5 pb-4 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              className={cn(
+                "flex gap-5 scroll-smooth pt-5 pb-4 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+                plans.length === 1 ? "justify-center overflow-x-visible" : "overflow-x-auto"
+              )}
             >
               {plans.map((plan) => {
                 const Icon = getPlanIcon(plan.icon);
@@ -204,7 +207,9 @@ export default function PricingPage() {
                     key={plan.id}
                     className={cn(
                       "relative flex flex-col border-2 transition-all duration-300 shrink-0 snap-start",
-                      "w-[85vw] sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)] xl:w-[calc(25%-15px)]",
+                      plans.length === 1
+                        ? "w-full max-w-sm"
+                        : "w-[85vw] sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)] xl:w-[calc(25%-15px)]",
                       plan.isPopular
                         ? "border-primary shadow-lg bg-linear-to-b from-primary/5 to-background"
                         : "border-border hover:border-primary/40"
