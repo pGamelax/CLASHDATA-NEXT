@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { getClanByTag, getSubscription } from "@/lib/api";
+import { getClanByTag, getSubscription, getSession } from "@/lib/api";
 import { redirect } from "next/navigation";
 
 export async function getCookieHeader(): Promise<string> {
@@ -32,7 +32,10 @@ export async function getValidatedClan(
     redirect("/");
   }
 
-  if (!allowBillingPage) {
+  const session = await getSession(cookieHeader);
+  const isAdmin = session?.user?.role === "admin";
+
+  if (!allowBillingPage && !isAdmin) {
     const subscriptionData = await getSubscription(clan.id, cookieHeader);
     const sub = subscriptionData?.subscription;
 

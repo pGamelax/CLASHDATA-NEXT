@@ -48,8 +48,17 @@ export class ClanService {
     return clan;
   }
 
-  async getClansByOwner(ownerId: string) {
-    return await this.clanRepository.findByOwner(ownerId);
+  async getClansByOwner(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (user?.role === "admin") {
+      return await this.clanRepository.findAllWithSubscriptions();
+    }
+
+    return await this.clanRepository.findByOwner(userId);
   }
 
   async updateClan(clanId: string, clanData: ClanData) {

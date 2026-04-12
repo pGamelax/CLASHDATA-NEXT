@@ -83,6 +83,14 @@ export class ClanRepository {
     return await prisma.clan.findMany();
   }
 
+  async findAllWithSubscriptions() {
+    const clans = await prisma.clan.findMany({
+      include: { subscription: true },
+      orderBy: { createdAt: "desc" },
+    });
+    return clans.map((clan) => ({ ...clan, clanTag: clan.tag }));
+  }
+
   async findAllPublicRanking() {
     const clans = await prisma.clan.findMany({
       select: {

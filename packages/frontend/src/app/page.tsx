@@ -146,7 +146,7 @@ export default async function Home() {
                 size="lg"
                 className="h-12 px-8 text-base font-semibold shadow-lg shadow-primary/20"
               >
-                <Link href="/clans">dashboard</Link>
+                <Link href="/clans">Dashboard</Link>
               </Button>
             ) : (
               <>
