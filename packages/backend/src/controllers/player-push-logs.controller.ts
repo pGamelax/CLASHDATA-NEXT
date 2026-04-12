@@ -23,18 +23,20 @@ export class PlayerPushLogsController {
     );
   }
 
-  async getPlayersByClan({ params, status }: Context) {
+  async getPlayersByClan({ params, query, status }: Context) {
     try {
       const { clanTag } = params as { clanTag: string };
-      
+
       if (!clanTag) {
         return status(400, { message: "Clan tag é obrigatório" });
       }
 
-      // Normalizar o clanTag (adicionar # se não tiver)
       const normalizedTag = clanTag.startsWith("#") ? clanTag : `#${clanTag}`;
 
-      const players = await this.playerPushLogsService.getPlayersByClanTag(normalizedTag);
+      const from = query?.from ? new Date(query.from as string) : undefined;
+      const to = query?.to ? new Date(query.to as string) : undefined;
+
+      const players = await this.playerPushLogsService.getPlayersByClanTag(normalizedTag, from, to);
 
       return {
         data: players,

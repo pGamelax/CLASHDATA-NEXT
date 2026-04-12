@@ -28,7 +28,7 @@ export class PlayerPushLogsService {
     private clashOfClansService: ClashOfClansService
   ) {}
 
-  async getPlayersByClanTag(clanTag: string): Promise<PlayerPushStats[]> {
+  async getPlayersByClanTag(clanTag: string, from?: Date, to?: Date): Promise<PlayerPushStats[]> {
     // 1. Fetch clan members
     const membersData = await this.clashOfClansService.getClanMembers(clanTag);
     const members = membersData.items || [];
@@ -69,7 +69,7 @@ export class PlayerPushLogsService {
     const playerIds = players.map((p) => p.id);
     const allLogs =
       playerIds.length > 0
-        ? await this.legendLeagueLogRepository.findByPlayerIds(playerIds)
+        ? await this.legendLeagueLogRepository.findByPlayerIds(playerIds, from, to)
         : [];
 
     // 8. Group logs by playerId

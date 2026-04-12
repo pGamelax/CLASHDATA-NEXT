@@ -58,7 +58,7 @@ export class SeasonSnapshotService {
               seasonEndDateId,
               clanTag: clan.tag,
               clanName: clan.name,
-              organizationId: clan.organizationId,
+              clanId: clan.id,
               players,
             });
 

@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { getSession } from "@/lib/api";
-import { ClientHeader } from "@/components/ClientHeader";
+import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import {
   Swords,
@@ -21,14 +21,16 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "CLASHDATA — Análise de Clãs para Clash of Clans",
-  description: "Rankings, estatísticas avançadas e análise de guerras para o seu clã.",
+  description:
+    "Rankings, estatísticas avançadas e análise de guerras para o seu clã.",
 };
 
 const FEATURES = [
   {
     icon: Swords,
     title: "Ranking de Guerras",
-    description: "Média bayesiana e estatísticas detalhadas de cada membro nas guerras aleatórias.",
+    description:
+      "Média bayesiana e estatísticas detalhadas de cada membro nas guerras aleatórias.",
     color: "text-orange-500",
     bg: "bg-orange-500/10",
     border: "border-orange-500/20",
@@ -36,7 +38,8 @@ const FEATURES = [
   {
     icon: Trophy,
     title: "Ranking CWL",
-    description: "Desempenho completo na Clan War League por temporada com histórico total.",
+    description:
+      "Desempenho completo na Clan War League por temporada com histórico total.",
     color: "text-yellow-500",
     bg: "bg-yellow-500/10",
     border: "border-yellow-500/20",
@@ -44,7 +47,8 @@ const FEATURES = [
   {
     icon: Zap,
     title: "Guerra em Tempo Real",
-    description: "Previsões de vitória, timeline completa e fechador da guerra identificado.",
+    description:
+      "Previsões de vitória, timeline completa e fechador da guerra identificado.",
     color: "text-blue-500",
     bg: "bg-blue-500/10",
     border: "border-blue-500/20",
@@ -52,7 +56,8 @@ const FEATURES = [
   {
     icon: BarChart3,
     title: "Analytics Avançado",
-    description: "Estatísticas por jogador com médias bayesianas e métricas de performance.",
+    description:
+      "Estatísticas por jogador com médias bayesianas e métricas de performance.",
     color: "text-purple-500",
     bg: "bg-purple-500/10",
     border: "border-purple-500/20",
@@ -60,7 +65,8 @@ const FEATURES = [
   {
     icon: Target,
     title: "Previsões Inteligentes",
-    description: "Sistema de previsão baseado em dados reais e análise estatística.",
+    description:
+      "Sistema de previsão baseado em dados reais e análise estatística.",
     color: "text-red-500",
     bg: "bg-red-500/10",
     border: "border-red-500/20",
@@ -68,7 +74,8 @@ const FEATURES = [
   {
     icon: Users,
     title: "Gestão de Organizações",
-    description: "Múltiplos clãs em um único lugar com controle total de membros e acesso.",
+    description:
+      "Múltiplos clãs em um único lugar com controle total de membros e acesso.",
     color: "text-green-500",
     bg: "bg-green-500/10",
     border: "border-green-500/20",
@@ -79,17 +86,20 @@ const STEPS = [
   {
     number: "01",
     title: "Cadastre seu clã",
-    description: "Adicione a tag do seu clã e sincronize automaticamente com a API oficial.",
+    description:
+      "Adicione a tag do seu clã e sincronize automaticamente com a API oficial.",
   },
   {
     number: "02",
     title: "Analise os dados",
-    description: "Acesse rankings precisos, histórico de guerras e performance de cada membro.",
+    description:
+      "Acesse rankings precisos, histórico de guerras e performance de cada membro.",
   },
   {
     number: "03",
     title: "Tome decisões melhores",
-    description: "Use os dados para montar o melhor time de guerra e dominar a CWL.",
+    description:
+      "Use os dados para montar o melhor time de guerra e dominar a CWL.",
   },
 ];
 
@@ -103,7 +113,7 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      <ClientHeader initialUser={session?.user} />
+      <Header />
 
       {/* Hero */}
       <section className="relative overflow-hidden">
@@ -112,8 +122,8 @@ export default async function Home() {
 
         <div className="container relative z-10 mx-auto px-4 pt-20 pb-28 sm:pt-28 sm:pb-36 max-w-5xl text-center">
           <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary">
-            <Zap className="h-3.5 w-3.5" fill="currentColor" />
-            A plataforma número 1 de análise de Clash of Clans
+            <Zap className="h-3.5 w-3.5" fill="currentColor" />A plataforma
+            número 1 de análise de Clash of Clans
           </div>
 
           <h1 className="mb-6 text-5xl font-extrabold tracking-tighter sm:text-6xl lg:text-[5rem] leading-[1.05]">
@@ -131,21 +141,31 @@ export default async function Home() {
 
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             {session?.user ? (
-              <Button asChild size="lg" className="h-12 px-8 text-base font-semibold shadow-lg shadow-primary/20">
-                <Link href="/organizations">
-                  Minhas Organizações
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+              <Button
+                asChild
+                size="lg"
+                className="h-12 px-8 text-base font-semibold shadow-lg shadow-primary/20"
+              >
+                <Link href="/clans">dashboard</Link>
               </Button>
             ) : (
               <>
-                <Button asChild size="lg" className="h-12 px-8 text-base font-semibold shadow-lg shadow-primary/20">
+                <Button
+                  asChild
+                  size="lg"
+                  className="h-12 px-8 text-base font-semibold shadow-lg shadow-primary/20"
+                >
                   <Link href="/sign-up">
                     Começar Grátis — 3 dias
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
-                <Button asChild size="lg" variant="outline" className="h-12 px-8 text-base">
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="h-12 px-8 text-base"
+                >
                   <Link href="/ranking">Ver Ranking Global</Link>
                 </Button>
               </>
@@ -163,7 +183,10 @@ export default async function Home() {
               { value: "24/7", label: "Tempo Real", icon: Activity },
               { value: "∞", label: "Histórico", icon: TrendingUp },
             ].map(({ value, label }) => (
-              <div key={label} className="rounded-2xl border bg-card/80 backdrop-blur p-5 text-center">
+              <div
+                key={label}
+                className="rounded-2xl border bg-card/80 backdrop-blur p-5 text-center"
+              >
                 <div className="text-3xl font-black sm:text-4xl bg-gradient-to-br from-foreground to-foreground/50 bg-clip-text text-transparent">
                   {value}
                 </div>
@@ -183,11 +206,15 @@ export default async function Home() {
             {STEPS.map((step) => (
               <div key={step.number} className="flex gap-4">
                 <div className="shrink-0 w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <span className="text-sm font-black text-primary">{step.number}</span>
+                  <span className="text-sm font-black text-primary">
+                    {step.number}
+                  </span>
                 </div>
                 <div>
                   <h3 className="font-bold mb-1">{step.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {step.description}
+                  </p>
                 </div>
               </div>
             ))}
@@ -216,7 +243,9 @@ export default async function Home() {
               className="group relative rounded-2xl border bg-card p-6 transition-all duration-300 hover:border-primary/40 hover:shadow-lg hover:-translate-y-0.5 overflow-hidden"
             >
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-primary/3 to-transparent" />
-              <div className={`relative mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl ${feature.bg} border ${feature.border}`}>
+              <div
+                className={`relative mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl ${feature.bg} border ${feature.border}`}
+              >
                 <feature.icon className={`h-5 w-5 ${feature.color}`} />
               </div>
               <h3 className="relative mb-2 font-bold">{feature.title}</h3>
@@ -239,19 +268,31 @@ export default async function Home() {
                   Incluído em todos os planos
                 </div>
                 <h2 className="mb-4 text-3xl font-extrabold tracking-tight sm:text-4xl leading-tight">
-                  Sem surpresas.<br />Tudo incluso.
+                  Sem surpresas.
+                  <br />
+                  Tudo incluso.
                 </h2>
                 <p className="text-muted-foreground mb-8 text-lg leading-relaxed">
-                  Comece com 3 dias grátis e acesse todos os recursos sem limitações.
+                  Comece com 3 dias grátis e acesse todos os recursos sem
+                  limitações.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <Button asChild size="lg" className="h-12 px-8 font-semibold shadow-lg shadow-primary/20">
+                  <Button
+                    asChild
+                    size="lg"
+                    className="h-12 px-8 font-semibold shadow-lg shadow-primary/20"
+                  >
                     <Link href="/sign-up">
                       Começar Grátis
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="h-12 px-8">
+                  <Button
+                    asChild
+                    size="lg"
+                    variant="outline"
+                    className="h-12 px-8"
+                  >
                     <Link href="/pricing">Ver Planos</Link>
                   </Button>
                 </div>
@@ -265,7 +306,10 @@ export default async function Home() {
                   "Histórico completo",
                   "Suporte dedicado",
                 ].map((item) => (
-                  <div key={item} className="flex items-center gap-3 p-3.5 rounded-xl border bg-background/60">
+                  <div
+                    key={item}
+                    className="flex items-center gap-3 p-3.5 rounded-xl border bg-background/60"
+                  >
                     <div className="shrink-0 h-5 w-5 rounded-full bg-green-500/15 border border-green-500/25 flex items-center justify-center">
                       <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
                     </div>
@@ -310,9 +354,17 @@ export default async function Home() {
       {/* Footer */}
       <footer className="border-t py-8">
         <div className="container mx-auto px-4 max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-muted-foreground">
-          <span className="font-bold text-foreground tracking-tight">CLASHDATA</span>
-          <span>© {new Date().getFullYear()} CLASHDATA. Todos os direitos reservados.</span>
-          <Link href="/ranking" className="hover:text-foreground transition-colors">
+          <span className="font-bold text-foreground tracking-tight">
+            CLASHDATA
+          </span>
+          <span>
+            © {new Date().getFullYear()} CLASHDATA. Todos os direitos
+            reservados.
+          </span>
+          <Link
+            href="/ranking"
+            className="hover:text-foreground transition-colors"
+          >
             Ranking Global
           </Link>
         </div>

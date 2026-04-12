@@ -1,5 +1,5 @@
 import { SubscriptionService } from "../services/subscription.service";
-import { OrganizationService } from "../services/organization.service";
+import { ClanService } from "../services/clan.service";
 import { auth } from "../auth";
 
 type ElysiaContext = {
@@ -12,210 +12,102 @@ type ElysiaContext = {
 export class SubscriptionsController {
   constructor(
     private subscriptionService: SubscriptionService,
-    private organizationService: OrganizationService
+    private clanService: ClanService
   ) {}
 
-  /**
-   * Ativa uma subscription após pagamento aprovado
-   * IMPORTANTE: Este endpoint deve ser chamado após confirmação do pagamento
-   */
   async activateSubscription(context: ElysiaContext) {
     const { body, request, status } = context;
     try {
-      // Verifica autenticação
-      const session = await auth.api.getSession({
-        headers: request.headers,
-      });
+      const session = await auth.api.getSession({ headers: request.headers });
+      if (!session?.user) return status(401, { message: "Não autenticado" });
 
-      if (!session || !session.user) {
-        return status(401, { message: "Não autenticado" });
-      }
+      const { clanId, currentPeriodEnd, paymentProvider, paymentProviderId } = body as {
+        clanId: string;
+        currentPeriodEnd: string;
+        paymentProvider?: string;
+        paymentProviderId?: string;
+      };
 
-      const { organizationId, currentPeriodEnd, paymentProvider, paymentProviderId } =
-        body as {
-          organizationId: string;
-          currentPeriodEnd: string; // ISO date string
-          paymentProvider?: string;
-          paymentProviderId?: string;
-        };
-
-      // Verifica se o usuário é owner da organização
-      const access = await this.organizationService.canUserAccessOrganization(
-        session.user.id,
-        organizationId
-      );
-
+      const access = await this.clanService.canUserAccessClan(session.user.id, clanId);
       if (!access.canAccess || access.role !== "owner") {
-        return status(403, {
-          message: "Apenas o dono da organização pode ativar a assinatura",
-        });
+        return status(403, { message: "Apenas o dono do clan pode ativar a assinatura" });
       }
 
-      // Ativa a subscription
-      const subscription = await this.organizationService.activateSubscriptionAfterPayment(
-        organizationId,
+      const subscription = await this.subscriptionService.activateSubscription(
+        clanId,
         new Date(currentPeriodEnd),
         paymentProvider,
         paymentProviderId
       );
 
-      return {
-        success: true,
-        subscription,
-      };
+      return { success: true, subscription };
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Erro desconhecido";
-
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       console.error("Erro ao ativar subscription:", error);
       return status(500, { message });
     }
   }
 
-  /**
-   * Busca informações da subscription de uma organização
-   */
   async getSubscription(context: ElysiaContext) {
     const { params, request, status } = context;
     try {
-      // Verifica autenticação
-      const session = await auth.api.getSession({
-        headers: request.headers,
-      });
+      const session = await auth.api.getSession({ headers: request.headers });
+      if (!session?.user) return status(401, { message: "Não autenticado" });
 
-      if (!session || !session.user) {
-        return status(401, { message: "Não autenticado" });
-      }
+      const { clanId } = params as { clanId: string };
 
-      const { organizationId } = params as { organizationId: string };
+      const access = await this.clanService.canUserAccessClan(session.user.id, clanId);
+      if (!access.canAccess) return status(403, { message: access.reason || "Acesso negado" });
 
-      // Verifica se o usuário tem acesso à organização
-      const access = await this.organizationService.canUserAccessOrganization(
-        session.user.id,
-        organizationId
-      );
-
-      if (!access.canAccess) {
-        return status(403, { message: access.reason || "Acesso negado" });
-      }
-
-      // Busca a subscription
-      const { SubscriptionRepository } = await import(
-        "../repositories/subscription.repository"
-      );
+      const { SubscriptionRepository } = await import("../repositories/subscription.repository");
       const subscriptionRepository = new SubscriptionRepository();
-      const subscription = await subscriptionRepository.findByOrganizationId(
-        organizationId
-      );
+      const subscription = await subscriptionRepository.findByClanId(clanId);
 
-      if (!subscription) {
-        return status(404, { message: "Subscription não encontrada" });
-      }
+      if (!subscription) return status(404, { message: "Subscription não encontrada" });
 
-      // Calcula se está ativa
-      const isActive = this.subscriptionService.isSubscriptionActive(
-        subscription
-      );
-
-      // Busca limites do plano
+      const isActive = this.subscriptionService.isSubscriptionActive(subscription);
       const limits = this.subscriptionService.getPlanLimits(subscription.plan);
-
-      // Busca contadores atuais
-      // Passa userId para verificar se é admin (admins têm limites ilimitados)
-      const canAddClan = await this.subscriptionService.canAddClan(
-        organizationId,
-        session.user.id
-      );
-      const canAddInvite = await this.subscriptionService.canAddInvite(
-        organizationId,
-        session.user.id
-      );
 
       return {
         success: true,
-        subscription: {
-          ...subscription,
-          isActive,
-          limits,
-          usage: {
-            clans: {
-              current: canAddClan.currentCount,
-              max: canAddClan.maxCount,
-              canAdd: canAddClan.canAdd,
-            },
-            invites: {
-              current: canAddInvite.currentCount,
-              max: canAddInvite.maxCount,
-              canAdd: canAddInvite.canAdd,
-            },
-          },
-        },
+        subscription: { ...subscription, isActive, limits },
       };
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Erro desconhecido";
-
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       console.error("Erro ao buscar subscription:", error);
       return status(500, { message });
     }
   }
 
-  /**
-   * Cancela uma subscription
-   */
   async cancelSubscription(context: ElysiaContext) {
     const { params, request, status } = context;
     try {
-      // Verifica autenticação
-      const session = await auth.api.getSession({
-        headers: request.headers,
-      });
+      const session = await auth.api.getSession({ headers: request.headers });
+      if (!session?.user) return status(401, { message: "Não autenticado" });
 
-      if (!session || !session.user) {
-        return status(401, { message: "Não autenticado" });
-      }
+      const { clanId } = params as { clanId: string };
 
-      const { organizationId } = params as { organizationId: string };
-
-      // Verifica se o usuário é owner da organização
-      const access = await this.organizationService.canUserAccessOrganization(
-        session.user.id,
-        organizationId
-      );
-
+      const access = await this.clanService.canUserAccessClan(session.user.id, clanId);
       if (!access.canAccess || access.role !== "owner") {
-        return status(403, {
-          message: "Apenas o dono da organização pode cancelar a assinatura",
-        });
+        return status(403, { message: "Apenas o dono do clan pode cancelar a assinatura" });
       }
 
-      // Busca a subscription para verificar se tem paymentProviderId
-      const { SubscriptionRepository } = await import(
-        "../repositories/subscription.repository"
-      );
+      const { SubscriptionRepository } = await import("../repositories/subscription.repository");
       const subscriptionRepository = new SubscriptionRepository();
-      const existingSubscription = await subscriptionRepository.findByOrganizationId(organizationId);
-      
-      // Cancela a subscription no banco
-      const subscription = await subscriptionRepository.cancel(organizationId);
+      const subscription = await subscriptionRepository.cancel(clanId);
 
       return {
         success: true,
         subscription,
-        message: "Assinatura cancelada. A organização e os clans foram mantidos vinculados.",
+        message: "Assinatura cancelada. O clan foi mantido.",
       };
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Erro desconhecido";
-
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       console.error("Erro ao cancelar subscription:", error);
       return status(500, { message });
     }
   }
 
-  /**
-   * Lista os planos ativos (do banco de dados)
-   */
   async getPlans(context: ElysiaContext) {
     const { status } = context;
     try {
@@ -227,7 +119,6 @@ export class SubscriptionsController {
       return { success: true, plans, trialDays: 3 };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro desconhecido";
-      console.error("Erro ao listar planos:", error);
       return status(500, { message });
     }
   }

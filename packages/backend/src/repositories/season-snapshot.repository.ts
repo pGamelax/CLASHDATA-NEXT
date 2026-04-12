@@ -31,7 +31,7 @@ export class SeasonSnapshotRepository {
     seasonEndDateId: string;
     clanTag: string;
     clanName: string;
-    organizationId: string;
+    clanId: string;
     players: any[];
   }) {
     return prisma.seasonSnapshot.upsert({

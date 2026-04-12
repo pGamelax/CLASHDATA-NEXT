@@ -24,8 +24,7 @@ model User {
   updatedAt     DateTime @updatedAt
   accounts      Account[]
   sessions      Session[]
-  members       Member[]
-  invites       Invite[]
+  ownedClans    Clan[]   @relation("OwnedClans")
 }
 
 model Account {
@@ -77,56 +76,25 @@ model Verification {
   @@map("verification")
 }
 
-model Organization {
-  id            String       @id @default(cuid())
-  name          String
-  slug          String       @unique
-  logo          String?
-  metadata      Json?
-  subscription  Subscription?
-  pixPayments   PixPayment[]
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  members       Member[]
-  clans         Clan[]
-  invites       Invite[]
-
-  @@map("organization")
-}
-
 model Clan {
-  id             String       @id @default(cuid())
-  organizationId String
-  tag            String       @unique // Tag do clan do Clash of Clans (ex: #2GPV299QG) - única globalmente
+  id             String        @id @default(cuid())
+  ownerId        String
+  owner          User          @relation("OwnedClans", fields: [ownerId], references: [id], onDelete: Cascade)
+  tag            String        @unique // Tag do clan do Clash of Clans (ex: #2GPV299QG)
   name           String
   description    String?
-  badgeUrls      Json?        // URLs dos badges (small, medium, large)
+  badgeUrls      Json?
   clanLevel      Int?
   clanPoints     Int?
   members        Int?
-  metadata       Json?        // Dados adicionais do clan
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  subscription   Subscription?
+  pixPayments    PixPayment[]
 
-  @@index([organizationId])
+  @@index([ownerId])
   @@map("clan")
-}
-
-model Member {
-  id             String   @id @default(cuid())
-  organizationId String
-  userId         String
-  role           String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([organizationId, userId])
-  @@index([userId])
-  @@index([organizationId])
-  @@map("member")
 }
 
 model Player {
@@ -147,10 +115,10 @@ model LegendLeagueLog {
   playerId    String
   player      Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
   type        String   // "attack" ou "defense"
-  trophiesChange Int   // Mudança de troféus (positivo para attack, negativo para defense)
-  previousTrophies Int // Troféus anteriores
-  currentTrophies  Int // Troféus atuais
-  clanTag     String?  // Tag do clan atual do jogador
+  trophiesChange Int
+  previousTrophies Int
+  currentTrophies  Int
+  clanTag     String?
   createdAt   DateTime @default(now())
 
   @@index([playerId])
@@ -161,18 +129,16 @@ model LegendLeagueLog {
 // Dynamic plan configuration
 model Plan {
   id                   String   @id @default(cuid())
-  key                  String   @unique   // e.g. "MESTRE", "CAMPEAO", or any custom key
+  key                  String   @unique
   name                 String
   description          String?
-  monthlyPrice         Int               // em centavos
-  quarterlyPrice       Int               // em centavos (com desconto)
-  yearlyPrice          Int               // em centavos (com desconto)
-  originalQuarterlyPrice Int?            // em centavos (sem desconto)
-  originalYearlyPrice    Int?            // em centavos (sem desconto)
-  maxClans             Int
-  maxInvites           Int
-  icon                 String   @default("shield")  // nome do ícone (shield, crown, zap, star...)
-  color                String   @default("blue")    // tema de cor (blue, yellow, purple, green...)
+  monthlyPrice         Int
+  quarterlyPrice       Int
+  yearlyPrice          Int
+  originalQuarterlyPrice Int?
+  originalYearlyPrice    Int?
+  icon                 String   @default("shield")
+  color                String   @default("blue")
   features             String[]
   isPopular            Boolean  @default(false)
   isActive             Boolean  @default(true)
@@ -185,63 +151,63 @@ model Plan {
 
 // Subscription models
 enum SubscriptionStatus {
-  TRIAL       // Free trial de 3 dias
-  ACTIVE      // Assinatura ativa e paga
-  CANCELLED   // Assinatura cancelada
-  EXPIRED     // Assinatura expirada
+  TRIAL
+  ACTIVE
+  CANCELLED
+  EXPIRED
 }
 
 model Subscription {
   id                String             @id @default(cuid())
-  organizationId    String             @unique
-  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  clanId            String             @unique
+  clan              Clan               @relation(fields: [clanId], references: [id], onDelete: Cascade)
   plan              String
   status            SubscriptionStatus @default(TRIAL)
-  period            String?            @default("monthly") // monthly, quarterly, yearly
-  trialEndsAt       DateTime?          // Data de término do trial (3 dias após criação)
-  currentPeriodEnd  DateTime?          // Data de término do período atual
+  period            String?            @default("monthly")
+  trialEndsAt       DateTime?
+  currentPeriodEnd  DateTime?
   cancelAtPeriodEnd Boolean            @default(false)
-  pendingPlan       String?            // Plano agendado para o fim do período (downgrade)
+  pendingPlan       String?
   paymentProvider   String?            @default("syncpay")
   paymentProviderId String?
   pixPayments       PixPayment[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
-  @@index([organizationId])
+  @@index([clanId])
   @@index([status])
   @@map("subscription")
 }
 
 enum PixPaymentStatus {
-  PENDING    // Aguardando pagamento
-  PAID       // Pago
-  EXPIRED    // QR code expirado sem pagamento
-  CANCELLED  // Cancelado
+  PENDING
+  PAID
+  EXPIRED
+  CANCELLED
 }
 
 model PixPayment {
   id              String           @id @default(cuid())
-  organizationId  String
+  clanId          String
+  clan            Clan             @relation(fields: [clanId], references: [id], onDelete: Cascade)
   subscriptionId  String
   subscription    Subscription     @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-  amount          Int              // em centavos
+  amount          Int
   plan            String
-  period          String           // monthly, quarterly, yearly
+  period          String
   status          PixPaymentStatus @default(PENDING)
-  upgradeOnly     Boolean          @default(false) // Se true, só muda o plano (não o currentPeriodEnd)
-  syncpayId       String?          @unique // idTransaction no SyncPay
-  pixCode         String?          @db.Text // Código copia e cola
-  pixQrCodeBase64 String?          @db.Text // QR code em base64
-  pixExpiresAt    DateTime?        // Expiração do QR code (24h)
-  periodFrom      DateTime?        // Início do período coberto
-  periodTo        DateTime?        // Fim do período coberto
+  upgradeOnly     Boolean          @default(false)
+  syncpayId       String?          @unique
+  pixCode         String?          @db.Text
+  pixQrCodeBase64 String?          @db.Text
+  pixExpiresAt    DateTime?
+  periodFrom      DateTime?
+  periodTo        DateTime?
   paidAt          DateTime?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
-  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@index([organizationId])
+  @@index([clanId])
   @@index([subscriptionId])
   @@index([status])
   @@index([syncpayId])
@@ -250,10 +216,10 @@ model PixPayment {
 
 model SeasonEndDate {
   id          String           @id @default(cuid())
-  date        String           // "2026-03-19" format
-  label       String?          // "Março 2026"
-  status      String           @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED
-  jobId       String?          // BullMQ job ID
+  date        String
+  label       String?
+  status      String           @default("PENDING")
+  jobId       String?
   capturedAt  DateTime?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
@@ -269,8 +235,8 @@ model SeasonSnapshot {
   seasonEndDate   SeasonEndDate @relation(fields: [seasonEndDateId], references: [id], onDelete: Cascade)
   clanTag         String
   clanName        String
-  organizationId  String
-  players         Json          // Array of { rank, name, tag, trophies, role, expLevel }
+  clanId          String        // ID do clan no sistema
+  players         Json
   capturedAt      DateTime      @default(now())
 
   @@unique([seasonEndDateId, clanTag])
@@ -288,23 +254,4 @@ model Announcement {
   updatedAt DateTime @updatedAt
 
   @@map("announcement")
-}
-
-model Invite {
-  id             String       @id @default(cuid())
-  organizationId String
-  userId         String       // Usuário convidado
-  invitedBy      String       // ID do usuário que enviou o convite
-  status         String       @default("PENDING") // PENDING, ACCEPTED, REJECTED, EXPIRED
-  expiresAt      DateTime?    // Data de expiração do convite (opcional)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([organizationId, userId])
-  @@index([userId])
-  @@index([organizationId])
-  @@index([status])
-  @@map("invite")
 }

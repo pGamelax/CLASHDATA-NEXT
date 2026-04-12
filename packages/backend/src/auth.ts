@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 
-import { admin, openAPI, organization } from "better-auth/plugins";
+import { admin, openAPI } from "better-auth/plugins";
 import { Resend } from "resend";
 import { env } from "./env";
 import { prisma } from "./lib/prisma";
@@ -40,7 +40,7 @@ if (env.APPLE_CLIENT_ID && env.APPLE_CLIENT_SECRET) {
 export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_BASE_URL,
   basePath: "/auth",
-  plugins: [openAPI(), admin(), organization()],
+  plugins: [openAPI(), admin()],
   trustedOrigins,
   database: prismaAdapter(prisma, {
     provider: "postgresql",

@@ -104,8 +104,8 @@ export class SyncPayService {
     amount: number; // centavos
     plan: string;
     period: PaymentPeriod;
-    organizationId: string;
-    organizationName: string;
+    clanId: string;
+    clanName: string;
     customerName: string;
     customerEmail: string;
     customerCpf?: string;
@@ -114,7 +114,7 @@ export class SyncPayService {
   }): Promise<SyncPayChargeResult> {
     const token = await this.getToken();
     const amountInReais = params.amount / 100;
-    const description = `ClashData - Plano ${params.plan} ${PERIOD_LABELS[params.period]} - ${params.organizationName}`;
+    const description = `ClashData - Plano ${params.plan} ${PERIOD_LABELS[params.period]} - ${params.clanName}`;
 
     const body: Record<string, any> = {
       amount: amountInReais,

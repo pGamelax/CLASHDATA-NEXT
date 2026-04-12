@@ -3,7 +3,7 @@ import { PixPaymentStatus } from "../generated/prisma";
 
 export class PixPaymentRepository {
   async create(data: {
-    organizationId: string;
+    clanId: string;
     subscriptionId: string;
     amount: number;
     plan: string;
@@ -27,50 +27,47 @@ export class PixPaymentRepository {
     return await prisma.pixPayment.findUnique({ where: { syncpayId } });
   }
 
-  async findPendingByOrganizationId(organizationId: string) {
+  async findPendingByClanId(clanId: string) {
     return await prisma.pixPayment.findFirst({
-      where: {
-        organizationId,
-        status: PixPaymentStatus.PENDING,
-      },
+      where: { clanId, status: PixPaymentStatus.PENDING },
       orderBy: { createdAt: "desc" },
     });
   }
 
-  async findLatestByOrganizationId(organizationId: string) {
+  async findLatestByClanId(clanId: string) {
     return await prisma.pixPayment.findFirst({
-      where: { organizationId },
+      where: { clanId },
       orderBy: { createdAt: "desc" },
     });
   }
 
-  async update(id: string, data: {
-    status?: PixPaymentStatus;
-    syncpayId?: string;
-    pixCode?: string;
-    pixQrCodeBase64?: string;
-    pixExpiresAt?: Date;
-    periodFrom?: Date;
-    periodTo?: Date;
-    paidAt?: Date;
-  }) {
+  async update(
+    id: string,
+    data: {
+      status?: PixPaymentStatus;
+      syncpayId?: string;
+      pixCode?: string;
+      pixQrCodeBase64?: string;
+      pixExpiresAt?: Date;
+      periodFrom?: Date;
+      periodTo?: Date;
+      paidAt?: Date;
+    }
+  ) {
     return await prisma.pixPayment.update({ where: { id }, data });
   }
 
   async markAsPaid(id: string) {
     return await prisma.pixPayment.update({
       where: { id },
-      data: {
-        status: PixPaymentStatus.PAID,
-        paidAt: new Date(),
-      },
+      data: { status: PixPaymentStatus.PAID, paidAt: new Date() },
     });
   }
 
-  async expireOldPending(organizationId: string) {
+  async expireOldPending(clanId: string) {
     await prisma.pixPayment.updateMany({
       where: {
-        organizationId,
+        clanId,
         status: PixPaymentStatus.PENDING,
         pixExpiresAt: { lt: new Date() },
       },

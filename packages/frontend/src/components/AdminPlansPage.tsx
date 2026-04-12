@@ -33,8 +33,6 @@ const EMPTY_FORM: Omit<PlanConfig, "id" | "createdAt" | "updatedAt"> = {
   yearlyPrice: 0,
   originalQuarterlyPrice: null,
   originalYearlyPrice: null,
-  maxClans: 1,
-  maxInvites: 1,
   icon: "shield",
   color: "blue",
   features: [],
@@ -84,8 +82,6 @@ export function AdminPlansPage() {
       yearlyPrice: plan.yearlyPrice,
       originalQuarterlyPrice: plan.originalQuarterlyPrice,
       originalYearlyPrice: plan.originalYearlyPrice,
-      maxClans: plan.maxClans,
-      maxInvites: plan.maxInvites,
       icon: plan.icon,
       color: plan.color,
       features: plan.features,
@@ -239,10 +235,6 @@ export function AdminPlansPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{plan.maxClans} clã{plan.maxClans !== 1 && "s"}</span>
-                    <span>·</span>
-                    <span>{plan.maxInvites} convite{plan.maxInvites !== 1 && "s"}</span>
-                    <span>·</span>
                     <span>{plan.features.length} features</span>
                   </div>
                   <div className="flex items-center gap-1 pt-1">
@@ -316,15 +308,6 @@ export function AdminPlansPage() {
               <Input type="number" value={f.originalYearlyPrice ?? ""} onChange={(e) => setForm({ ...f, originalYearlyPrice: e.target.value ? +e.target.value : null })} placeholder="Opcional (sem desconto)" />
             </div>
 
-            {/* Limits */}
-            <div className="space-y-1.5">
-              <Label>Máx. clãs</Label>
-              <Input type="number" min={1} value={f.maxClans} onChange={(e) => setForm({ ...f, maxClans: +e.target.value })} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Máx. convites</Label>
-              <Input type="number" min={0} value={f.maxInvites} onChange={(e) => setForm({ ...f, maxInvites: +e.target.value })} />
-            </div>
             <div className="space-y-1.5">
               <Label>Ordem</Label>
               <Input type="number" value={f.sortOrder} onChange={(e) => setForm({ ...f, sortOrder: +e.target.value })} />

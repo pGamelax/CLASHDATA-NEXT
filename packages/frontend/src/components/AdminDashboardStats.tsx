@@ -37,11 +37,12 @@ interface RecentUser {
   createdAt: string;
 }
 
-interface RecentOrg {
+interface RecentClan {
   id: string;
   name: string;
-  slug: string;
+  tag: string;
   createdAt: string;
+  owner?: { name: string; email: string };
   subscription: { plan: string; status: string } | null;
 }
 
@@ -49,7 +50,7 @@ interface ExpiringSub {
   id: string;
   plan: string;
   currentPeriodEnd: string;
-  organization: { id: string; name: string; slug: string };
+  clan: { id: string; name: string; tag: string };
 }
 
 interface DashboardStats {
@@ -59,11 +60,11 @@ interface DashboardStats {
     last7Days: number;
     recent: RecentUser[];
   };
-  organizations: {
+  clans: {
     total: number;
     thisMonth: number;
     withoutSubscription: number;
-    recent: RecentOrg[];
+    recent: RecentClan[];
   };
   subscriptions: {
     total: number;
@@ -73,9 +74,6 @@ interface DashboardStats {
     cancelled: number;
     byPlan: Array<{ plan: string; count: number }>;
     expiringSoon: ExpiringSub[];
-  };
-  clans: {
-    total: number;
   };
 }
 
@@ -218,7 +216,7 @@ function HealthBar({ stats }: { stats: DashboardStats }) {
               <div className="mt-1 space-y-0.5">
                 {subs.expiringSoon.slice(0, 3).map((s) => (
                   <p key={s.id} className="text-[11px] text-muted-foreground truncate">
-                    {s.organization.name} — {daysUntil(s.currentPeriodEnd as unknown as string)}d ({PLAN_CONFIG[s.plan]?.label || s.plan})
+                    {s.clan.name} — {daysUntil(s.currentPeriodEnd as unknown as string)}d ({PLAN_CONFIG[s.plan]?.label || s.plan})
                   </p>
                 ))}
               </div>
@@ -226,12 +224,12 @@ function HealthBar({ stats }: { stats: DashboardStats }) {
           </div>
         )}
 
-        {/* Orgs without sub */}
-        {stats.organizations.withoutSubscription > 0 && (
+        {/* Clans without sub */}
+        {stats.clans.withoutSubscription > 0 && (
           <div className="flex items-center gap-2 rounded-lg border border-zinc-700/60 bg-muted/40 px-3 py-2">
             <XCircle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <p className="text-xs text-muted-foreground">
-              <span className="font-semibold text-foreground">{stats.organizations.withoutSubscription}</span> org{stats.organizations.withoutSubscription > 1 ? "s" : ""} sem assinatura
+              <span className="font-semibold text-foreground">{stats.clans.withoutSubscription}</span> clan{stats.clans.withoutSubscription > 1 ? "s" : ""} sem assinatura
             </p>
           </div>
         )}
@@ -352,7 +350,7 @@ function RecentUsers({ users }: { users: RecentUser[] }) {
 
 function AlertsPanel({ stats }: { stats: DashboardStats }) {
   const expiring = stats.subscriptions.expiringSoon;
-  const noSub = stats.organizations.withoutSubscription;
+  const noSub = stats.clans.withoutSubscription;
   const hasAlerts = expiring.length > 0 || noSub > 0;
 
   return (
@@ -384,9 +382,9 @@ function AlertsPanel({ stats }: { stats: DashboardStats }) {
                   const days = daysUntil(s.currentPeriodEnd as unknown as string);
                   const cfg = PLAN_CONFIG[s.plan];
                   return (
-                    <Link key={s.id} href={`/admin/organizations`}>
+                    <Link key={s.id} href={`/admin/clans`}>
                       <div className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-amber-500/10 transition-colors cursor-pointer">
-                        <p className="text-[11px] font-medium truncate">{s.organization.name}</p>
+                        <p className="text-[11px] font-medium truncate">{s.clan.name}</p>
                         <div className="flex items-center gap-1.5 shrink-0">
                           <span className={cn("text-[10px] font-semibold", cfg?.color)}>{cfg?.label || s.plan}</span>
                           <Badge variant="outline" className={cn(
@@ -408,8 +406,8 @@ function AlertsPanel({ stats }: { stats: DashboardStats }) {
             <div className="flex items-start gap-2 rounded-lg border border-zinc-700/60 bg-muted/40 px-3 py-2.5">
               <XCircle className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs font-medium">Orgs sem assinatura</p>
-                <p className="text-[11px] text-muted-foreground">{noSub} organização{noSub > 1 ? "s" : ""} não têm plano ativo</p>
+                <p className="text-xs font-medium">Clans sem assinatura</p>
+                <p className="text-[11px] text-muted-foreground">{noSub} clan{noSub > 1 ? "s" : ""} não têm plano ativo</p>
               </div>
             </div>
           )}
@@ -421,7 +419,7 @@ function AlertsPanel({ stats }: { stats: DashboardStats }) {
           <div className="grid grid-cols-2 gap-1.5">
             {[
               { href: "/admin/users",         icon: Users,        label: "Usuários" },
-              { href: "/admin/organizations", icon: Building2,    label: "Organizações" },
+              { href: "/admin/clans",         icon: Building2,    label: "Clans" },
               { href: "/admin/subscriptions", icon: CreditCard,   label: "Assinaturas" },
               { href: "/admin/season-dates",  icon: CalendarClock,label: "Temporadas" },
             ].map((item) => {
@@ -510,7 +508,7 @@ export function AdminDashboardStats() {
     );
   }
 
-  const alertCount = stats.subscriptions.expiringSoon.length + (stats.organizations.withoutSubscription > 0 ? 1 : 0);
+  const alertCount = stats.subscriptions.expiringSoon.length + (stats.clans.withoutSubscription > 0 ? 1 : 0);
 
   return (
     <div className="space-y-6">
@@ -558,11 +556,11 @@ export function AdminDashboardStats() {
           icon={Building2}
           iconColor="text-violet-400"
           iconBg="bg-violet-500/15"
-          title="Organizações"
-          value={stats.organizations.total}
-          sub={`+${stats.organizations.thisMonth} este mês`}
-          sub2={`${stats.organizations.withoutSubscription} sem plano`}
-          alert={stats.organizations.withoutSubscription > 0}
+          title="Clans"
+          value={stats.clans.total}
+          sub={`+${stats.clans.thisMonth} este mês`}
+          sub2={`${stats.clans.withoutSubscription} sem plano`}
+          alert={stats.clans.withoutSubscription > 0}
         />
         <KpiCard
           icon={CreditCard}
@@ -578,9 +576,9 @@ export function AdminDashboardStats() {
           icon={Shield}
           iconColor="text-orange-400"
           iconBg="bg-orange-500/15"
-          title="Clans"
-          value={stats.clans.total}
-          sub="Cadastrados no sistema"
+          title="Total assinaturas"
+          value={stats.subscriptions.total}
+          sub="Todas as assinaturas"
         />
       </div>
 
@@ -596,35 +594,35 @@ export function AdminDashboardStats() {
         <AlertsPanel stats={stats} />
       </div>
 
-      {/* ── Recent Orgs ─────────────────────────────────────────── */}
-      {stats.organizations.recent.length > 0 && (
+      {/* ── Recent Clans ────────────────────────────────────────── */}
+      {stats.clans.recent.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
-                Organizações Recentes
+                Clans Recentes
               </CardTitle>
-              <Link href="/admin/organizations">
+              <Link href="/admin/clans">
                 <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground">
-                  Ver todas <ArrowRight className="h-3 w-3" />
+                  Ver todos <ArrowRight className="h-3 w-3" />
                 </Button>
               </Link>
             </div>
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y">
-              {stats.organizations.recent.map((org) => {
-                const subCfg = org.subscription ? STATUS_CONFIG[org.subscription.status] : null;
-                const planCfg = org.subscription ? PLAN_CONFIG[org.subscription.plan] : null;
+              {stats.clans.recent.map((clan) => {
+                const subCfg = clan.subscription ? STATUS_CONFIG[clan.subscription.status] : null;
+                const planCfg = clan.subscription ? PLAN_CONFIG[clan.subscription.plan] : null;
                 return (
-                  <div key={org.id} className="flex items-center gap-3 px-4 py-2.5">
+                  <div key={clan.id} className="flex items-center gap-3 px-4 py-2.5">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted shrink-0">
                       <Building2 className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold truncate">{org.name}</p>
-                      <p className="text-[11px] text-muted-foreground font-mono">{org.slug}</p>
+                      <p className="text-xs font-semibold truncate">{clan.name}</p>
+                      <p className="text-[11px] text-muted-foreground font-mono">{clan.tag}</p>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       {planCfg && (
@@ -639,7 +637,7 @@ export function AdminDashboardStats() {
                         <span className="text-[11px] text-muted-foreground">sem plano</span>
                       )}
                     </div>
-                    <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(org.createdAt)}</span>
+                    <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(clan.createdAt)}</span>
                   </div>
                 );
               })}

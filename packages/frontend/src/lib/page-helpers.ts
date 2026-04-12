@@ -1,85 +1,63 @@
 import { cookies } from "next/headers";
-import { getOrganizations, getClansByOrganization, getSubscription } from "@/lib/api";
+import { getClanByTag, getSubscription } from "@/lib/api";
 import { redirect } from "next/navigation";
 
-export function getCookieHeader(): string {
-  const cookieStore = cookies();
+export async function getCookieHeader(): Promise<string> {
+  const cookieStore = await cookies();
   return cookieStore
     .getAll()
-    .map((cookie) => `${cookie.name}=${cookie.value}`)
+    .map((c) => `${c.name}=${c.value}`)
     .join("; ");
-}
-
-export async function getValidatedOrganization(slug: string, allowBillingPage: boolean = false) {
-  const cookieHeader = getCookieHeader();
-  const organizations = await getOrganizations(cookieHeader);
-  const orgsList = organizations?.data || organizations || [];
-
-  if (!Array.isArray(orgsList)) {
-    redirect("/organizations");
-  }
-
-  const organization = orgsList.find((org: any) => org.slug === slug);
-
-  if (!organization) {
-    redirect("/organizations");
-  }
-  if (!allowBillingPage && organization.subscription) {
-    const subscriptionData = await getSubscription(organization.id, cookieHeader);
-    
-    if (subscriptionData?.subscription) {
-      const sub = subscriptionData.subscription;
-      const now = new Date();
-      if (sub.status === "EXPIRED" || sub.status === "CANCELLED") {
-        if (sub.currentPeriodEnd && new Date(sub.currentPeriodEnd) > now) {
-        } else {
-          redirect(`/org/${slug}/subscription`);
-        }
-      } else if (sub.status === "ACTIVE" && sub.currentPeriodEnd && new Date(sub.currentPeriodEnd) < now) {
-        redirect(`/org/${slug}/subscription`);
-      } else if (sub.status === "TRIAL" && sub.trialEndsAt && new Date(sub.trialEndsAt) < now) {
-        redirect(`/org/${slug}/subscription`);
-      }
-    }
-  }
-
-  return { organization, organizations: orgsList, cookieHeader };
 }
 
 export function clanTagToSlug(clanTag: string): string {
   return clanTag.replace("#", "").toLowerCase();
 }
 
+/**
+ * Validates a clan by tag. Checks ownership + subscription status.
+ * Redirects if the clan is not found or subscription is expired.
+ * Pass `allowBillingPage: true` to skip subscription redirect (for the billing page itself).
+ */
 export async function getValidatedClan(
-  slug: string,
-  clan: string | undefined,
-  redirectPath: (slug: string, clanSlug: string) => string
+  tag: string,
+  allowBillingPage = false
 ) {
-  const { organization, organizations, cookieHeader } = await getValidatedOrganization(slug);
-  const clansResponse = await getClansByOrganization(organization.id, cookieHeader);
-  const clans = clansResponse?.data || clansResponse || [];
-  if (!clans || clans.length === 0) {
-    redirect(`/org/${slug}`);
-  }
-  if (!clan || clan === "undefined" || clan.trim() === "") {
-    const firstClan = clans[0];
-    const firstClanSlug = clanTagToSlug(firstClan.clanTag);
-    redirect(redirectPath(slug, firstClanSlug));
-  }
-  const selectedClan = clans.find(
-    (c: any) => clanTagToSlug(c.clanTag) === clan.toLowerCase()
-  );
+  const cookieHeader = await getCookieHeader();
 
-  if (!selectedClan) {
-    const firstClan = clans[0];
-    const firstClanSlug = clanTagToSlug(firstClan.clanTag);
-    redirect(redirectPath(slug, firstClanSlug));
+  const result = await getClanByTag(tag, cookieHeader);
+  const clan = result?.data ?? result?.clan ?? result;
+
+  if (!clan) {
+    redirect("/");
   }
 
-  return {
-    organization,
-    organizations,
-    selectedClan,
-    cookieHeader,
-  };
+  if (!allowBillingPage) {
+    const subscriptionData = await getSubscription(clan.id, cookieHeader);
+    const sub = subscriptionData?.subscription;
+
+    if (sub) {
+      const now = new Date();
+      const isExpiredStatus = sub.status === "EXPIRED" || sub.status === "CANCELLED";
+      const periodPassed = sub.currentPeriodEnd
+        ? new Date(sub.currentPeriodEnd) <= now
+        : true;
+
+      const isTrialExpired =
+        sub.status === "TRIAL" &&
+        sub.trialEndsAt &&
+        new Date(sub.trialEndsAt) <= now;
+
+      const isActivePeriodExpired =
+        sub.status === "ACTIVE" &&
+        sub.currentPeriodEnd &&
+        new Date(sub.currentPeriodEnd) < now;
+
+      if ((isExpiredStatus && periodPassed) || isTrialExpired || isActivePeriodExpired) {
+        redirect(`/clan/${clanTagToSlug(clan.tag)}/subscription`);
+      }
+    }
+  }
+
+  return { clan, cookieHeader };
 }

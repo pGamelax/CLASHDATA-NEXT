@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -rf \"c:/Users/pedro/Documents/CLASHDATA-NEXT/packages/frontend/src/app/\\(protected\\)/org/[slug]/members\")",
+      "Bash(rm -rf \"c:/Users/pedro/Documents/CLASHDATA-NEXT/packages/frontend/src/app/\\(protected\\)/org/[slug]/settings\")",
+      "Bash(rm -rf \"c:/Users/pedro/Documents/CLASHDATA-NEXT/packages/frontend/src/app/\\(protected\\)/org/[slug]/subscription\")",
+      "Bash(npx --no tsc --noEmit)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(bun -e ':*)",
+      "Bash(bunx --bun prisma db push --accept-data-loss)",
+      "Bash(grep -v \"^.*//.*apiFetch\")",
+      "Bash(page-helpers\")",
+      "Bash(bunx shadcn@latest add sidebar)",
+      "Bash(bunx --bun shadcn@latest add sidebar --yes)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\pedro\\Documents\\CLASHDATA-NEXT\\packages\\frontend\\src\\app\\(protected)\\clan\\[tag]"
+    ]
+  }
+}

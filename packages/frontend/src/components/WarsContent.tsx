@@ -12,8 +12,6 @@ import { AlertCircle, RefreshCw, Swords } from "lucide-react";
 
 interface WarsContentProps {
   initialRanking: PlayerStats[];
-  organization: any;
-  organizations: any[];
   clan?: any;
 }
 
@@ -42,7 +40,7 @@ function monthsLabel(selectedMonths: Array<{ year: number; month: number }>): st
     .join(", ");
 }
 
-export function WarsContent({ initialRanking, organization, organizations, clan }: WarsContentProps) {
+export function WarsContent({ initialRanking, clan }: WarsContentProps) {
   const [ranking, setRanking] = useState<PlayerStats[]>(initialRanking);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,13 +48,11 @@ export function WarsContent({ initialRanking, organization, organizations, clan 
     const now = new Date();
     return [{ year: now.getFullYear(), month: now.getMonth() + 1 }];
   });
-  const [selectedOrg, setSelectedOrg] = useState(organization);
   const [selectedClan, setSelectedClan] = useState(clan);
 
   useEffect(() => {
-    if (organization?.id !== selectedOrg?.id) setSelectedOrg(organization);
     if (clan?.clanTag !== selectedClan?.clanTag) setSelectedClan(clan ?? null);
-  }, [organization?.id, clan?.clanTag]);
+  }, [clan?.clanTag]);
 
   const loadRanking = useCallback(async () => {
     const clanTag = selectedClan?.clanTag;
@@ -82,22 +78,6 @@ export function WarsContent({ initialRanking, organization, organizations, clan 
       loadRanking();
     }
   }, [selectedMonths, selectedClan?.clanTag]);
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const { organizationId } = (e as CustomEvent<{ organizationId: string }>).detail;
-      if (organizationId && organizationId !== selectedOrg?.id) {
-        const org = organizations.find((o: any) => o.id === organizationId);
-        if (org) {
-          setSelectedOrg(org);
-          const now = new Date();
-          setSelectedMonths([{ year: now.getFullYear(), month: now.getMonth() + 1 }]);
-        }
-      }
-    };
-    window.addEventListener("organizationChanged", handler);
-    return () => window.removeEventListener("organizationChanged", handler);
-  }, [organizations, selectedOrg?.id]);
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl space-y-6">

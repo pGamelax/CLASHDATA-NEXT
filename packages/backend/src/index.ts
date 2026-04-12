@@ -5,16 +5,9 @@ import { auth } from "./auth";
 import { env } from "./env";
 import { betterAuthPlugin, OpenAPI } from "./http/plugins/betterAuthPlugin";
 import { clansRoutes } from "./routes/clans.routes";
-import { organizationsRoutes } from "./routes/organizations.routes";
 import { subscriptionsRoutes } from "./routes/subscriptions.routes";
 import { pixRoutes, pixWebhookRoute } from "./routes/pix.routes";
 import { adminRoutes } from "./routes/admin.routes";
-import { invitesRoutes } from "./routes/invites.routes";
-import { membersRoutes } from "./routes/members.routes";
-import { SubscriptionRepository } from "./repositories/subscription.repository";
-import { OrganizationService } from "./services/organization.service";
-import { OrganizationRepository } from "./repositories/organization.repository";
-import { SubscriptionService } from "./services/subscription.service";
 import { warsRoutes } from "./routes/wars.routes";
 import { cwlRoutes } from "./routes/cwl.routes";
 import { currentWarRoutes } from "./routes/current-war.routes";
@@ -36,14 +29,6 @@ const baseURL = env.BETTER_AUTH_BASE_URL ||
     : env.BETTER_AUTH_TRUSTED_ORIGIN);
 
 
-const subscriptionRepository = new SubscriptionRepository();
-const organizationRepository = new OrganizationRepository();
-const subscriptionService = new SubscriptionService(subscriptionRepository);
-const organizationService = new OrganizationService(
-  organizationRepository,
-  subscriptionService
-);
-
 const app = new Elysia()
   .use(
     cors({
@@ -63,10 +48,7 @@ const app = new Elysia()
   )
   .use(betterAuthPlugin)
   .use(adminRoutes)
-  .use(organizationsRoutes)
   .use(subscriptionsRoutes)
-  .use(invitesRoutes)
-  .use(membersRoutes)
   .use(pixWebhookRoute)
   .use(pixRoutes)
   .use(clansRoutes)

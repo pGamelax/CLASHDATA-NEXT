@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useTheme } from "next-themes";
 import { authClient } from "@/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -11,13 +10,9 @@ import { cn } from "@/lib/utils";
 import {
   User,
   Lock,
-  Palette,
   Trash2,
   Check,
   Loader2,
-  Sun,
-  Moon,
-  Monitor,
   Eye,
   EyeOff,
   AlertTriangle,
@@ -328,49 +323,6 @@ function SecuritySection() {
   );
 }
 
-function AppearanceSection() {
-  const { theme, setTheme } = useTheme();
-
-  const options = [
-    { value: "light",  label: "Claro",   icon: Sun },
-    { value: "dark",   label: "Escuro",  icon: Moon },
-    { value: "system", label: "Sistema", icon: Monitor },
-  ] as const;
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold">Aparência</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">Escolha o tema da interface.</p>
-      </div>
-
-      <div className="rounded-xl border bg-card p-6 space-y-4">
-        <Label>Tema</Label>
-        <div className="grid grid-cols-3 gap-3 max-w-sm">
-          {options.map(({ value, label, icon: Icon }) => {
-            const active = theme === value;
-            return (
-              <button
-                key={value}
-                onClick={() => setTheme(value)}
-                className={cn(
-                  "flex flex-col items-center gap-2 rounded-xl border p-4 text-sm font-medium transition-all",
-                  active
-                    ? "border-primary bg-primary/5 text-foreground"
-                    : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                )}
-              >
-                <Icon className="h-5 w-5" />
-                {label}
-                {active && <Check className="h-3 w-3 text-primary" />}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function AccountSection() {
   const [open, setOpen] = useState(false);
@@ -445,10 +397,9 @@ function AccountSection() {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 const NAV = [
-  { id: "profile",    label: "Perfil",     icon: User },
-  { id: "security",   label: "Segurança",  icon: Lock },
-  { id: "appearance", label: "Aparência",  icon: Palette },
-  { id: "account",    label: "Conta",      icon: Trash2 },
+  { id: "profile",  label: "Perfil",    icon: User },
+  { id: "security", label: "Segurança", icon: Lock },
+  { id: "account",  label: "Conta",     icon: Trash2 },
 ] as const;
 
 type SectionId = (typeof NAV)[number]["id"];
@@ -510,10 +461,9 @@ export function UserSettingsClient({ user }: UserSettingsClientProps) {
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          {active === "profile"    && <ProfileSection user={user} />}
-          {active === "security"   && <SecuritySection />}
-          {active === "appearance" && <AppearanceSection />}
-          {active === "account"    && <AccountSection />}
+          {active === "profile"  && <ProfileSection user={user} />}
+          {active === "security" && <SecuritySection />}
+          {active === "account"  && <AccountSection />}
         </div>
       </div>
     </div>

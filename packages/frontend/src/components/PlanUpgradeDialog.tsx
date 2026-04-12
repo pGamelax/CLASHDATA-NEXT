@@ -39,12 +39,12 @@ interface Props {
   currentPlan: string;
   currentPeriodEnd?: string;
   currentPeriod?: string;
-  organizationId: string;
+  clanId: string;
   onSuccess?: () => void;
 }
 
 export function PlanUpgradeDialog({
-  open, onOpenChange, currentPlan, currentPeriodEnd, currentPeriod, organizationId, onSuccess,
+  open, onOpenChange, currentPlan, currentPeriodEnd, currentPeriod, clanId, onSuccess,
 }: Props) {
   const [plans, setPlans] = useState<PlanConfig[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string>(currentPlan);
@@ -96,11 +96,11 @@ export function PlanUpgradeDialog({
     setError(null);
     try {
       if (isDowngrade) {
-        await scheduleDowngrade({ organizationId, plan: selectedPlan });
+        await scheduleDowngrade({ clanId, plan: selectedPlan });
         setDowngradeScheduled(true);
       } else {
         const result = await createPixPayment({
-          organizationId,
+          clanId,
           plan: selectedPlan,
           period: isUpgrade ? activePeriod : selectedPeriod,
           upgradeOnly: isUpgrade,
@@ -231,16 +231,6 @@ export function PlanUpgradeDialog({
                             /{PERIOD_LABELS[isUpgrade ? activePeriod : selectedPeriod]}
                           </span>
                         </p>
-                        <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <CheckCircle2 className="h-3 w-3 text-green-500" />
-                            {plan.maxClans} {plan.maxClans === 1 ? "clã" : "clãs"}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <CheckCircle2 className="h-3 w-3 text-green-500" />
-                            {plan.maxInvites} {plan.maxInvites === 1 ? "convite" : "convites"}
-                          </div>
-                        </div>
                       </button>
                     );
                   })}
@@ -302,7 +292,7 @@ export function PlanUpgradeDialog({
       {showPixModal && pixData && (
         <PixPaymentModal
           pix={pixData}
-          organizationId={organizationId}
+          clanId={clanId}
           onPaid={handlePixPaid}
           onClose={() => setShowPixModal(false)}
         />

@@ -300,18 +300,6 @@ export interface PlayerPushStats {
   logs: PlayerPushLog[];
 }
 
-export interface Invite {
-  id: string;
-  organizationId: string;
-  userId: string;
-  invitedBy: string;
-  status: "PENDING" | "ACCEPTED" | "REJECTED" | "EXPIRED";
-  expiresAt?: string;
-  createdAt: string;
-  updatedAt: string;
-  user?: { id: string; name: string | null; email: string; image: string | null };
-  organization?: { id: string; name: string; slug: string; logo: string | null };
-}
 
 export interface PlayerWarHistory {
   warEndTime: string;
@@ -382,7 +370,8 @@ export async function fetchClanData(tag: string, cookies?: string, useCache = tr
     if (cached) return cached;
   }
 
-  const data = await apiFetch<any>(`/clans/search/${encodeURIComponent(cleanTag)}`, { cookies });
+  const res = await apiFetch<any>(`/clans/search/${encodeURIComponent(cleanTag)}`, { cookies });
+  const data = res?.data ?? res;
 
   if (useCache) setCachedClanData(cleanTag, data);
 
@@ -397,10 +386,19 @@ export async function getSession(cookieHeader?: string) {
   }
 }
 
-export async function getOrganizations(cookieHeader?: string) {
+export async function getMyClans(cookieHeader?: string) {
   try {
-    const result = await apiFetch<any>("/organizations/list", { cookies: cookieHeader });
-    return result?.data || result;
+    const result = await apiFetch<any>("/clans/my", { cookies: cookieHeader });
+    return result?.data || result?.clans || result;
+  } catch {
+    return null;
+  }
+}
+
+export async function getClanByTag(tag: string, cookieHeader?: string) {
+  try {
+    const cleanTag = stripHash(tag);
+    return await apiFetch<any>(`/clans/tag/${encodeURIComponent(cleanTag)}`, { cookies: cookieHeader });
   } catch {
     return null;
   }
@@ -433,26 +431,10 @@ export async function getWarRanking(
   return data;
 }
 
-export async function getClansByOrganization(organizationId: string, cookieHeader?: string) {
-  try {
-    return await apiFetch<any>(
-      `/clans/organization/${encodeURIComponent(organizationId)}`,
-      { cookies: cookieHeader }
-    );
-  } catch {
-    return null;
-  }
-}
-
-export async function createClan(
-  organizationId: string,
-  clanTag: string,
-  clanData: any,
-  cookieHeader?: string
-) {
+export async function createClan(clanTag: string, clanData: any, cookieHeader?: string) {
   return apiFetch<any>("/clans/create", {
     method: "POST",
-    body: JSON.stringify({ organizationId, clanTag, clanData }),
+    body: JSON.stringify({ clanTag, clanData }),
     cookies: cookieHeader,
   });
 }
@@ -519,10 +501,19 @@ export async function getCurrentWar(clanTag: string, cookies?: string): Promise<
   return result.data;
 }
 
-export async function getPlayerPushLogs(clanTag: string, cookies?: string): Promise<PlayerPushStats[]> {
+export async function getPlayerPushLogs(
+  clanTag: string,
+  cookies?: string,
+  from?: Date,
+  to?: Date
+): Promise<PlayerPushStats[]> {
   const cleanTag = stripHash(clanTag);
+  const params = new URLSearchParams();
+  if (from) params.set("from", from.toISOString());
+  if (to) params.set("to", to.toISOString());
+  const qs = params.toString();
   const result = await apiFetch<{ data: PlayerPushStats[] }>(
-    `/player-push/clan/${encodeURIComponent(cleanTag)}`,
+    `/player-push/clan/${encodeURIComponent(cleanTag)}${qs ? `?${qs}` : ""}`,
     { cookies }
   );
   return result.data || [];
@@ -556,7 +547,7 @@ export interface SeasonSnapshot {
   seasonEndDateId: string;
   clanTag: string;
   clanName: string;
-  organizationId: string;
+  clanId: string;
   players: SeasonSnapshotPlayer[];
   capturedAt: string;
   seasonEndDate: SeasonEndDate;
@@ -604,72 +595,15 @@ export async function getSeasonSnapshotsByClan(
   return result.data || [];
 }
 
-export async function sendInvite(organizationId: string, userId: string) {
-  return apiFetch<any>("/invites/send", {
-    method: "POST",
-    body: JSON.stringify({ organizationId, userId }),
-  });
-}
-
-export async function acceptInvite(inviteId: string) {
-  return apiFetch<any>(`/invites/${inviteId}/accept`, { method: "POST" });
-}
-
-export async function rejectInvite(inviteId: string) {
-  return apiFetch<any>(`/invites/${inviteId}/reject`, { method: "POST" });
-}
-
-export async function cancelInvite(inviteId: string) {
-  return apiFetch<any>(`/invites/${inviteId}`, { method: "DELETE" });
-}
-
-export async function getInvitesByOrganization(organizationId: string): Promise<Invite[]> {
-  const result = await apiFetch<{ data: Invite[] }>(`/invites/organization/${organizationId}`);
-  return result.data || [];
-}
-
-export async function getPendingInvites(): Promise<Invite[]> {
-  const result = await apiFetch<{ data: Invite[] }>("/invites/pending");
-  return result.data || [];
-}
-
-export async function searchUsersByEmail(email: string) {
-  const result = await apiFetch<{ data: any[] }>("/invites/search-users", {
-    method: "POST",
-    body: JSON.stringify({ email }),
-  });
-  return result.data || [];
-}
-
-export async function removeMember(organizationId: string, userId: string) {
-  return apiFetch<any>(`/members/organization/${organizationId}`, {
-    method: "DELETE",
-    body: JSON.stringify({ userId }),
-  });
-}
-
-export async function updateOrganization(
-  organizationId: string,
-  data: { name?: string; slug?: string }
-) {
-  return apiFetch<any>(`/organizations/${organizationId}`, {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
-}
-
-export async function deleteOrganization(organizationId: string) {
-  return apiFetch<any>(`/organizations/${organizationId}`, { method: "DELETE" });
-}
 
 export async function removeClan(clanId: string) {
   return apiFetch<any>(`/clans/${clanId}`, { method: "DELETE" });
 }
 
-export async function getSubscription(organizationId: string, cookieHeader?: string) {
+export async function getSubscription(clanId: string, cookieHeader?: string) {
   try {
     return await apiFetch<any>(
-      `/subscriptions/organization/${organizationId}`,
+      `/subscriptions/clan/${clanId}`,
       { cookies: cookieHeader }
     );
   } catch {
@@ -681,8 +615,7 @@ export async function manageSubscription(data: {
   ownerEmail: string;
   newStatus: "ACTIVE" | "EXPIRED" | "CANCELLED";
   activeUntil?: string;
-  orgName?: string;
-  orgSlug?: string;
+  clanTag?: string;
   plan?: string;
 }) {
   return apiFetch<any>("/admin/subscriptions/manage", {
@@ -691,8 +624,8 @@ export async function manageSubscription(data: {
   });
 }
 
-export async function reactivateSubscription(organizationId: string, daysUntilExpiry: number) {
-  return apiFetch<any>(`/admin/organizations/${organizationId}/reactivate-subscription`, {
+export async function reactivateSubscription(clanId: string, daysUntilExpiry: number) {
+  return apiFetch<any>(`/admin/clans/${clanId}/reactivate-subscription`, {
     method: "POST",
     body: JSON.stringify({ daysUntilExpiry }),
   });
@@ -710,8 +643,6 @@ export interface PlanConfig {
   yearlyPrice: number;
   originalQuarterlyPrice: number | null;
   originalYearlyPrice: number | null;
-  maxClans: number;
-  maxInvites: number;
   icon: string;
   color: string;
   features: string[];
@@ -784,24 +715,24 @@ export async function checkTrialStatus(): Promise<{ hasUsedTrial: boolean }> {
   }
 }
 
-export async function createOrgWithTrial(data: {
-  name: string;
+export async function createClanWithTrial(data: {
+  clanTag: string;
   plan: string;
   period: string;
 }): Promise<{
   hasUsedTrial: boolean;
-  organization: { id: string; slug: string; name: string };
+  clan: { id: string; tag: string; name: string };
   subscription: { id: string; status: string; trialEndsAt?: string };
   pix: PixPaymentData | null;
 }> {
-  return apiFetch<any>("/pix/create-org", {
+  return apiFetch<any>("/pix/create-clan", {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
 export async function createPixPayment(data: {
-  organizationId: string;
+  clanId: string;
   plan: string;
   period: string;
   upgradeOnly?: boolean;
@@ -813,7 +744,7 @@ export async function createPixPayment(data: {
 }
 
 export async function scheduleDowngrade(data: {
-  organizationId: string;
+  clanId: string;
   plan: string;
 }): Promise<{ success: boolean; pendingPlan: string; effectiveAt?: string }> {
   return apiFetch<any>("/pix/downgrade", {
@@ -822,10 +753,10 @@ export async function scheduleDowngrade(data: {
   });
 }
 
-export async function getPixStatus(organizationId: string): Promise<{
+export async function getPixStatus(clanId: string): Promise<{
   pix: PixPaymentData | null;
 }> {
-  return apiFetch<any>(`/pix/status/${organizationId}`);
+  return apiFetch<any>(`/pix/status/${clanId}`);
 }
 
 export interface Subscription {
@@ -839,11 +770,6 @@ export interface Subscription {
   pendingPlan?: string | null;
   isActive: boolean;
   paymentProvider?: string | null;
-  limits: { maxClans: number; maxInvites: number };
-  usage: {
-    clans: { current: number; max: number; canAdd: boolean };
-    invites: { current: number; max: number; canAdd: boolean };
-  };
 }
 
 export async function getPlayer(playerTag: string, cookies?: string): Promise<PlayerDetails> {
@@ -863,7 +789,7 @@ export interface PublicClanRank {
   clanLevel: number | null;
   clanPoints: number | null;
   members: number | null;
-  organization: { name: string; slug: string };
+  owner?: { name: string; email: string };
 }
 
 export async function getPublicClanRanking(): Promise<PublicClanRank[]> {

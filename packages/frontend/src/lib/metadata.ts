@@ -1,70 +1,35 @@
 import { cookies } from "next/headers";
-import { getOrganizations, getClansByOrganization } from "@/lib/api";
+import { getClanByTag } from "@/lib/api";
 import type { Metadata } from "next";
 
-export async function getOrganizationAndClan(slug: string, clan?: string) {
+async function getCookieHeader(): Promise<string> {
   const cookieStore = await cookies();
-  const cookieHeader = cookieStore
+  return cookieStore
     .getAll()
-    .map((cookie) => `${cookie.name}=${cookie.value}`)
+    .map((c) => `${c.name}=${c.value}`)
     .join("; ");
-
-  const organizations = await getOrganizations(cookieHeader);
-  const orgsList = organizations?.data || organizations || [];
-  const organization = Array.isArray(orgsList)
-    ? orgsList.find((org: any) => org.slug === slug)
-    : null;
-
-  if (!organization) {
-    return { organization: null, selectedClan: null };
-  }
-
-  if (!clan) {
-    return { organization, selectedClan: null };
-  }
-
-  const clansResponse = await getClansByOrganization(organization.id, cookieHeader);
-  const clans = clansResponse?.data || clansResponse || [];
-  const selectedClan = Array.isArray(clans)
-    ? clans.find((c: any) => c.clanTag?.replace("#", "").toLowerCase() === clan.toLowerCase())
-    : null;
-
-  return { organization, selectedClan };
-}
-
-export async function generateOrganizationMetadata(
-  slug: string,
-  defaultTitle: string = "Organização | CLASHDATA"
-): Promise<Metadata> {
-  const { organization } = await getOrganizationAndClan(slug);
-
-  return {
-    title: organization ? `${organization.name} | CLASHDATA` : defaultTitle,
-    description: organization
-      ? `Gerencie os clãs da organização ${organization.name}`
-      : "Gerencie sua organização",
-  };
 }
 
 export async function generateClanMetadata(
-  slug: string,
-  clan: string,
+  tag: string,
   pageName: string,
   defaultTitle?: string,
   customDescription?: string
 ): Promise<Metadata> {
-  const { organization, selectedClan } = await getOrganizationAndClan(slug, clan);
+  try {
+    const cookieHeader = await getCookieHeader();
+    const result = await getClanByTag(tag, cookieHeader);
+    const clan = result?.data ?? result?.clan ?? result;
 
-  if (!organization) {
+    if (!clan) {
+      return { title: defaultTitle || `${pageName} | CLASHDATA` };
+    }
+
     return {
-      title: defaultTitle || `${pageName} | CLASHDATA`,
+      title: `${clan.name} - ${pageName} | CLASHDATA`,
+      description: customDescription || `${pageName} do clã ${clan.name}`,
     };
+  } catch {
+    return { title: defaultTitle || `${pageName} | CLASHDATA` };
   }
-
-  const clanName = selectedClan?.metadata?.name || selectedClan?.name || `Clan ${clan}`;
-
-  return {
-    title: `${clanName} - ${pageName} | CLASHDATA`,
-    description: customDescription || `${pageName} do clã ${clanName}`,
-  };
 }

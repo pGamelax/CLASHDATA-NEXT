@@ -22,28 +22,18 @@ export class PlayerController {
   }
 
   /**
-   * Verifica se o usuário tem assinatura ativa
+   * Verifica se o usuário tem assinatura ativa em algum clan que é dono
    */
   private async hasActiveSubscription(userId: string): Promise<boolean> {
-    // Busca todas as organizações do usuário
     const { prisma } = await import("../lib/prisma");
-    const organizations = await prisma.organization.findMany({
-      where: {
-        members: {
-          some: {
-            userId,
-          },
-        },
-      },
-      include: {
-        subscription: true,
-      },
+    const clans = await prisma.clan.findMany({
+      where: { ownerId: userId },
+      include: { subscription: true },
     });
 
-    // Verifica se alguma organização tem assinatura ativa
-    for (const org of organizations) {
-      if (org.subscription) {
-        const isActive = this.subscriptionService.isSubscriptionActive(org.subscription);
+    for (const clan of clans) {
+      if (clan.subscription) {
+        const isActive = this.subscriptionService.isSubscriptionActive(clan.subscription);
         if (isActive) {
           return true;
         }

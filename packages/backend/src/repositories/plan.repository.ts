@@ -10,7 +10,6 @@ export interface PlanCreateInput {
   originalQuarterlyPrice?: number;
   originalYearlyPrice?: number;
   maxClans: number;
-  maxInvites: number;
   icon?: string;
   color?: string;
   features?: string[];
@@ -67,10 +66,9 @@ export class PlanRepository {
         originalQuarterlyPrice: 8970,
         originalYearlyPrice: 35880,
         maxClans: 1,
-        maxInvites: 1,
         icon: "shield",
         color: "blue",
-        features: ["1 Clã", "1 Convite", "Dashboard Completo", "Rankings de Guerras", "Estatísticas Avançadas", "Suporte por Email"],
+        features: ["1 Clã", "Dashboard Completo", "Rankings de Guerras", "Estatísticas Avançadas", "Suporte por Email"],
         isPopular: false,
         isActive: true,
         sortOrder: 1,
@@ -85,10 +83,9 @@ export class PlanRepository {
         originalQuarterlyPrice: 13770,
         originalYearlyPrice: 55080,
         maxClans: 2,
-        maxInvites: 2,
         icon: "crown",
         color: "yellow",
-        features: ["2 Clãs", "2 Convites", "Dashboard Completo", "Rankings de Guerras", "Estatísticas Avançadas", "Previsões Inteligentes", "Suporte Prioritário"],
+        features: ["2 Clãs", "Dashboard Completo", "Rankings de Guerras", "Estatísticas Avançadas", "Previsões Inteligentes", "Suporte Prioritário"],
         isPopular: false,
         isActive: true,
         sortOrder: 2,
@@ -103,10 +100,9 @@ export class PlanRepository {
         originalQuarterlyPrice: 22470,
         originalYearlyPrice: 89880,
         maxClans: 3,
-        maxInvites: 3,
         icon: "zap",
         color: "purple",
-        features: ["3 Clãs", "3 Convites", "Dashboard Completo", "Rankings de Guerras", "Estatísticas Avançadas", "Previsões Inteligentes", "Analytics Avançado", "Suporte 24/7"],
+        features: ["3 Clãs", "Dashboard Completo", "Rankings de Guerras", "Estatísticas Avançadas", "Previsões Inteligentes", "Analytics Avançado", "Suporte 24/7"],
         isPopular: true,
         isActive: true,
         sortOrder: 3,
@@ -121,10 +117,9 @@ export class PlanRepository {
         originalQuarterlyPrice: 35970,
         originalYearlyPrice: 143880,
         maxClans: 5,
-        maxInvites: 5,
         icon: "star",
         color: "green",
-        features: ["5 Clãs", "5 Convites", "Dashboard Completo", "Rankings de Guerras", "Estatísticas Avançadas", "Previsões Inteligentes", "Analytics Avançado", "Suporte 24/7"],
+        features: ["5 Clãs", "Dashboard Completo", "Rankings de Guerras", "Estatísticas Avançadas", "Previsões Inteligentes", "Analytics Avançado", "Suporte 24/7"],
         isPopular: false,
         isActive: true,
         sortOrder: 4,

@@ -17,7 +17,7 @@ import { formatBRL } from "@/lib/plans";
 
 interface Props {
   pix: PixPaymentData;
-  organizationId: string;
+  clanId: string;
   onPaid: () => void;
   onClose?: () => void;
 }
@@ -45,7 +45,7 @@ function useCountdown(expiresAt: string) {
   return { secondsLeft, formatted, expired: secondsLeft <= 0 };
 }
 
-export function PixPaymentModal({ pix, organizationId, onPaid, onClose }: Props) {
+export function PixPaymentModal({ pix, clanId, onPaid, onClose }: Props) {
   const [copied, setCopied] = useState(false);
   const [checking, setChecking] = useState(false);
   const [paid, setPaid] = useState(false);
@@ -69,7 +69,7 @@ export function PixPaymentModal({ pix, organizationId, onPaid, onClose }: Props)
 
     pollingRef.current = setInterval(async () => {
       try {
-        const result = await getPixStatus(organizationId);
+        const result = await getPixStatus(clanId);
         if (!result.pix || result.pix.status === "PAID") {
           clearInterval(pollingRef.current!);
           setPaid(true);
@@ -83,7 +83,7 @@ export function PixPaymentModal({ pix, organizationId, onPaid, onClose }: Props)
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [paid, expired, organizationId, onPaid]);
+  }, [paid, expired, clanId, onPaid]);
 
   async function handleCopy() {
     try {
@@ -98,7 +98,7 @@ export function PixPaymentModal({ pix, organizationId, onPaid, onClose }: Props)
   async function handleCheckNow() {
     setChecking(true);
     try {
-      const result = await getPixStatus(organizationId);
+      const result = await getPixStatus(clanId);
       if (!result.pix || result.pix.status === "PAID") {
         setPaid(true);
         setTimeout(onPaid, 1500);

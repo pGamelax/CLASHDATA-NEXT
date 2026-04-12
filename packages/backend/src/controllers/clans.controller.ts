@@ -1,118 +1,102 @@
-import { ClashOfClansService } from "../services/clash-of-clans.service";
 import { ClanService } from "../services/clan.service";
+import { ClashOfClansService } from "../services/clash-of-clans.service";
 import { auth } from "../auth";
 
 type ElysiaContext = {
   params?: Record<string, string>;
-  query?: Record<string, string>;
   body?: any;
+  query?: Record<string, string>;
   request: Request;
   status: (code: number, data?: any) => any;
 };
 
 export class ClansController {
-  constructor(
-    private clashOfClansService: ClashOfClansService,
-    private clanService: ClanService
-  ) {}
-
-  async searchClan(context: ElysiaContext) {
-    const { params, status } = context;
-    try {
-      const { tag } = params as { tag: string };
-      const clanData = await this.clashOfClansService.searchClanByTag(tag);
-      return clanData;
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Erro desconhecido";
-
-      if (message === "Clan não encontrado") {
-        return status(404, { message });
-      }
-
-      console.error("Erro ao buscar clan:", error);
-      return status(500, { message });
-    }
-  }
+  constructor(private clanService: ClanService) {}
 
   async createClan(context: ElysiaContext) {
     const { body, request, status } = context;
     try {
-      // Verifica autenticação
-      const session = await auth.api.getSession({
-        headers: request.headers,
-      });
+      const session = await auth.api.getSession({ headers: request.headers });
+      if (!session?.user) return status(401, { message: "Não autenticado" });
 
-      if (!session || !session.user) {
-        return status(401, { message: "Não autenticado" });
-      }
+      const { clanTag, clanData } = body as { clanTag: string; clanData: any };
+      if (!clanTag) return status(400, { message: "clanTag é obrigatório" });
 
-      const { organizationId, clanTag, clanData } = body as {
-        organizationId: string;
-        clanTag: string;
-        clanData: any;
-      };
-
-      const clan = await this.clanService.createClanInOrganization(
-        organizationId,
-        clanTag,
-        clanData,
-        session.user.id
-      );
-
-      return {
-        success: true,
-        clan,
-      };
+      const clan = await this.clanService.createClan(session.user.id, clanTag, clanData);
+      return { success: true, data: clan };
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Erro desconhecido";
-
-      if (
-        message.includes("já existe") ||
-        message.includes("já está cadastrado") ||
-        message.includes("não encontrada") ||
-        message.includes("não encontrado")
-      ) {
-        return status(409, { message });
-      }
-
-      console.error("Erro ao criar clan:", error);
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       return status(500, { message });
     }
   }
 
-  async getClansByOrganization(context: ElysiaContext) {
+  async getMyClan(context: ElysiaContext) {
+    const { request, status } = context;
+    try {
+      const session = await auth.api.getSession({ headers: request.headers });
+      if (!session?.user) return status(401, { message: "Não autenticado" });
+
+      const clans = await this.clanService.getClansByOwner(session.user.id);
+      return { success: true, data: clans };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      return status(500, { message });
+    }
+  }
+
+  async getClanByTag(context: ElysiaContext) {
     const { params, request, status } = context;
     try {
-      // Verifica autenticação
-      const session = await auth.api.getSession({
-        headers: request.headers,
-      });
+      const session = await auth.api.getSession({ headers: request.headers });
+      if (!session?.user) return status(401, { message: "Não autenticado" });
 
-      if (!session || !session.user) {
-        return status(401, { message: "Não autenticado" });
-      }
+      const tag = "#" + (params?.tag ?? "").toUpperCase();
+      const { ClanRepository } = await import("../repositories/clan.repository");
+      const repo = new ClanRepository();
+      const clan = await repo.findByTag(tag);
 
-      const { organizationId } = params as { organizationId: string };
+      if (!clan) return status(404, { message: "Clan não encontrado" });
 
-      const clans = await this.clanService.getClansByOrganization(
-        organizationId
-      );
+      const access = await this.clanService.canUserAccessClan(session.user.id, clan.id);
+      if (!access.canAccess) return status(403, { message: access.reason });
 
-      return {
-        success: true,
-        data: clans,
-      };
+      return { success: true, data: clan };
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      return status(500, { message });
+    }
+  }
 
-      if (message.includes("não encontrada")) {
-        return status(404, { message });
-      }
+  async searchClan(context: ElysiaContext) {
+    const { params, status } = context;
+    try {
+      const tag = params?.tag;
+      if (!tag) return status(400, { message: "Tag é obrigatória" });
 
-      console.error("Erro ao buscar clans:", error);
+      const clashService = new ClashOfClansService();
+      const clanData = await clashService.searchClanByTag(
+        tag.startsWith("#") ? tag : `#${tag}`
+      );
+      return { success: true, data: clanData };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      return status(500, { message });
+    }
+  }
+
+  async removeClan(context: ElysiaContext) {
+    const { params, request, status } = context;
+    try {
+      const session = await auth.api.getSession({ headers: request.headers });
+      if (!session?.user) return status(401, { message: "Não autenticado" });
+
+      const clanId = params?.id;
+      if (!clanId) return status(400, { message: "ID do clan é obrigatório" });
+
+      const result = await this.clanService.removeClan(clanId, session.user.id);
+      return { success: true, ...result };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       return status(500, { message });
     }
   }
@@ -120,48 +104,11 @@ export class ClansController {
   async getPublicRanking(context: ElysiaContext) {
     const { status } = context;
     try {
-      const clans = await this.clanService.getPublicRanking();
-      return { success: true, data: clans };
+      const ranking = await this.clanService.getPublicRanking();
+      return { success: true, data: ranking };
     } catch (error) {
-      console.error("Erro ao buscar ranking público:", error);
-      return status(500, { message: "Erro ao buscar ranking" });
-    }
-  }
-
-  async removeClan(context: ElysiaContext) {
-    const { params, request, status } = context;
-    try {
-      // Verifica autenticação
-      const session = await auth.api.getSession({
-        headers: request.headers,
-      });
-
-      if (!session || !session.user) {
-        return status(401, { message: "Não autenticado" });
-      }
-
-      const { id } = params as { id: string };
-
-      await this.clanService.removeClan(id, session.user.id);
-
-      return {
-        success: true,
-        message: "Clan removido com sucesso",
-      };
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Erro desconhecido";
-
-      if (message.includes("não encontrado") || message.includes("não encontrada")) {
-        return status(404, { message });
-      }
-      if (message.includes("Apenas o dono")) {
-        return status(403, { message });
-      }
-
-      console.error("Erro ao remover clan:", error);
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       return status(500, { message });
     }
   }
 }
-

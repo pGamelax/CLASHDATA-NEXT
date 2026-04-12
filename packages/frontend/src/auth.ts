@@ -11,7 +11,7 @@ export const authClient = createAuthClient({
 
 export const { signIn, signOut, signUp, useSession } = authClient;
 
-export function useOrganizations() {
+export function useClans() {
   const { data: session, isPending: isSessionPending } = useSession();
   const [data, setData] = useState<any>(null);
   const [isPending, setIsPending] = useState(true);
@@ -26,12 +26,10 @@ export function useOrganizations() {
 
     setIsPending(true);
     try {
-      const response = await fetch(`${apiUrl}/organizations/list`, {
+      const response = await fetch(`${apiUrl}/clans/my`, {
         method: "GET",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       });
 
       if (response.ok) {
@@ -41,7 +39,7 @@ export function useOrganizations() {
         setData(null);
       }
     } catch (error) {
-      console.error("Erro ao buscar organizações:", error);
+      console.error("Erro ao buscar clans:", error);
       setData(null);
     } finally {
       setIsPending(false);

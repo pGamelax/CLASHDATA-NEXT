@@ -47,11 +47,11 @@ export const PLAN_PRICES_CENTS: Record<
   },
 };
 
-export const PLAN_LIMITS: Record<Plan, { maxClans: number; maxInvites: number }> = {
-  MESTRE: { maxClans: 1, maxInvites: 1 },
-  CAMPEAO: { maxClans: 2, maxInvites: 2 },
-  TITA: { maxClans: 3, maxInvites: 3 },
-  LEGEND: { maxClans: 5, maxInvites: 5 },
+export const PLAN_LIMITS: Record<Plan, { maxClans: number }> = {
+  MESTRE: { maxClans: 1 },
+  CAMPEAO: { maxClans: 2 },
+  TITA: { maxClans: 3 },
+  LEGEND: { maxClans: 5 },
 };
 
 export const PLAN_LEVEL: Record<Plan, number> = {
@@ -94,7 +94,6 @@ export const PLAN_COLORS: Record<Plan, { icon: string; gradient: string; border:
 export const PLAN_FEATURES: Record<Plan, string[]> = {
   MESTRE: [
     "1 Clã",
-    "1 Convite",
     "Dashboard Completo",
     "Rankings de Guerras",
     "Estatísticas Avançadas",
@@ -102,7 +101,6 @@ export const PLAN_FEATURES: Record<Plan, string[]> = {
   ],
   CAMPEAO: [
     "2 Clãs",
-    "2 Convites",
     "Dashboard Completo",
     "Rankings de Guerras",
     "Estatísticas Avançadas",
@@ -111,7 +109,6 @@ export const PLAN_FEATURES: Record<Plan, string[]> = {
   ],
   TITA: [
     "3 Clãs",
-    "3 Convites",
     "Dashboard Completo",
     "Rankings de Guerras",
     "Estatísticas Avançadas",
@@ -121,7 +118,6 @@ export const PLAN_FEATURES: Record<Plan, string[]> = {
   ],
   LEGEND: [
     "5 Clãs",
-    "5 Convites",
     "Dashboard Completo",
     "Rankings de Guerras",
     "Estatísticas Avançadas",

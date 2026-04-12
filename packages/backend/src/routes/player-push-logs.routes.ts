@@ -8,8 +8,12 @@ export const playerPushLogsRoutes = new Elysia({ prefix: "/player-push" })
     "/clan/:clanTag",
     async (context) => await playerPushLogsController.getPlayersByClan(context),
     {
-      params: t.Object({
-        clanTag: t.String(),
-      }),
+      params: t.Object({ clanTag: t.String() }),
+      query: t.Optional(
+        t.Object({
+          from: t.Optional(t.String()),
+          to: t.Optional(t.String()),
+        })
+      ),
     }
   );

@@ -11,214 +11,88 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
   .get(
     "/billing",
     async (context) => await adminController.getBillingStats(context),
-    {
-      detail: {
-        tags: ["Admin"],
-        summary: "Estatísticas de faturamento",
-        description: "Retorna análise financeira completa: receita, MRR, ARR, histórico mensal e pagamentos PIX.",
-      },
-    }
+    { detail: { tags: ["Admin"], summary: "Estatísticas de faturamento" } }
   )
   .get(
     "/stats",
     async (context) => await adminController.getDashboardStats(context),
-    {
-      detail: {
-        tags: ["Admin"],
-        summary: "Estatísticas do dashboard admin",
-        description: "Retorna estatísticas gerais do sistema (usuários, organizações, subscriptions).",
-      },
-    }
+    { detail: { tags: ["Admin"], summary: "Estatísticas do dashboard admin" } }
   )
   .get(
     "/subscriptions",
     async (context) => await adminController.getSubscriptions(context),
-    {
-      detail: {
-        tags: ["Admin"],
-        summary: "Listar todas as subscriptions",
-        description: "Lista todas as subscriptions com informações das organizações.",
-      },
-    }
-  )
-  .get(
-    "/organizations",
-    async (context) => await adminController.getOrganizations(context),
-    {
-      detail: {
-        tags: ["Admin"],
-        summary: "Listar todas as organizações",
-        description: "Lista todas as organizações com informações de members e clans.",
-      },
-    }
-  )
-  .get(
-    "/users",
-    async (context) => await adminController.getUsers(context),
-    {
-      detail: {
-        tags: ["Admin"],
-        summary: "Listar todos os usuários",
-        description: "Lista todos os usuários com informações de organizações.",
-      },
-    }
+    { detail: { tags: ["Admin"], summary: "Listar todas as subscriptions" } }
   )
   .get(
     "/clans",
     async (context) => await adminController.getClans(context),
+    { detail: { tags: ["Admin"], summary: "Listar todos os clans" } }
+  )
+  .get(
+    "/users",
+    async (context) => await adminController.getUsers(context),
+    { detail: { tags: ["Admin"], summary: "Listar todos os usuários" } }
+  )
+  .post(
+    "/clans/create-with-subscription",
+    async (context) => await adminController.createClanWithManualSubscription(context),
     {
-      detail: {
-        tags: ["Admin"],
-        summary: "Listar todos os clans",
-        description: "Lista todos os clans cadastrados com informações das organizações.",
-      },
+      body: t.Object({
+        ownerEmail: t.String(),
+        clanTag: t.String(),
+        plan: t.String(),
+        daysUntilExpiry: t.Number(),
+      }),
+      detail: { tags: ["Admin"], summary: "Criar clan com assinatura manual (admin)" },
     }
   )
   .post(
-    "/organizations/create",
-    async (context) => await adminController.createOrganization(context),
+    "/clans/:clanId/cancel-subscription",
+    async (context) => await adminController.cancelClanSubscription(context),
     {
-      body: t.Object({
-        name: t.String(),
-        slug: t.String(),
-      }),
-      detail: {
-        tags: ["Admin"],
-        summary: "Criar organização (admin)",
-        description: "Cria uma organização sem subscription. Apenas para administradores.",
-      },
+      params: t.Object({ clanId: t.String() }),
+      detail: { tags: ["Admin"], summary: "Cancelar assinatura de clan (admin)" },
     }
   )
   .post(
-    "/organizations/:organizationId/cancel-subscription",
-    async (context) => await adminController.cancelOrganizationSubscription(context),
+    "/clans/:clanId/reactivate-subscription",
+    async (context) => await adminController.reactivateSubscription(context),
     {
-      params: t.Object({
-        organizationId: t.String(),
-      }),
-      detail: {
-        tags: ["Admin"],
-        summary: "Cancelar assinatura de organização (admin)",
-        description: "Cancela a assinatura de uma organização. Apenas para administradores.",
-      },
-    }
-  )
-  .delete(
-    "/organizations/:organizationId",
-    async (context) => await adminController.deleteOrganization(context),
-    {
-      params: t.Object({
-        organizationId: t.String(),
-      }),
-      detail: {
-        tags: ["Admin"],
-        summary: "Excluir organização (admin)",
-        description: "Exclui uma organização e todos os seus dados. Apenas para administradores.",
-      },
-    }
-  )
-  .delete(
-    "/users/:userId",
-    async (context) => await adminController.deleteUser(context),
-    {
-      params: t.Object({
-        userId: t.String(),
-      }),
-      detail: {
-        tags: ["Admin"],
-        summary: "Excluir usuário (admin)",
-        description: "Exclui um usuário e todos os seus dados. Apenas para administradores.",
-      },
-    }
-  )
-  .put(
-    "/users/:userId",
-    async (context) => await adminController.updateUser(context),
-    {
-      params: t.Object({
-        userId: t.String(),
-      }),
-      body: t.Object({
-        name: t.Optional(t.String()),
-        email: t.Optional(t.String()),
-        role: t.Optional(t.String()),
-        banned: t.Optional(t.Boolean()),
-      }),
-      detail: {
-        tags: ["Admin"],
-        summary: "Atualizar usuário (admin)",
-        description: "Atualiza informações de um usuário. Apenas para administradores.",
-      },
-    }
-  )
-  .put(
-    "/organizations/:organizationId",
-    async (context) => await adminController.updateOrganization(context),
-    {
-      params: t.Object({
-        organizationId: t.String(),
-      }),
-      body: t.Object({
-        name: t.Optional(t.String()),
-        slug: t.Optional(t.String()),
-      }),
-      detail: {
-        tags: ["Admin"],
-        summary: "Atualizar organização (admin)",
-        description: "Atualiza informações de uma organização. Apenas para administradores.",
-      },
+      params: t.Object({ clanId: t.String() }),
+      body: t.Object({ daysUntilExpiry: t.Number() }),
+      detail: { tags: ["Admin"], summary: "Reativar assinatura manual (admin)" },
     }
   )
   .delete(
     "/clans/:clanId",
     async (context) => await adminController.deleteClan(context),
     {
-      params: t.Object({
-        clanId: t.String(),
-      }),
-      detail: {
-        tags: ["Admin"],
-        summary: "Excluir clan (admin)",
-        description: "Exclui um clan. Apenas para administradores.",
-      },
+      params: t.Object({ clanId: t.String() }),
+      detail: { tags: ["Admin"], summary: "Excluir clan (admin)" },
     }
   )
-  .post(
-    "/organizations/create-with-subscription",
-    async (context) => await adminController.createOrganizationWithManualSubscription(context),
+  .delete(
+    "/users/:userId",
+    async (context) => await adminController.deleteUser(context),
     {
-      body: t.Object({
-        name: t.String(),
-        slug: t.String(),
-        ownerEmail: t.String(),
-        plan: t.String(),
-        daysUntilExpiry: t.Number(),
-      }),
-      detail: {
-        tags: ["Admin"],
-        summary: "Criar organização com assinatura manual (admin)",
-        description: "Cria uma organização com assinatura manual (valor 0,00) para um usuário específico. Apenas para administradores.",
-      },
+      params: t.Object({ userId: t.String() }),
+      detail: { tags: ["Admin"], summary: "Excluir usuário (admin)" },
     }
   )
-  .post(
-    "/organizations/:organizationId/reactivate-subscription",
-    async (context) => await adminController.reactivateSubscription(context),
+  .put(
+    "/users/:userId",
+    async (context) => await adminController.updateUser(context),
     {
-      params: t.Object({
-        organizationId: t.String(),
-      }),
+      params: t.Object({ userId: t.String() }),
       body: t.Object({
-        daysUntilExpiry: t.Number(),
+        name: t.Optional(t.String()),
+        email: t.Optional(t.String()),
+        role: t.Optional(t.String()),
+        banned: t.Optional(t.Boolean()),
       }),
-      detail: {
-        tags: ["Admin"],
-        summary: "Reativar assinatura manual (admin)",
-        description: "Reativa uma assinatura manual após pagamento. Apenas para administradores.",
-      },
+      detail: { tags: ["Admin"], summary: "Atualizar usuário (admin)" },
     }
   )
-
   .post(
     "/subscriptions/manage",
     async (context) => await adminController.manageSubscription(context),
@@ -227,15 +101,10 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         ownerEmail: t.String(),
         newStatus: t.Union([t.Literal("ACTIVE"), t.Literal("EXPIRED"), t.Literal("CANCELLED")]),
         activeUntil: t.Optional(t.String()),
-        orgName: t.Optional(t.String()),
-        orgSlug: t.Optional(t.String()),
+        clanTag: t.Optional(t.String()),
         plan: t.Optional(t.String()),
       }),
-      detail: {
-        tags: ["Admin"],
-        summary: "Criar ou gerenciar subscription manualmente",
-        description: "Cria a org (se não existir) e define status da subscription pelo email do owner.",
-      },
+      detail: { tags: ["Admin"], summary: "Criar ou gerenciar subscription manualmente" },
     }
   )
 
@@ -259,8 +128,6 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         yearlyPrice: t.Number(),
         originalQuarterlyPrice: t.Optional(t.Nullable(t.Number())),
         originalYearlyPrice: t.Optional(t.Nullable(t.Number())),
-        maxClans: t.Number(),
-        maxInvites: t.Number(),
         icon: t.Optional(t.String()),
         color: t.Optional(t.String()),
         features: t.Optional(t.Array(t.String())),
@@ -285,8 +152,6 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
         yearlyPrice: t.Optional(t.Number()),
         originalQuarterlyPrice: t.Optional(t.Nullable(t.Number())),
         originalYearlyPrice: t.Optional(t.Nullable(t.Number())),
-        maxClans: t.Optional(t.Number()),
-        maxInvites: t.Optional(t.Number()),
         icon: t.Optional(t.String()),
         color: t.Optional(t.String()),
         features: t.Optional(t.Array(t.String())),
@@ -314,10 +179,7 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
     "/announcements",
     async (context) => announcementController.create(context),
     {
-      body: t.Object({
-        title: t.String(),
-        content: t.String(),
-      }),
+      body: t.Object({ title: t.String(), content: t.String() }),
       detail: { tags: ["Admin"], summary: "Criar anúncio" },
     }
   )

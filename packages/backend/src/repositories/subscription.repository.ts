@@ -2,23 +2,19 @@ import { prisma } from "../lib/prisma";
 import { SubscriptionStatus } from "../generated/prisma";
 
 export class SubscriptionRepository {
-  async findByOrganizationId(organizationId: string) {
-    if (!organizationId) {
-      return null;
-    }
-    
+  async findByClanId(clanId: string) {
+    if (!clanId) return null;
     return await prisma.subscription.findUnique({
-      where: { organizationId },
-      include: {
-        organization: true,
-      },
+      where: { clanId },
+      include: { clan: { include: { owner: true } } },
     });
   }
 
   async create(data: {
-    organizationId: string;
+    clanId: string;
     plan: string;
     status?: SubscriptionStatus;
+    period?: string;
     trialEndsAt?: Date;
     currentPeriodEnd?: Date;
     paymentProvider?: string;
@@ -26,17 +22,16 @@ export class SubscriptionRepository {
   }) {
     return await prisma.subscription.create({
       data,
-      include: {
-        organization: true,
-      },
+      include: { clan: true },
     });
   }
 
   async update(
-    organizationId: string,
+    clanId: string,
     data: {
       plan?: string;
       status?: SubscriptionStatus;
+      period?: string;
       trialEndsAt?: Date;
       currentPeriodEnd?: Date;
       cancelAtPeriodEnd?: boolean;
@@ -46,35 +41,28 @@ export class SubscriptionRepository {
     }
   ) {
     return await prisma.subscription.update({
-      where: { organizationId },
+      where: { clanId },
       data,
-      include: {
-        organization: true,
-      },
+      include: { clan: true },
     });
   }
 
-  async cancel(organizationId: string) {
+  async cancel(clanId: string) {
     return await prisma.subscription.update({
-      where: { organizationId },
-      data: {
-        status: SubscriptionStatus.CANCELLED,
-        cancelAtPeriodEnd: true,
-      },
-      include: {
-        organization: true,
-      },
+      where: { clanId },
+      data: { status: SubscriptionStatus.CANCELLED, cancelAtPeriodEnd: true },
+      include: { clan: true },
     });
   }
 
   async activate(
-    organizationId: string,
+    clanId: string,
     currentPeriodEnd: Date,
     paymentProvider?: string,
     paymentProviderId?: string
   ) {
     return await prisma.subscription.update({
-      where: { organizationId },
+      where: { clanId },
       data: {
         status: SubscriptionStatus.ACTIVE,
         currentPeriodEnd,
@@ -82,23 +70,19 @@ export class SubscriptionRepository {
         paymentProvider,
         paymentProviderId,
       },
-      include: {
-        organization: true,
-      },
+      include: { clan: true },
     });
   }
 
-  async expire(organizationId: string) {
-    const sub = await prisma.subscription.findUnique({ where: { organizationId } });
-
+  async expire(clanId: string) {
+    const sub = await prisma.subscription.findUnique({ where: { clanId } });
     return await prisma.subscription.update({
-      where: { organizationId },
+      where: { clanId },
       data: {
         status: SubscriptionStatus.EXPIRED,
-        // Aplica downgrade agendado, se houver
         ...(sub?.pendingPlan ? { plan: sub.pendingPlan, pendingPlan: null } : {}),
       },
-      include: { organization: true },
+      include: { clan: true },
     });
   }
 }

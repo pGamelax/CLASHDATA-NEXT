@@ -2,7 +2,7 @@ import { SyncPayService, PLAN_PRICES, calcPeriodEnd, type PaymentPeriod } from "
 import { SubscriptionRepository } from "../repositories/subscription.repository";
 import { PixPaymentRepository } from "../repositories/pix-payment.repository";
 import { PlanRepository } from "../repositories/plan.repository";
-import { OrganizationService } from "../services/organization.service";
+import { ClanService } from "../services/clan.service";
 import { SubscriptionService } from "../services/subscription.service";
 import { auth } from "../auth";
 import { SubscriptionStatus, PixPaymentStatus } from "../generated/prisma";
@@ -14,7 +14,6 @@ const PERIOD_DAYS: Record<PaymentPeriod, number> = {
   yearly: 365,
 };
 
-/** Busca o preço do plano no DB; cai no hardcode como fallback */
 async function getPriceConfig(planKey: string, period: PaymentPeriod): Promise<{ amount: number; originalAmount?: number }> {
   const planRepo = new PlanRepository();
   const plan = await planRepo.findByKey(planKey);
@@ -23,7 +22,6 @@ async function getPriceConfig(planKey: string, period: PaymentPeriod): Promise<{
     if (period === "quarterly") return { amount: plan.quarterlyPrice, originalAmount: plan.originalQuarterlyPrice ?? undefined };
     if (period === "yearly")    return { amount: plan.yearlyPrice, originalAmount: plan.originalYearlyPrice ?? undefined };
   }
-  // Fallback para hardcode
   const fallback = (PLAN_PRICES as any)[planKey]?.[period];
   if (fallback) return fallback;
   throw new Error(`Plano ou período inválido: ${planKey}/${period}`);
@@ -37,104 +35,79 @@ type ElysiaContext = {
   status: (code: number, data?: any) => any;
 };
 
-const FRONTEND_URL = env.BETTER_AUTH_TRUSTED_ORIGIN || "http://localhost:3001";
 const BACKEND_URL  = env.BETTER_AUTH_BASE_URL || "http://localhost:3000";
 const WEBHOOK_BASE = env.SYNCPAY_WEBHOOK_URL ?? BACKEND_URL;
-
-function slugify(name: string) {
-  return name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
 
 export class PixController {
   constructor(
     private syncPayService: SyncPayService,
     private subscriptionRepository: SubscriptionRepository,
     private pixPaymentRepository: PixPaymentRepository,
-    private organizationService: OrganizationService,
+    private clanService: ClanService,
     private subscriptionService: SubscriptionService,
   ) {}
 
   /**
-   * Cria organização com trial de 3 dias e gera cobrança PIX opcional
-   * O usuário pode pagar agora ou nos próximos 3 dias
+   * Cria clan com trial de 3 dias e gera cobrança PIX opcional
    */
-  async createOrgWithTrial(context: ElysiaContext) {
+  async createClanWithTrial(context: ElysiaContext) {
     const { body, request, status } = context;
     try {
       const session = await auth.api.getSession({ headers: request.headers });
       if (!session?.user) return status(401, { message: "Não autenticado" });
 
-      const { name, plan, period } = body as {
-        name: string;
+      const { clanTag, plan, period } = body as {
+        clanTag: string;
         plan: string;
         period: PaymentPeriod;
       };
 
-      const slug = slugify(name);
-
-      if (!name || !slug) return status(400, { message: "Nome é obrigatório" });
-
-      if (!plan)
-        return status(400, { message: "Plano é obrigatório" });
-
+      if (!clanTag) return status(400, { message: "clanTag é obrigatório" });
+      if (!plan) return status(400, { message: "Plano é obrigatório" });
       if (!["monthly", "quarterly", "yearly"].includes(period))
         return status(400, { message: "Período inválido" });
 
-      // Verifica slug disponível
-      const { OrganizationRepository } = await import("../repositories/organization.repository");
-      const orgRepo = new OrganizationRepository();
-      const existing = await orgRepo.findBySlug(slug);
-      if (existing) return status(409, { message: "Já existe uma organização com esse nome" });
+      // Busca dados do clan na API do CoC
+      const { ClashOfClansService } = await import("../services/clash-of-clans.service");
+      const cocService = new ClashOfClansService();
+      const normalizedTag = clanTag.startsWith("#") ? clanTag : `#${clanTag}`;
+      const clanData = await cocService.searchClanByTag(normalizedTag);
+
+      // Verifica se o clan já existe
+      const { ClanRepository } = await import("../repositories/clan.repository");
+      const clanRepo = new ClanRepository();
+      const existingClan = await clanRepo.findByTagAnywhere(normalizedTag);
+      if (existingClan) return status(409, { message: "Este clan já está cadastrado no sistema" });
 
       // Verifica se usuário já usou trial
       const { prisma } = await import("../lib/prisma");
       const existingTrial = await prisma.subscription.findFirst({
-        where: {
-          organization: {
-            members: { some: { userId: session.user.id, role: "owner" } },
-          },
-        },
+        where: { clan: { ownerId: session.user.id } },
       });
       const hasUsedTrial = !!existingTrial;
 
-      let organization: any;
+      // Cria o clan
+      const clan = await this.clanService.createClan(session.user.id, normalizedTag, clanData);
+
       let subscription: any;
 
       if (hasUsedTrial) {
-        // Cria org diretamente sem trial — subscription começa como EXPIRED
-        const { OrganizationRepository } = await import("../repositories/organization.repository");
-        const orgRepo = new OrganizationRepository();
-        organization = await orgRepo.create({ name, slug, logo: null, metadata: {} });
-        await orgRepo.addMember(organization.id, session.user.id, "owner");
-
         subscription = await this.subscriptionRepository.create({
-          organizationId: organization.id,
-          plan: plan,
+          clanId: clan.id,
+          plan,
           status: SubscriptionStatus.EXPIRED,
         });
       } else {
-        // Cria org + trial subscription imediatamente
-        const result = await this.organizationService.createOrganizationWithTrial(
-          session.user.id,
-          { name, slug, plan: plan }
-        );
-        organization = result.organization;
-        subscription = result.subscription!;
+        subscription = await this.subscriptionService.createTrialSubscription(clan.id, plan);
       }
 
       // Salva period na subscription
-      await this.subscriptionRepository.update(organization.id, {
+      await this.subscriptionRepository.update(clan.id, {
         paymentProvider: "syncpay",
-        // @ts-ignore - campo period adicionado na migration
         period,
       });
 
-      // Gera cobrança PIX (o usuário pode pagar agora ou depois)
+      // Gera cobrança PIX
       const priceConfig = await getPriceConfig(plan, period);
       const periodFrom = new Date();
       const periodTo = calcPeriodEnd(period, periodFrom);
@@ -144,10 +117,10 @@ export class PixController {
       try {
         const charge = await this.syncPayService.createPixCharge({
           amount: priceConfig.amount,
-          plan: plan,
+          plan,
           period,
-          organizationId: organization.id,
-          organizationName: name,
+          clanId: clan.id,
+          clanName: clanData.name,
           customerName: session.user.name || session.user.email || "Cliente",
           customerEmail: session.user.email || "",
           postbackUrl,
@@ -157,10 +130,10 @@ export class PixController {
         pixExpiresAt.setHours(pixExpiresAt.getHours() + 24);
 
         const pixPayment = await this.pixPaymentRepository.create({
-          organizationId: organization.id,
+          clanId: clan.id,
           subscriptionId: subscription.id,
           amount: priceConfig.amount,
-          plan: plan,
+          plan,
           period,
           syncpayId: charge.id,
           pixCode: charge.pixCode,
@@ -178,18 +151,13 @@ export class PixController {
           amount: priceConfig.amount,
         };
       } catch (pixError) {
-        // Falha ao gerar PIX não impede criação da org - usuário pode gerar depois
-        console.error("Erro ao gerar PIX na criação da org:", pixError);
+        console.error("Erro ao gerar PIX na criação do clan:", pixError);
       }
 
       return {
         success: true,
         hasUsedTrial,
-        organization: {
-          id: organization.id,
-          slug: organization.slug,
-          name: organization.name,
-        },
+        clan: { id: clan.id, tag: clan.tag, name: clan.name },
         subscription: {
           id: subscription.id,
           status: subscription.status,
@@ -199,14 +167,11 @@ export class PixController {
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro desconhecido";
-      console.error("Erro ao criar org com trial:", error);
+      console.error("Erro ao criar clan com trial:", error);
       return status(500, { message });
     }
   }
 
-  /**
-   * Verifica se o usuário autenticado já usou um trial
-   */
   async checkTrialStatus(context: ElysiaContext) {
     const { request, status } = context;
     try {
@@ -215,11 +180,7 @@ export class PixController {
 
       const { prisma } = await import("../lib/prisma");
       const existingTrial = await prisma.subscription.findFirst({
-        where: {
-          organization: {
-            members: { some: { userId: session.user.id, role: "owner" } },
-          },
-        },
+        where: { clan: { ownerId: session.user.id } },
       });
 
       return { hasUsedTrial: !!existingTrial };
@@ -229,34 +190,27 @@ export class PixController {
     }
   }
 
-  /**
-   * Gera uma nova cobrança PIX para renovação/pagamento de uma organização existente
-   */
   async createPixPayment(context: ElysiaContext) {
     const { body, request, status } = context;
     try {
       const session = await auth.api.getSession({ headers: request.headers });
       if (!session?.user) return status(401, { message: "Não autenticado" });
 
-      const { organizationId, plan, period, upgradeOnly } = body as {
-        organizationId: string;
+      const { clanId, plan, period, upgradeOnly } = body as {
+        clanId: string;
         plan: string;
         period: PaymentPeriod;
         upgradeOnly?: boolean;
       };
 
-      // Verifica acesso
-      const access = await this.organizationService.canUserAccessOrganization(
-        session.user.id, organizationId
-      );
-      if (!access.canAccess || (access.role !== "owner" && session.user.role !== "admin"))
+      const access = await this.clanService.canUserAccessClan(session.user.id, clanId);
+      if (!access.canAccess || (access.role !== "owner" && (session.user as any).role !== "admin"))
         return status(403, { message: "Acesso negado" });
 
-      const subscription = await this.subscriptionRepository.findByOrganizationId(organizationId);
+      const subscription = await this.subscriptionRepository.findByClanId(clanId);
       if (!subscription) return status(404, { message: "Assinatura não encontrada" });
 
-      // Expira cobranças PIX antigas pendentes
-      await this.pixPaymentRepository.expireOldPending(organizationId);
+      await this.pixPaymentRepository.expireOldPending(clanId);
 
       const now = new Date();
       let amount: number;
@@ -264,7 +218,6 @@ export class PixController {
       let periodTo: Date;
 
       if (upgradeOnly) {
-        // Cobrança proporcional do upgrade: cobra só a diferença dos dias restantes
         const currentPeriod = (subscription.period ?? "monthly") as PaymentPeriod;
         const currentPrice = (await getPriceConfig(subscription.plan, currentPeriod)).amount;
         const newPrice = (await getPriceConfig(plan, currentPeriod)).amount;
@@ -282,7 +235,6 @@ export class PixController {
         periodFrom = now;
         periodTo = subscription.currentPeriodEnd ?? calcPeriodEnd(currentPeriod, now);
       } else {
-        // Renovação normal: valor cheio, período começa quando o atual termina
         const priceConfig = await getPriceConfig(plan, period);
         amount = priceConfig.amount;
         periodFrom = subscription.currentPeriodEnd && subscription.currentPeriodEnd > now
@@ -292,13 +244,12 @@ export class PixController {
       }
 
       const postbackUrl = `${WEBHOOK_BASE}/pix/webhook`;
-
       const charge = await this.syncPayService.createPixCharge({
         amount,
         plan,
         period: upgradeOnly ? ((subscription.period ?? "monthly") as PaymentPeriod) : period,
-        organizationId,
-        organizationName: subscription.organization?.name ?? "Organização",
+        clanId,
+        clanName: subscription.clan?.name ?? "Clan",
         customerName: session.user.name || session.user.email || "Cliente",
         customerEmail: session.user.email || "",
         postbackUrl,
@@ -308,7 +259,7 @@ export class PixController {
       pixExpiresAt.setHours(pixExpiresAt.getHours() + 24);
 
       const pixPayment = await this.pixPaymentRepository.create({
-        organizationId,
+        clanId,
         subscriptionId: subscription.id,
         amount,
         plan,
@@ -342,27 +293,22 @@ export class PixController {
     }
   }
 
-  /**
-   * Agenda downgrade de plano para o fim do período atual — sem cobrança imediata
-   */
   async scheduleDowngrade(context: ElysiaContext) {
     const { body, request, status } = context;
     try {
       const session = await auth.api.getSession({ headers: request.headers });
       if (!session?.user) return status(401, { message: "Não autenticado" });
 
-      const { organizationId, plan } = body as { organizationId: string; plan: string };
+      const { clanId, plan } = body as { clanId: string; plan: string };
 
-      const access = await this.organizationService.canUserAccessOrganization(
-        session.user.id, organizationId
-      );
-      if (!access.canAccess || (access.role !== "owner" && session.user.role !== "admin"))
+      const access = await this.clanService.canUserAccessClan(session.user.id, clanId);
+      if (!access.canAccess || (access.role !== "owner" && (session.user as any).role !== "admin"))
         return status(403, { message: "Acesso negado" });
 
-      const subscription = await this.subscriptionRepository.findByOrganizationId(organizationId);
+      const subscription = await this.subscriptionRepository.findByClanId(clanId);
       if (!subscription) return status(404, { message: "Assinatura não encontrada" });
 
-      await this.subscriptionRepository.update(organizationId, { pendingPlan: plan });
+      await this.subscriptionRepository.update(clanId, { pendingPlan: plan });
 
       return {
         success: true,
@@ -372,27 +318,21 @@ export class PixController {
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro desconhecido";
-      console.error("Erro ao agendar downgrade:", error);
       return status(500, { message });
     }
   }
 
-  /**
-   * Retorna a cobrança PIX pendente de uma organização (para exibir QR code)
-   */
   async getPixStatus(context: ElysiaContext) {
     const { params, request, status } = context;
     try {
       const session = await auth.api.getSession({ headers: request.headers });
       if (!session?.user) return status(401, { message: "Não autenticado" });
 
-      const organizationId = params?.organizationId;
-      if (!organizationId) return status(400, { message: "organizationId é obrigatório" });
+      const clanId = params?.clanId;
+      if (!clanId) return status(400, { message: "clanId é obrigatório" });
 
-      // Expira cobranças vencidas
-      await this.pixPaymentRepository.expireOldPending(organizationId);
-
-      const pending = await this.pixPaymentRepository.findPendingByOrganizationId(organizationId);
+      await this.pixPaymentRepository.expireOldPending(clanId);
+      const pending = await this.pixPaymentRepository.findPendingByClanId(clanId);
 
       if (!pending) return { success: true, pix: null };
 
@@ -415,9 +355,6 @@ export class PixController {
     }
   }
 
-  /**
-   * Webhook do SyncPay — chamado quando o pagamento é confirmado
-   */
   async handleWebhook(context: ElysiaContext) {
     const { body, request } = context;
     try {
@@ -428,35 +365,20 @@ export class PixController {
       }
 
       const payload = body as any;
-
-      // cashin.update payload: { event: "cashin.update", data: { id, status, ... } }
       const syncpayId = payload?.data?.id || payload?.id;
       const rawStatus = payload?.data?.status || payload?.status;
 
-      if (!syncpayId) {
-        console.warn("[PIX Webhook] sem id da transação");
-        return { received: true };
-      }
+      if (!syncpayId) return { received: true };
 
       const isPaid = SyncPayService.isPaymentCompleted(rawStatus);
+      if (!isPaid) return { received: true, ignored: true, status: rawStatus };
 
-      if (!isPaid) {
-        // Pode ser evento de criação ou outro evento — apenas logamos
-        return { received: true, ignored: true, status: rawStatus };
-      }
-
-      // Busca o pagamento no banco
       const pixPayment = await this.pixPaymentRepository.findBySyncpayId(syncpayId);
-      if (!pixPayment) {
-        console.warn("[PIX Webhook] pagamento não encontrado para id:", syncpayId);
-        return { received: true, error: "Payment not found" };
-      }
+      if (!pixPayment) return { received: true, error: "Payment not found" };
 
-      if (pixPayment.status === PixPaymentStatus.PAID) {
-        return { received: true, ignored: true }; // Já processado
-      }
+      if (pixPayment.status === PixPaymentStatus.PAID) return { received: true, ignored: true };
 
-      await this.handlePaymentConfirmed(pixPayment.id, syncpayId, pixPayment.organizationId);
+      await this.handlePaymentConfirmed(pixPayment.id, syncpayId, pixPayment.clanId);
 
       return { received: true, success: true };
     } catch (error) {
@@ -466,31 +388,25 @@ export class PixController {
     }
   }
 
-  /**
-   * Ativa/renova a assinatura após pagamento confirmado
-   */
-  private async handlePaymentConfirmed(pixPaymentId: string, syncpayId: string, organizationId: string) {
+  private async handlePaymentConfirmed(pixPaymentId: string, syncpayId: string, clanId: string) {
     const pixPayment = await this.pixPaymentRepository.findById(pixPaymentId);
     if (!pixPayment || pixPayment.status === PixPaymentStatus.PAID) return;
 
     await this.pixPaymentRepository.markAsPaid(pixPaymentId);
 
     if (pixPayment.upgradeOnly) {
-      // Upgrade: apenas muda o plano, mantém currentPeriodEnd intacto
-      await this.subscriptionRepository.update(organizationId, {
+      await this.subscriptionRepository.update(clanId, {
         plan: pixPayment.plan,
         paymentProvider: "syncpay",
         pendingPlan: null,
       });
     } else {
-      // Renovação normal: ativa com novo período
       const periodTo = pixPayment.periodTo || calcPeriodEnd(pixPayment.period as PaymentPeriod);
-      await this.subscriptionRepository.activate(organizationId, periodTo, "syncpay", syncpayId);
-      await this.subscriptionRepository.update(organizationId, {
+      await this.subscriptionRepository.activate(clanId, periodTo, "syncpay", syncpayId);
+      await this.subscriptionRepository.update(clanId, {
         plan: pixPayment.plan,
         paymentProvider: "syncpay",
       });
     }
   }
-
 }

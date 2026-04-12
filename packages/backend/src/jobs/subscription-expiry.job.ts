@@ -18,14 +18,14 @@ export const subscriptionExpiryWorker = new Worker(
   async (job) => {
     if (job.name === "check-all-expired") return;
 
-    const { organizationId } = job.data;
-    if (!organizationId) {
-      console.error("Job de expiração sem organizationId:", job.id);
+    const { clanId } = job.data;
+    if (!clanId) {
+      console.error("Job de expiração sem clanId:", job.id);
       return;
     }
 
     const subscriptionRepository = new SubscriptionRepository();
-    const subscription = await subscriptionRepository.findByOrganizationId(organizationId);
+    const subscription = await subscriptionRepository.findByClanId(clanId);
     if (!subscription) return;
 
     const now = new Date();
@@ -41,7 +41,7 @@ export const subscriptionExpiryWorker = new Worker(
       now >= subscription.currentPeriodEnd;
 
     if (isTrialExpired || isPeriodExpired) {
-      await subscriptionRepository.expire(organizationId);
+      await subscriptionRepository.expire(clanId);
     }
   },
   { connection }
@@ -51,24 +51,24 @@ export const subscriptionExpiryWorker = new Worker(
  * Agenda verificação de expiração para uma subscription específica
  */
 export async function scheduleSubscriptionExpiryCheck(
-  organizationId: string,
+  clanId: string,
   expiresAt: Date
 ) {
   await subscriptionExpiryQueue.removeRepeatableByKey(
-    `subscription-expiry:${organizationId}:*`
+    `subscription-expiry:${clanId}:*`
   );
 
   const checkDate = new Date(expiresAt);
   checkDate.setMinutes(checkDate.getMinutes() + 1);
 
   await subscriptionExpiryQueue.add(
-    `expire-${organizationId}`,
-    { organizationId },
+    `expire-${clanId}`,
+    { clanId },
     {
       repeat: {
         pattern: `0 ${checkDate.getMinutes()} ${checkDate.getHours()} ${checkDate.getDate()} ${checkDate.getMonth() + 1} *`,
       },
-      jobId: `subscription-expiry:${organizationId}:${expiresAt.getTime()}`,
+      jobId: `subscription-expiry:${clanId}:${expiresAt.getTime()}`,
     }
   );
 }
@@ -123,10 +123,10 @@ export async function setupSubscriptionExpiryJob() {
 
         if (isTrialExpired || isPeriodExpired) {
           await subscriptionExpiryQueue.add(
-            `expire-${subscription.organizationId}`,
-            { organizationId: subscription.organizationId },
+            `expire-${subscription.clanId}`,
+            { clanId: subscription.clanId },
             {
-              jobId: `subscription-expiry:${subscription.organizationId}:${now.getTime()}`,
+              jobId: `subscription-expiry:${subscription.clanId}:${now.getTime()}`,
             }
           );
         }
