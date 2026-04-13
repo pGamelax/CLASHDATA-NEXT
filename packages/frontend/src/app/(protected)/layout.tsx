@@ -2,9 +2,10 @@ import { cookies } from "next/headers";
 import { getSession } from "@/lib/api";
 import { AppSidebar } from "@/components/AppSidebar";
 import { AnnouncementModal } from "@/components/AnnouncementModal";
+import { TopBarInfo } from "@/components/TopBarInfo";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { redirect } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
+import { redirect } from "next/navigation";
 
 export default async function ProtectedLayout({
   children,
@@ -26,10 +27,13 @@ export default async function ProtectedLayout({
       <AppSidebar initialUser={session.user} />
       <SidebarInset>
         {/* Top bar */}
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="h-4" />
-          <div className="flex-1" />
+        <header className="relative flex h-12 shrink-0 items-center border-b px-4">
+          {/* Desktop: trigger on the left */}
+          <div className="hidden md:flex items-center gap-2 shrink-0">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="h-4" />
+          </div>
+          <TopBarInfo />
         </header>
         <main className="flex-1">
           <AnnouncementModal />

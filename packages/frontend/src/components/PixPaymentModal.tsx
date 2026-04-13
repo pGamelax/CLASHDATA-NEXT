@@ -9,31 +9,37 @@ import {
   Loader2,
   QrCode,
   X,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getPixStatus, type PixPaymentData } from "@/lib/api";
+import { getPixStatus, getPendingClanStatus, type PixPaymentData } from "@/lib/api";
 import { formatBRL } from "@/lib/plans";
 
 interface Props {
   pix: PixPaymentData;
-  clanId: string;
+  /** Fluxo de renovação (clan já existe) */
+  clanId?: string;
+  /** Fluxo de criação de novo clan (clan criado após webhook) */
+  pendingId?: string;
   onPaid: () => void;
   onClose?: () => void;
 }
 
 function useCountdown(expiresAt: string) {
-  const [secondsLeft, setSecondsLeft] = useState(() =>
-    Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000))
-  );
+  const [secondsLeft, setSecondsLeft] = useState(0);
 
   useEffect(() => {
-    if (secondsLeft <= 0) return;
-    const interval = setInterval(() => {
-      setSecondsLeft((s) => Math.max(0, s - 1));
+    const calc = () =>
+      Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000));
+    setSecondsLeft(calc());
+    const t = setInterval(() => {
+      const s = calc();
+      setSecondsLeft(s);
+      if (s <= 0) clearInterval(t);
     }, 1000);
-    return () => clearInterval(interval);
-  }, [secondsLeft]);
+    return () => clearInterval(t);
+  }, [expiresAt]);
 
   const h = Math.floor(secondsLeft / 3600);
   const m = Math.floor((secondsLeft % 3600) / 60);
@@ -45,13 +51,17 @@ function useCountdown(expiresAt: string) {
   return { secondsLeft, formatted, expired: secondsLeft <= 0 };
 }
 
-export function PixPaymentModal({ pix, clanId, onPaid, onClose }: Props) {
+export function PixPaymentModal({ pix, clanId, pendingId, onPaid, onClose }: Props) {
   const [copied, setCopied] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [notYetPaid, setNotYetPaid] = useState(false);
   const [paid, setPaid] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const { formatted, expired } = useCountdown(pix.pixExpiresAt);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Ref para onPaid estável — evita reiniciar o interval em cada render
+  const onPaidRef = useRef(onPaid);
+  useEffect(() => { onPaidRef.current = onPaid; }, [onPaid]);
 
   useEffect(() => {
     if (!pix.pixCode) return;
@@ -63,27 +73,60 @@ export function PixPaymentModal({ pix, clanId, onPaid, onClose }: Props) {
     }).then(setQrDataUrl).catch(() => {});
   }, [pix.pixCode]);
 
-  // Polling automático a cada 5 segundos
+  async function checkStatus(): Promise<boolean> {
+    if (pendingId) {
+      const result = await getPendingClanStatus();
+      return !result.pending || result.pending.status === "PAID";
+    }
+    if (clanId) {
+      const result = await getPixStatus(clanId);
+      return !result.pix || result.pix.status === "PAID";
+    }
+    return false;
+  }
+
+  // Polling automático a cada 5s — não depende de onPaid (usa ref)
   useEffect(() => {
     if (paid || expired) return;
 
-    pollingRef.current = setInterval(async () => {
+    async function tick() {
       try {
-        const result = await getPixStatus(clanId);
-        if (!result.pix || result.pix.status === "PAID") {
+        const confirmed = await checkStatus();
+        if (confirmed) {
           clearInterval(pollingRef.current!);
           setPaid(true);
-          setTimeout(onPaid, 1500);
+          setTimeout(() => onPaidRef.current(), 1500);
         }
       } catch {
-        // ignora erros de polling
+        // ignora erros de rede
       }
-    }, 5000);
+    }
 
+    pollingRef.current = setInterval(tick, 5000);
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [paid, expired, clanId, onPaid]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paid, expired, clanId, pendingId]);
+
+  async function handleCheckNow() {
+    setChecking(true);
+    setNotYetPaid(false);
+    try {
+      const confirmed = await checkStatus();
+      if (confirmed) {
+        if (pollingRef.current) clearInterval(pollingRef.current);
+        setPaid(true);
+        setTimeout(() => onPaidRef.current(), 1500);
+      } else {
+        setNotYetPaid(true);
+      }
+    } catch {
+      setNotYetPaid(true);
+    } finally {
+      setChecking(false);
+    }
+  }
 
   async function handleCopy() {
     try {
@@ -92,19 +135,6 @@ export function PixPaymentModal({ pix, clanId, onPaid, onClose }: Props) {
       setTimeout(() => setCopied(false), 3000);
     } catch {
       // fallback silencioso
-    }
-  }
-
-  async function handleCheckNow() {
-    setChecking(true);
-    try {
-      const result = await getPixStatus(clanId);
-      if (!result.pix || result.pix.status === "PAID") {
-        setPaid(true);
-        setTimeout(onPaid, 1500);
-      }
-    } finally {
-      setChecking(false);
     }
   }
 
@@ -125,7 +155,7 @@ export function PixPaymentModal({ pix, clanId, onPaid, onClose }: Props) {
                 <h2 className="text-lg font-bold">Pagar via PIX</h2>
               </div>
               <p className="text-sm text-muted-foreground">
-                Pague via PIX para ativar sua organização.
+                Pague via PIX para ativar seu clan.
               </p>
             </div>
             {onClose && (
@@ -205,6 +235,14 @@ export function PixPaymentModal({ pix, clanId, onPaid, onClose }: Props) {
                       )}
                     </Button>
                   </div>
+                </div>
+              )}
+
+              {/* Feedback pagamento não confirmado */}
+              {notYetPaid && (
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-sm">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  Pagamento ainda não confirmado. Aguarde alguns segundos e tente novamente.
                 </div>
               )}
 

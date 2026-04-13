@@ -697,6 +697,7 @@ export async function seedAdminPlans(): Promise<{ seeded: boolean; count: number
 // --- PIX / SyncPay ---
 
 export interface PixPaymentData {
+  pendingId?: string;     // presente no fluxo de criação de novo clan
   pixId: string;
   pixCode: string;        // copia e cola
   pixQrCodeBase64: string;
@@ -720,15 +721,27 @@ export async function createClanWithTrial(data: {
   plan: string;
   period: string;
 }): Promise<{
-  hasUsedTrial: boolean;
-  clan: { id: string; tag: string; name: string };
-  subscription: { id: string; status: string; trialEndsAt?: string };
-  pix: PixPaymentData | null;
+  // Fluxo trial (clan criado imediatamente)
+  clan?: { id: string; tag: string; name: string };
+  subscription?: { id: string; status: string; trialEndsAt?: string };
+  // Fluxo PIX (clan criado após webhook)
+  requiresPayment?: boolean;
+  pix?: PixPaymentData | null;
 }> {
   return apiFetch<any>("/pix/create-clan", {
     method: "POST",
     body: JSON.stringify(data),
   });
+}
+
+export async function getPendingClanStatus(): Promise<{
+  pending: { id: string; status: string; clanTag: string } | null;
+}> {
+  try {
+    return await apiFetch<any>("/pix/pending-clan");
+  } catch {
+    return { pending: null };
+  }
 }
 
 export async function createPixPayment(data: {

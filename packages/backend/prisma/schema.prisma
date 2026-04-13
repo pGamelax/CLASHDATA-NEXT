@@ -197,7 +197,7 @@ model PixPayment {
   period          String
   status          PixPaymentStatus @default(PENDING)
   upgradeOnly     Boolean          @default(false)
-  syncpayId       String?          @unique
+  externalId      String?          @unique
   pixCode         String?          @db.Text
   pixQrCodeBase64 String?          @db.Text
   pixExpiresAt    DateTime?
@@ -210,8 +210,38 @@ model PixPayment {
   @@index([clanId])
   @@index([subscriptionId])
   @@index([status])
-  @@index([syncpayId])
+  @@index([externalId])
   @@map("pix_payment")
+}
+
+enum PendingClanPaymentStatus {
+  PENDING
+  PAID
+  EXPIRED
+  CANCELLED
+}
+
+model PendingClanPayment {
+  id              String                   @id @default(cuid())
+  userId          String
+  clanTag         String
+  clanName        String
+  plan            String
+  period          String
+  amount          Int
+  status          PendingClanPaymentStatus @default(PENDING)
+  externalId      String?                  @unique
+  pixCode         String?                  @db.Text
+  pixQrCodeBase64 String?                  @db.Text
+  pixExpiresAt    DateTime?
+  paidAt          DateTime?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  @@index([userId])
+  @@index([externalId])
+  @@index([status])
+  @@map("pending_clan_payment")
 }
 
 model SeasonEndDate {

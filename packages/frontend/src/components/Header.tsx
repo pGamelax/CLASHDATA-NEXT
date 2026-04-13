@@ -1,10 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import { useSession } from "@/auth";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { Menu, X } from "lucide-react";
+
+const navLinks = [
+  { href: "/pricing", label: "Preços" },
+  { href: "/ranking", label: "Ranking" },
+];
 
 function Logo() {
   return (
@@ -30,11 +38,7 @@ export function Header() {
   const pathname = usePathname();
   const { data: session, isPending } = useSession();
   const isLoggedIn = !isPending && !!session?.user;
-
-  const navLinks = [
-    { href: "/pricing", label: "Preços" },
-    { href: "/ranking", label: "Ranking" },
-  ];
+  const [open, setOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
@@ -42,7 +46,8 @@ export function Header() {
 
         <Logo />
 
-        <nav className="flex items-center gap-1">
+        {/* Nav desktop */}
+        <nav className="hidden md:flex items-center gap-1">
           {navLinks.map(({ href, label }) => (
             <Link
               key={href}
@@ -59,7 +64,8 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        {/* Botões desktop */}
+        <div className="hidden md:flex items-center gap-2">
           {isLoggedIn ? (
             <Button size="sm" asChild>
               <Link href="/clans">Dashboard</Link>
@@ -74,6 +80,62 @@ export function Header() {
               </Button>
             </>
           )}
+        </div>
+
+        {/* Menu hambúrguer mobile */}
+        <div className="flex md:hidden">
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="Menu">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-64 p-0">
+              <div className="flex flex-col h-full">
+                {/* Header do drawer */}
+                <div className="flex items-center justify-between px-4 h-16 border-b">
+                  <Logo />
+                </div>
+
+                {/* Links de navegação */}
+                <nav className="flex flex-col gap-1 p-4">
+                  {navLinks.map(({ href, label }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={() => setOpen(false)}
+                      className={cn(
+                        "px-3 py-2.5 text-sm font-medium rounded-md transition-colors",
+                        pathname?.startsWith(href)
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                      )}
+                    >
+                      {label}
+                    </Link>
+                  ))}
+                </nav>
+
+                {/* Botões no fundo do drawer */}
+                <div className="mt-auto p-4 border-t flex flex-col gap-2">
+                  {isLoggedIn ? (
+                    <Button asChild onClick={() => setOpen(false)}>
+                      <Link href="/clans">Dashboard</Link>
+                    </Button>
+                  ) : (
+                    <>
+                      <Button variant="outline" asChild onClick={() => setOpen(false)}>
+                        <Link href="/sign-in">Entrar</Link>
+                      </Button>
+                      <Button asChild onClick={() => setOpen(false)}>
+                        <Link href="/sign-up">Cadastrar</Link>
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
 
       </div>

@@ -23,11 +23,10 @@ const envSchema = z.object({
   // Redis
   REDIS_URL: z.string().default("redis://localhost:6379"),
   
-  // SyncPay PIX
-  SYNCPAY_CLIENT_ID: z.string(),
-  SYNCPAY_CLIENT_SECRET: z.string(),
-  SYNCPAY_WEBHOOK_TOKEN: z.string().optional(),
-  SYNCPAY_WEBHOOK_URL: z.string().url().optional(),
+  // BuyPix PIX
+  BUYPIX_API_KEY: z.string(),
+  BUYPIX_WEBHOOK_SECRET: z.string().optional(),
+  BUYPIX_WEBHOOK_URL: z.string().url().optional(),
 
   // Social Auth - Google
   GOOGLE_CLIENT_ID: z.string().optional(),

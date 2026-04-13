@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { authClient, useClans, useSession } from "@/auth";
@@ -16,6 +17,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -356,9 +358,16 @@ export function AppSidebar({ initialUser }: AppSidebarProps) {
       .slice(0, 2) || "U";
 
   const isAdmin = user && "role" in user && (user as any).role === "admin";
+  const isMobile = useIsMobile();
+  const { setOpenMobile } = useSidebar();
+
+  // Close sidebar on mobile whenever the route changes
+  useEffect(() => {
+    if (isMobile) setOpenMobile(false);
+  }, [pathname, isMobile, setOpenMobile]);
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar side={isMobile ? "right" : "left"} collapsible="icon">
       {/* ── Header: Logo ── */}
       <SidebarHeader className="py-3 px-2">
         <Logo />

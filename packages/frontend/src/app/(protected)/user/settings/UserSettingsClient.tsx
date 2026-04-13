@@ -10,23 +10,11 @@ import { cn } from "@/lib/utils";
 import {
   User,
   Lock,
-  Trash2,
   Check,
   Loader2,
   Eye,
   EyeOff,
-  AlertTriangle,
 } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 // ─── Avatar presets ───────────────────────────────────────────────────────────
 
@@ -324,82 +312,11 @@ function SecuritySection() {
 }
 
 
-function AccountSection() {
-  const [open, setOpen] = useState(false);
-  const [confirm, setConfirm] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  async function handleDelete() {
-    setLoading(true);
-    try {
-      await authClient.deleteUser();
-      window.location.href = "/sign-in";
-    } catch {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold">Conta</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">Ações permanentes relacionadas à sua conta.</p>
-      </div>
-
-      <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 space-y-4">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-          <div>
-            <p className="font-medium text-sm">Excluir conta</p>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Todos os seus dados serão permanentemente removidos. Esta ação não pode ser desfeita.
-            </p>
-          </div>
-        </div>
-        <Button variant="destructive" size="sm" onClick={() => setOpen(true)}>
-          <Trash2 className="h-3.5 w-3.5 mr-2" />
-          Excluir minha conta
-        </Button>
-      </div>
-
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir conta?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação é irreversível. Todos os seus dados, organizações e clãs vinculados serão excluídos.
-              Digite <strong>EXCLUIR</strong> para confirmar.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <Input
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            placeholder="EXCLUIR"
-            className="mt-2"
-          />
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setConfirm("")}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90"
-              disabled={confirm !== "EXCLUIR" || loading}
-              onClick={handleDelete}
-            >
-              {loading && <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />}
-              Excluir conta
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  );
-}
-
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 const NAV = [
   { id: "profile",  label: "Perfil",    icon: User },
   { id: "security", label: "Segurança", icon: Lock },
-  { id: "account",  label: "Conta",     icon: Trash2 },
 ] as const;
 
 type SectionId = (typeof NAV)[number]["id"];
@@ -463,7 +380,6 @@ export function UserSettingsClient({ user }: UserSettingsClientProps) {
         <div className="flex-1 min-w-0">
           {active === "profile"  && <ProfileSection user={user} />}
           {active === "security" && <SecuritySection />}
-          {active === "account"  && <AccountSection />}
         </div>
       </div>
     </div>

@@ -9,7 +9,7 @@ export class PixPaymentRepository {
     plan: string;
     period: string;
     upgradeOnly?: boolean;
-    syncpayId?: string;
+    externalId?: string;
     pixCode?: string;
     pixQrCodeBase64?: string;
     pixExpiresAt?: Date;
@@ -23,8 +23,8 @@ export class PixPaymentRepository {
     return await prisma.pixPayment.findUnique({ where: { id } });
   }
 
-  async findBySyncpayId(syncpayId: string) {
-    return await prisma.pixPayment.findUnique({ where: { syncpayId } });
+  async findByExternalId(externalId: string) {
+    return await prisma.pixPayment.findUnique({ where: { externalId } });
   }
 
   async findPendingByClanId(clanId: string) {
@@ -45,7 +45,7 @@ export class PixPaymentRepository {
     id: string,
     data: {
       status?: PixPaymentStatus;
-      syncpayId?: string;
+      externalId?: string;
       pixCode?: string;
       pixQrCodeBase64?: string;
       pixExpiresAt?: Date;
