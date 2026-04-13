@@ -72,16 +72,18 @@ function daysUntil(date: string | null) {
 
 function RowSkeleton() {
   return (
-    <div className="flex items-center gap-4 px-4 py-3 border-b last:border-0">
+    <div className="flex items-center gap-3 px-4 py-3 border-b last:border-0">
       <Skeleton className="h-9 w-9 rounded-lg shrink-0" />
-      <div className="flex-1 space-y-1.5">
+      <div className="flex-1 min-w-0 space-y-1.5">
         <Skeleton className="h-3.5 w-36" />
         <Skeleton className="h-3 w-24" />
       </div>
-      <Skeleton className="hidden sm:block h-3 w-28" />
-      <Skeleton className="h-5 w-16 rounded-full" />
-      <Skeleton className="h-8 w-24 rounded-md" />
-      <Skeleton className="h-8 w-8 rounded-md" />
+      <div className="flex items-center gap-2 shrink-0">
+        <Skeleton className="hidden sm:block h-3 w-16" />
+        <Skeleton className="h-5 w-14 rounded-full" />
+        <Skeleton className="h-8 w-8 rounded-md" />
+        <Skeleton className="h-8 w-8 rounded-md" />
+      </div>
     </div>
   );
 }
@@ -164,7 +166,7 @@ function SubscriptionModal({ clan, open, onClose, onUpdated }: SubModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-4 w-4 text-muted-foreground" />
@@ -433,7 +435,7 @@ export function AdminClansPage() {
 
       {/* Search */}
       <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por nome, tag ou dono..."
@@ -444,7 +446,7 @@ export function AdminClansPage() {
         </div>
         {!loading && (
           <span className="text-sm text-muted-foreground shrink-0">
-            {filtered.length} de {clans.length}
+            {filtered.length}/{clans.length}
           </span>
         )}
       </div>
@@ -467,7 +469,7 @@ export function AdminClansPage() {
               const PlanIcon = planCfg?.icon || Shield;
 
               return (
-                <div key={clan.id} className="flex items-center gap-4 px-4 py-3 hover:bg-muted/30 transition-colors">
+                <div key={clan.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
                   {/* Icon */}
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted shrink-0">
                     <Shield className="h-4 w-4 text-muted-foreground" />
@@ -475,30 +477,42 @@ export function AdminClansPage() {
 
                   {/* Main info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <p className="text-sm font-semibold truncate">{clan.name}</p>
-                      <Badge variant="outline" className="font-mono text-[11px] px-1.5 py-0 h-5">{clan.tag}</Badge>
+                      <Badge variant="outline" className="font-mono text-[11px] px-1.5 py-0 h-5 shrink-0">{clan.tag}</Badge>
                     </div>
-                    <div className="flex items-center gap-3 mt-0.5">
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                       {clan.owner && (
-                        <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                          <Users className="h-3 w-3" />
-                          {clan.owner.name || clan.owner.email}
+                        <span className="flex items-center gap-1 text-[11px] text-muted-foreground truncate">
+                          <Users className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{clan.owner.name || clan.owner.email}</span>
                         </span>
                       )}
                       {clan.clanLevel && (
-                        <span className="text-[11px] text-muted-foreground">Nível {clan.clanLevel}</span>
+                        <span className="text-[11px] text-muted-foreground shrink-0">Nível {clan.clanLevel}</span>
+                      )}
+                      {/* Plan + Status inline on mobile */}
+                      {planCfg && (
+                        <span className={cn("sm:hidden flex items-center gap-1 text-[11px] font-medium shrink-0", planCfg.color)}>
+                          <PlanIcon className="h-3 w-3" />
+                          {planCfg.label}
+                        </span>
+                      )}
+                      {statusCfg && (
+                        <Badge className={cn("sm:hidden text-[11px] px-1.5 h-4 border shrink-0", statusCfg.cn)}>
+                          {statusCfg.label}
+                        </Badge>
                       )}
                     </div>
                   </div>
 
-                  {/* Members */}
+                  {/* Members — desktop only */}
                   <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                     <Users className="h-3.5 w-3.5" />
                     {clan.members ?? "—"}
                   </div>
 
-                  {/* Plan */}
+                  {/* Plan — desktop only */}
                   {planCfg && (
                     <div className={cn("hidden sm:flex items-center gap-1 text-[11px] font-medium shrink-0", planCfg.color)}>
                       <PlanIcon className="h-3 w-3" />
@@ -506,9 +520,9 @@ export function AdminClansPage() {
                     </div>
                   )}
 
-                  {/* Status */}
+                  {/* Status — desktop only */}
                   {statusCfg && (
-                    <Badge className={cn("hidden md:inline-flex text-[11px] px-2 h-5 border shrink-0", statusCfg.cn)}>
+                    <Badge className={cn("hidden sm:inline-flex text-[11px] px-2 h-5 border shrink-0", statusCfg.cn)}>
                       {statusCfg.label}
                     </Badge>
                   )}
@@ -517,13 +531,14 @@ export function AdminClansPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 gap-1.5 text-xs shrink-0"
+                    className="h-8 w-8 sm:w-auto sm:gap-1.5 sm:px-3 text-xs shrink-0"
                     onClick={() => setSubModal(clan)}
+                    title={sub ? "Gerenciar assinatura" : "Atribuir assinatura"}
                   >
                     {sub ? (
-                      <><RotateCcw className="h-3 w-3" /> Assinatura</>
+                      <><RotateCcw className="h-3 w-3" /><span className="hidden sm:inline">Assinatura</span></>
                     ) : (
-                      <><CreditCard className="h-3 w-3" /> Atribuir</>
+                      <><CreditCard className="h-3 w-3" /><span className="hidden sm:inline">Atribuir</span></>
                     )}
                   </Button>
 

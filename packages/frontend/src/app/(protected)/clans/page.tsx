@@ -72,7 +72,7 @@ export default async function ClansPage() {
       <div className="grid gap-4 sm:grid-cols-2">
         {clans.map((clan) => {
           const slug = normalizeTag(clan.tag);
-          const isActive = clan.subscription?.status === "active";
+          const isActive = clan.subscription?.status === "ACTIVE" || clan.subscription?.status === "TRIAL";
 
           return (
             <Link
@@ -110,7 +110,7 @@ export default async function ClansPage() {
                         : "bg-muted text-muted-foreground"
                     }`}
                   >
-                    {isActive ? "Ativo" : "Inativo"}
+                    {clan.subscription?.status === "TRIAL" ? "Trial" : isActive ? "Ativo" : "Inativo"}
                   </span>
                 )}
               </div>

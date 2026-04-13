@@ -27,7 +27,7 @@ export default async function ProtectedLayout({
       <AppSidebar initialUser={session.user} />
       <SidebarInset>
         {/* Top bar */}
-        <header className="relative flex h-12 shrink-0 items-center border-b px-4">
+        <header className="sticky top-0 z-50 flex h-12 shrink-0 items-center border-b px-4 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
           {/* Desktop: trigger on the left */}
           <div className="hidden md:flex items-center gap-2 shrink-0">
             <SidebarTrigger className="-ml-1" />

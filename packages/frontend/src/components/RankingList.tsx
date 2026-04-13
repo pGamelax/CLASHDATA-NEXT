@@ -298,20 +298,36 @@ export function RankingList({
 
   const handleCopy = async () => {
     if (!imageRef.current) return;
+    const dataUrl = await toPng(imageRef.current, { cacheBust: true, pixelRatio: 2 });
+    const blob = await fetch(dataUrl).then((r) => r.blob());
+    const filename = `${title}.png`;
+
+    // Android / iOS: Web Share API (share sheet nativa)
+    if (typeof navigator.canShare === "function") {
+      const file = new File([blob], filename, { type: "image/png" });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: filename });
+        return;
+      }
+    }
+
+    // Desktop: tenta copiar para clipboard
     try {
-      const dataUrl = await toPng(imageRef.current, { cacheBust: true, pixelRatio: 2 });
-      const blob = await fetch(dataUrl).then((r) => r.blob());
       await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
+      return;
     } catch {
-      // fallback: download
-      const dataUrl = await toPng(imageRef.current, { cacheBust: true, pixelRatio: 2 });
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = `${title}.png`;
-      a.click();
+      // clipboard não disponível, vai para download
     }
+
+    // Fallback: download
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (

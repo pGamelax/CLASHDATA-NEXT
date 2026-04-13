@@ -142,35 +142,35 @@ export default function PricingPage() {
             <Sparkles className="h-4 w-4 text-primary" />
             <span className="font-semibold">Escolha o plano perfeito para você</span>
           </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
             Planos que{" "}
             <span className="bg-linear-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               crescem
             </span>{" "}
             com você
           </h1>
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+          <p className="text-base sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
             Comece com 3 dias grátis. Sem compromisso. Cancele quando quiser.
           </p>
 
           {/* Period toggle */}
-          <div className="flex justify-center">
-            <div className="inline-flex rounded-xl border bg-card p-1 gap-1 shadow-sm">
+          <div className="flex justify-center px-2">
+            <div className="inline-flex rounded-xl border bg-card p-1 gap-0.5 sm:gap-1 shadow-sm w-full max-w-xs sm:w-auto sm:max-w-none">
               {PERIODS.map((p) => (
                 <button
                   key={p.key}
                   type="button"
                   onClick={() => setPeriod(p.key)}
                   className={cn(
-                    "px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap",
+                    "flex-1 sm:flex-none flex flex-col sm:flex-row items-center sm:gap-1.5 px-2 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all",
                     period === p.key
                       ? "bg-primary text-primary-foreground shadow-md"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  {p.label}
+                  <span className="whitespace-nowrap">{p.label}</span>
                   {p.discount && (
-                    <Badge variant="secondary" className="ml-1.5 bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] px-1.5">
+                    <Badge variant="secondary" className="bg-green-500/10 text-green-600 dark:text-green-400 text-[9px] sm:text-[10px] px-1 sm:px-1.5 mt-0.5 sm:mt-0">
                       {p.discount}
                     </Badge>
                   )}
@@ -187,12 +187,13 @@ export default function PricingPage() {
           </div>
         ) : (
           <div className="mb-16 relative">
-            {/* Scroll track */}
+            {/* Scroll track — negative margin on mobile so cards bleed to screen edges */}
             <div
               ref={scrollRef}
               onScroll={handleScroll}
               className={cn(
-                "flex gap-5 scroll-smooth pt-5 pb-4 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+                "flex gap-4 sm:gap-5 scroll-smooth pt-5 pb-4 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+                "px-4 sm:px-0 -mx-4 sm:mx-0",
                 plans.length === 1 ? "justify-center overflow-x-visible" : "overflow-x-auto"
               )}
             >
@@ -209,7 +210,7 @@ export default function PricingPage() {
                       "relative flex flex-col border-2 transition-all duration-300 shrink-0 snap-start",
                       plans.length === 1
                         ? "w-full max-w-sm"
-                        : "w-[85vw] sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)] xl:w-[calc(25%-15px)]",
+                        : "w-[80vw] sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)] xl:w-[calc(25%-15px)]",
                       plan.isPopular
                         ? "border-primary shadow-lg bg-linear-to-b from-primary/5 to-background"
                         : "border-border hover:border-primary/40"

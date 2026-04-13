@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { authClient, useClans, useSession } from "@/auth";
+import * as Collapsible from "@radix-ui/react-collapsible";
 import {
   Sidebar,
   SidebarContent,
@@ -16,6 +17,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
@@ -37,6 +41,7 @@ import {
   CreditCard,
   Shield,
   ChevronUp,
+  ChevronRight,
   Plus,
   Check,
   LogOut,
@@ -72,15 +77,40 @@ interface AppSidebarProps {
 
 // ── Nav config ───────────────────────────────────────────────────────────────
 
-const clanNavItems = [
-  { title: "Dashboard", href: "", icon: LayoutDashboard },
-  { title: "Guerra atual", href: "/current-war", icon: Zap },
-  { title: "Ranking random", href: "/random-ranking", icon: Swords },
-  { title: "CWL Atual", href: "/current-cwl", icon: Trophy },
-  { title: "Ranking CWL", href: "/cwl-ranking", icon: Trophy },
-  { title: "Player Push", href: "/player-push", icon: TrendingUp },
-  { title: "Fim de Temporada", href: "/season-end", icon: CalendarClock },
-  { title: "Billing", href: "/subscription", icon: CreditCard },
+const clanNavGroups = [
+  {
+    label: null,
+    items: [
+      { title: "Dashboard", href: "", icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: "Guerras",
+    items: [
+      { title: "Guerra atual",    href: "/current-war",    icon: Zap    },
+      { title: "Ranking guerras", href: "/random-ranking", icon: Swords },
+    ],
+  },
+  {
+    label: "CWL",
+    items: [
+      { title: "CWL Atual",   href: "/current-cwl", icon: Trophy },
+      { title: "Ranking CWL", href: "/cwl-ranking", icon: Trophy },
+    ],
+  },
+  {
+    label: "Lendária",
+    items: [
+      { title: "Push",            href: "/player-push", icon: TrendingUp  },
+      { title: "Fim de temporada", href: "/season-end", icon: CalendarClock },
+    ],
+  },
+  {
+    label: "Configurações",
+    items: [
+      { title: "Assinatura", href: "/subscription", icon: CreditCard },
+    ],
+  },
 ];
 
 const adminNavItems = [
@@ -284,6 +314,58 @@ function ClanSelectorSidebar({
   );
 }
 
+// ── Clan Nav Group (accordion) ────────────────────────────────────────────────
+
+interface ClanNavGroupProps {
+  label: string;
+  defaultOpen: boolean;
+  items: { title: string; href: string; icon: React.ElementType }[];
+  basePath: string;
+  pathname: string;
+}
+
+function ClanNavGroup({ label, defaultOpen, items, basePath, pathname }: ClanNavGroupProps) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <Collapsible.Root asChild open={open} onOpenChange={setOpen}>
+      <SidebarMenuItem>
+        <Collapsible.Trigger asChild>
+          <SidebarMenuButton className="font-medium text-muted-foreground hover:text-foreground group-data-[collapsible=icon]:justify-center">
+            <span className="group-data-[collapsible=icon]:hidden flex-1 text-xs uppercase tracking-wider">{label}</span>
+            <ChevronRight
+              className={cn(
+                "h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-data-[collapsible=icon]:hidden",
+                open && "rotate-90"
+              )}
+            />
+          </SidebarMenuButton>
+        </Collapsible.Trigger>
+
+        <Collapsible.Content>
+          <SidebarMenuSub className="mr-0 border-l-0 pl-2">
+            {items.map((item) => {
+              const Icon = item.icon;
+              const href = `${basePath}${item.href}`;
+              const isActive = pathname.startsWith(href);
+              return (
+                <SidebarMenuSubItem key={item.href}>
+                  <SidebarMenuSubButton asChild isActive={isActive}>
+                    <Link href={href}>
+                      <Icon className="h-3.5 w-3.5" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              );
+            })}
+          </SidebarMenuSub>
+        </Collapsible.Content>
+      </SidebarMenuItem>
+    </Collapsible.Root>
+  );
+}
+
 // ── Main Sidebar ─────────────────────────────────────────────────────────────
 
 export function AppSidebar({ initialUser }: AppSidebarProps) {
@@ -422,31 +504,46 @@ export function AppSidebar({ initialUser }: AppSidebarProps) {
         
         {/* ── Clan Nav (only when clans exist) ── */}
         {clansList.length > 0 && basePath && (
-          <SidebarGroup className="px-2">
-            <SidebarGroupLabel>Clan</SidebarGroupLabel>
+          <SidebarGroup className="px-2 py-0">
             <SidebarGroupContent>
               <SidebarMenu>
-                {clanNavItems.map((item) => {
-                  const Icon = item.icon;
-                  const href = `${basePath}${item.href}`;
-                  const isActive =
-                    item.href === ""
-                      ? pathname === basePath || pathname === `${basePath}/`
-                      : pathname.startsWith(href);
+                {clanNavGroups.map((group, gi) => {
+                  // Groups without label render as plain items
+                  if (!group.label) {
+                    return group.items.map((item) => {
+                      const Icon = item.icon;
+                      const href = `${basePath}${item.href}`;
+                      const isActive =
+                        item.href === ""
+                          ? pathname === basePath || pathname === `${basePath}/`
+                          : pathname.startsWith(href);
+                      return (
+                        <SidebarMenuItem key={item.href}>
+                          <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
+                            <Link href={href}>
+                              <Icon />
+                              <span>{item.title}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    });
+                  }
+
+                  // Groups with label render as collapsible accordion
+                  const hasActiveChild = group.items.some((item) =>
+                    pathname.startsWith(`${basePath}${item.href}`)
+                  );
 
                   return (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={isActive}
-                        tooltip={item.title}
-                      >
-                        <Link href={href}>
-                          <Icon />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    <ClanNavGroup
+                      key={gi}
+                      label={group.label}
+                      defaultOpen={hasActiveChild}
+                      items={group.items}
+                      basePath={basePath}
+                      pathname={pathname}
+                    />
                   );
                 })}
               </SidebarMenu>
