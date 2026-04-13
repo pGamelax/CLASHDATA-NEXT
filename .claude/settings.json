@@ -12,7 +12,9 @@
       "Bash(page-helpers\")",
       "Bash(bunx shadcn@latest add sidebar)",
       "Bash(bunx --bun shadcn@latest add sidebar --yes)",
-      "WebFetch(domain:docs.buypix.me)"
+      "WebFetch(domain:docs.buypix.me)",
+      "Bash(DATABASE_URL=\"postgres://clashdata:clashdata@localhost:5432/clashdata\" bunx prisma migrate dev --name add_referrals)",
+      "Bash(DATABASE_URL=\"postgres://clashdata:clashdata@localhost:5432/clashdata\" bunx prisma db push --accept-data-loss)"
     ],
     "additionalDirectories": [
       "c:\\Users\\pedro\\Documents\\CLASHDATA-NEXT\\packages\\frontend\\src\\app\\(protected)\\clan\\[tag]"

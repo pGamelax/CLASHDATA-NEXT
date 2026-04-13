@@ -6,6 +6,15 @@ import { Resend } from "resend";
 import { env } from "./env";
 import { prisma } from "./lib/prisma";
 
+function generateReferralCode(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let code = "";
+  for (let i = 0; i < 8; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
 const resend = new Resend(env.RESEND_API_KEY);
 
 const trustedOrigins = Array.isArray(env.BETTER_AUTH_TRUSTED_ORIGIN)
@@ -46,6 +55,20 @@ export const auth = betterAuth({
     provider: "postgresql",
     usePlural: false,
   }),
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          return {
+            data: {
+              ...user,
+              referralCode: generateReferralCode(),
+            },
+          };
+        },
+      },
+    },
+  },
   advanced: {
     useSecureCookies: true,
     database: {

@@ -108,6 +108,36 @@ export const adminRoutes = new Elysia({ prefix: "/admin" })
     }
   )
 
+  // ── Referrals ──────────────────────────────────────────────────
+  .get(
+    "/referrals",
+    async ({ request, error }) => {
+      const { auth } = await import("../auth");
+      const { prisma } = await import("../lib/prisma");
+      const session = await auth.api.getSession({ headers: request.headers });
+      if (!session?.user || (session.user as any).role !== "admin") {
+        return error(403, { message: "Acesso negado" });
+      }
+      const users = await prisma.user.findMany({
+        where: { referralCode: { not: null } },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          referralCode: true,
+          createdAt: true,
+          referrals: {
+            select: { id: true, name: true, email: true, createdAt: true },
+            orderBy: { createdAt: "desc" },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      return { data: users };
+    },
+    { detail: { tags: ["Admin"], summary: "Listar indicações" } }
+  )
+
   // ── Plan management ────────────────────────────────────────────
   .get("/plans", async (context) => adminPlansController.getPlans(context), {
     detail: { tags: ["Admin"], summary: "Listar todos os planos" },

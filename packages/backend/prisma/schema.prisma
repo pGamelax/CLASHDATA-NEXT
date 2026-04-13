@@ -20,6 +20,10 @@ model User {
   image         String?
   role          String   @default("user")
   banned        Boolean  @default(false)
+  referralCode  String?  @unique
+  referredById  String?
+  referredBy    User?    @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals     User[]   @relation("Referrals")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   accounts      Account[]

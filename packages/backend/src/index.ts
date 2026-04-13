@@ -18,6 +18,7 @@ import { setupPlayerPushJob, playerPushWorker } from "./jobs/player-push.job";
 import { setupSubscriptionExpiryJob, subscriptionExpiryWorker } from "./jobs/subscription-expiry.job";
 import { seasonEndDateRoutes } from "./routes/season-end-date.routes";
 import { announcementsRoutes } from "./routes/announcements.routes";
+import { referralsRoutes } from "./routes/referrals.routes";
 import { seasonSnapshotWorker } from "./jobs/season-snapshot.job";
 
 const corsOrigin = env.CORS_ORIGIN || env.BETTER_AUTH_TRUSTED_ORIGIN;
@@ -60,6 +61,7 @@ const app = new Elysia()
   .use(playerRoutes)
   .use(seasonEndDateRoutes)
   .use(announcementsRoutes)
+  .use(referralsRoutes)
   .get("/health", ({ request }) => {
     const ip = request.headers.get("x-real-ip") || request.headers.get("x-forwarded-for") || "unknown";
     console.log(`[health] ping from ${ip} at ${new Date().toISOString()}`);

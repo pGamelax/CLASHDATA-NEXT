@@ -4,8 +4,9 @@ import { useState, useEffect, Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Lock, Mail, Loader2, XCircle, User, Eye, EyeOff, Shield, Trophy, TrendingUp } from "lucide-react";
+import { Lock, Mail, Loader2, XCircle, User, Eye, EyeOff, Shield, Trophy, TrendingUp, Gift } from "lucide-react";
 import { authClient } from "../../../auth";
+import { applyReferralCode } from "@/lib/api";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ const signUpSchema = z
     name: z.string().min(1, "Nome obrigatório"),
     password: z.string().min(8, "A senha deve ter pelo menos 8 caracteres"),
     confirmPassword: z.string().min(1, "Confirmação de senha obrigatória"),
+    referralCode: z.string().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "As senhas não coincidem",
@@ -118,20 +120,34 @@ function SignUpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl");
+  const refCode = searchParams.get("ref");
   const redirectUrl = callbackUrl || "/clans";
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<SignUpSchema>({ resolver: zodResolver(signUpSchema) });
+  } = useForm<SignUpSchema>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: { referralCode: refCode || "" },
+  });
 
-  async function handleSignUp({ email, password, name }: SignUpSchema) {
+  async function handleSignUp({ email, password, name, referralCode }: SignUpSchema) {
     setServerError(null);
     await authClient.signUp.email(
       { email, password, name, callbackURL: redirectUrl },
       {
-        onSuccess: () => { router.push(redirectUrl); router.refresh(); },
+        onSuccess: async () => {
+          if (referralCode?.trim()) {
+            try {
+              await applyReferralCode(referralCode.trim());
+            } catch {
+              // Código inválido não impede o cadastro
+            }
+          }
+          router.push(redirectUrl);
+          router.refresh();
+        },
         onError: (ctx) => setServerError(ctx.error.message || "Erro ao criar conta"),
       }
     );
@@ -316,6 +332,22 @@ function SignUpForm() {
                     {errors.confirmPassword.message}
                   </p>
                 )}
+              </div>
+
+              {/* Referral code */}
+              <div className="space-y-1.5">
+                <div className="relative">
+                  <Gift className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    {...register("referralCode")}
+                    placeholder="Código de indicação (opcional)"
+                    className="pl-10 h-11 rounded-xl border bg-muted/30 transition-all border-border focus-visible:ring-primary/30 uppercase"
+                    onChange={(e) => {
+                      e.target.value = e.target.value.toUpperCase();
+                      register("referralCode").onChange(e);
+                    }}
+                  />
+                </div>
               </div>
 
               {serverError && (

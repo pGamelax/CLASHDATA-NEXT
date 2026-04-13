@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import type { ReferralInfo } from "@/lib/api";
 import {
   User,
   Lock,
@@ -14,6 +15,9 @@ import {
   Loader2,
   Eye,
   EyeOff,
+  Gift,
+  Copy,
+  Users,
 } from "lucide-react";
 
 // ─── Avatar presets ───────────────────────────────────────────────────────────
@@ -312,21 +316,132 @@ function SecuritySection() {
 }
 
 
+// ─── Referral Section ────────────────────────────────────────────────────────
+
+function ReferralSection({ referral }: { referral: ReferralInfo | null }) {
+  const [copied, setCopied] = useState<"code" | "link" | null>(null);
+
+  const frontendUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const referralLink = referral ? `${frontendUrl}/sign-up?ref=${referral.referralCode}` : "";
+
+  function copyToClipboard(text: string, type: "code" | "link") {
+    navigator.clipboard.writeText(text);
+    setCopied(type);
+    setTimeout(() => setCopied(null), 2000);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold">Indicação</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Compartilhe seu código e convide amigos para o CLASHDATA.
+        </p>
+      </div>
+
+      {referral ? (
+        <>
+          {/* Stats */}
+          <div className="rounded-xl border bg-card p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 border border-primary/15">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{referral.referredCount}</p>
+                <p className="text-xs text-muted-foreground">
+                  {referral.referredCount === 1 ? "pessoa indicada" : "pessoas indicadas"}
+                </p>
+              </div>
+            </div>
+
+            {/* Referral code */}
+            <div className="space-y-1.5 mb-4">
+              <Label>Seu código de indicação</Label>
+              <div className="flex gap-2">
+                <div className="flex-1 flex items-center px-4 h-11 rounded-xl border bg-muted/30 font-mono text-sm font-semibold tracking-widest text-foreground">
+                  {referral.referralCode}
+                </div>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-11 w-11 rounded-xl shrink-0"
+                  onClick={() => copyToClipboard(referral.referralCode, "code")}
+                >
+                  {copied === "code" ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+
+            {/* Referral link */}
+            <div className="space-y-1.5">
+              <Label>Link de indicação</Label>
+              <div className="flex gap-2">
+                <div className="flex-1 flex items-center px-4 h-11 rounded-xl border bg-muted/30 text-xs text-muted-foreground truncate">
+                  {referralLink}
+                </div>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-11 w-11 rounded-xl shrink-0"
+                  onClick={() => copyToClipboard(referralLink, "link")}
+                >
+                  {copied === "link" ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Compartilhe este link. Quem cadastrar usando seu link será vinculado à sua conta.
+              </p>
+            </div>
+          </div>
+
+          {/* Referred users list */}
+          {referral.referrals.length > 0 && (
+            <div className="rounded-xl border bg-card p-6 space-y-4">
+              <p className="text-sm font-medium">Pessoas indicadas</p>
+              <div className="space-y-2">
+                {referral.referrals.map((r) => (
+                  <div key={r.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                    <div>
+                      <p className="text-sm font-medium">{r.name || "—"}</p>
+                      <p className="text-xs text-muted-foreground">{r.email}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(r.createdAt).toLocaleDateString("pt-BR")}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">
+          Erro ao carregar informações de indicação.
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 const NAV = [
   { id: "profile",  label: "Perfil",    icon: User },
   { id: "security", label: "Segurança", icon: Lock },
+  { id: "referral", label: "Indicação", icon: Gift },
 ] as const;
 
 type SectionId = (typeof NAV)[number]["id"];
 
 interface UserSettingsClientProps {
   user: { name: string; email: string; image?: string | null };
+  referral: ReferralInfo | null;
+  initialTab?: SectionId;
 }
 
-export function UserSettingsClient({ user }: UserSettingsClientProps) {
-  const [active, setActive] = useState<SectionId>("profile");
+export function UserSettingsClient({ user, referral, initialTab = "profile" }: UserSettingsClientProps) {
+  const [active, setActive] = useState<SectionId>(initialTab);
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl overflow-x-hidden">
@@ -380,6 +495,7 @@ export function UserSettingsClient({ user }: UserSettingsClientProps) {
         <div className="flex-1 min-w-0">
           {active === "profile"  && <ProfileSection user={user} />}
           {active === "security" && <SecuritySection />}
+          {active === "referral" && <ReferralSection referral={referral} />}
         </div>
       </div>
     </div>

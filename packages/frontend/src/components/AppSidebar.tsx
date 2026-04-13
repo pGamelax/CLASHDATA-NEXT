@@ -47,6 +47,7 @@ import {
   PackageOpen,
   Megaphone,
   DollarSign,
+  Gift,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -90,13 +91,15 @@ const adminNavItems = [
   { title: "Temporadas",  href: "/admin/season-dates",    icon: CalendarClock },
   { title: "Anúncios",    href: "/admin/announcements",   icon: Megaphone },
   { title: "Faturamento", href: "/admin/faturamento",     icon: DollarSign },
+  { title: "Indicações",  href: "/admin/referrals",       icon: Gift },
 ];
 
 const mainNavItems = [
-  {title: "Clans", href: "/clans", icon: Shield },
+  { title: "Clans", href: "/clans", icon: Shield },
   { title: "Ranking", href: "/ranking", icon: Trophy },
   { title: "Planos", href: "/pricing", icon: CreditCard },
   { title: "Jogador", href: "/player/search", icon: User },
+  { title: "Indicação", href: "/user/settings?tab=referral", icon: Gift },
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -395,7 +398,8 @@ export function AppSidebar({ initialUser }: AppSidebarProps) {
             <SidebarMenu>
               {mainNavItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname?.startsWith(item.href);
+                const basHref = item.href.split("?")[0];
+                const isActive = pathname?.startsWith(basHref) && basHref !== "/";
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton

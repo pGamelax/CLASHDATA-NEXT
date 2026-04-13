@@ -819,3 +819,26 @@ export async function getPlayerBasic(playerTag: string): Promise<any> {
   const data = await apiFetch<{ data: any }>(`/player/${encodeURIComponent(cleanTag)}/basic`);
   return data.data;
 }
+
+// --- Referrals ---
+
+export interface ReferralInfo {
+  referralCode: string;
+  referredCount: number;
+  referrals: Array<{ id: string; name: string | null; email: string; createdAt: string }>;
+}
+
+export async function getReferralInfo(cookieHeader?: string): Promise<ReferralInfo | null> {
+  try {
+    return await apiFetch<ReferralInfo>("/referrals/my", { cookies: cookieHeader });
+  } catch {
+    return null;
+  }
+}
+
+export async function applyReferralCode(code: string): Promise<{ success: boolean }> {
+  return apiFetch<{ success: boolean }>("/referrals/apply", {
+    method: "POST",
+    body: JSON.stringify({ code }),
+  });
+}
