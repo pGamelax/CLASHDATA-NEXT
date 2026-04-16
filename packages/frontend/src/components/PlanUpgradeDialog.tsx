@@ -111,6 +111,7 @@ export function PlanUpgradeDialog({
         });
         setPixData(result.pix);
         setShowPixModal(true);
+        onOpenChange(false);
       }
     } catch (err: any) {
       setError(err.message ?? "Erro ao processar alteração de plano");
