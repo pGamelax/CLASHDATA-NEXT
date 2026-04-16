@@ -133,7 +133,7 @@ export function ClanSubscriptionContent({ clan, subscription, pendingPix, plans 
         )}
       </div>
 
-      {upgradeOpen && subscription && (
+      {subscription && (
         <PlanUpgradeDialog
           open={upgradeOpen}
           onOpenChange={setUpgradeOpen}
