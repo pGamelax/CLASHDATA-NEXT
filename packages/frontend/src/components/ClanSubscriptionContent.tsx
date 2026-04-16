@@ -142,6 +142,7 @@ export function ClanSubscriptionContent({ clan, subscription, pendingPix, plans 
           currentPeriod={subscription.period}
           clanId={clan.id}
           onSuccess={() => { setUpgradeOpen(false); router.refresh(); }}
+          isActive={subscription.isActive}
         />
       )}
     </div>

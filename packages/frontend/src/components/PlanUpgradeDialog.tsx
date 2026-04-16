@@ -41,10 +41,12 @@ interface Props {
   currentPeriod?: string;
   clanId: string;
   onSuccess?: () => void;
+  /** false quando a assinatura está expirada — permite renovar o mesmo plano/período */
+  isActive?: boolean;
 }
 
 export function PlanUpgradeDialog({
-  open, onOpenChange, currentPlan, currentPeriodEnd, currentPeriod, clanId, onSuccess,
+  open, onOpenChange, currentPlan, currentPeriodEnd, currentPeriod, clanId, onSuccess, isActive = true,
 }: Props) {
   const [plans, setPlans] = useState<PlanConfig[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string>(currentPlan);
@@ -72,7 +74,9 @@ export function PlanUpgradeDialog({
   const currentPlanData = plans.find((p) => p.key === currentPlan);
   const selectedPlanData = plans.find((p) => p.key === selectedPlan);
 
-  const isSame = selectedPlan === currentPlan;
+  // isSame só bloqueia quando a assinatura está ativa E nada mudou.
+  // Quando expirada, sempre permite confirmar (é uma renovação).
+  const isSame = isActive && selectedPlan === currentPlan && selectedPeriod === ((currentPeriod as Period) ?? "monthly");
   const currentOrder = currentPlanData?.sortOrder ?? 0;
   const selectedOrder = selectedPlanData?.sortOrder ?? 0;
   const isUpgrade = !isSame && selectedOrder > currentOrder;
